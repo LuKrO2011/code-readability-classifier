@@ -93,9 +93,7 @@ exclude = [
   ".venv",
   "venv",
   ".mypy_cache",
-  ".pytest_cache",
-  "JavaLexer.py",
-  "JavaParser.py"
+  ".pytest_cache"
 ]
 target-version = "py311"
 
