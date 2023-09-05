@@ -1,19 +1,20 @@
-from sklearn.metrics import mean_squared_error
-from transformers import BertTokenizer, BertModel
-import torch
 import os
+
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import torch
 import torch.nn as nn
 import torch.optim as optim
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from transformers import BertModel, BertTokenizer
 
 
 class CNNModel(nn.Module):
     def __init__(self, num_classes):
-        super(CNNModel, self).__init__()
+        super().__init__()
 
         # Bert embedding
-        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.bert = BertModel.from_pretrained("bert-base-uncased")
 
         # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
@@ -48,8 +49,7 @@ class CNNModel(nn.Module):
 
 
 class CodeReadabilityClassifier:
-    def __init__(self, batch_size=32, num_epochs=10,
-                 learning_rate=0.001):
+    def __init__(self, batch_size=32, num_epochs=10, learning_rate=0.001):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
@@ -66,36 +66,33 @@ class CodeReadabilityClassifier:
         embeddings = [self.tokenize_and_encode(code) for code in code_snippets]
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            embeddings,
-            aggregated_scores,
-            test_size=0.2,
-            random_state=42)
+            embeddings, aggregated_scores, test_size=0.2, random_state=42
+        )
 
         self.setup_model()
 
     def load_data(self, csv, data_dir):
-        df = pd.read_csv(csv)
-        num_columns = df.shape[1]
+        data_frame = pd.read_csv(csv)
+        num_columns = data_frame.shape[1]
 
         # TODO: Actually load the code snippets
 
         code_snippets = []
         for i in range(1, num_columns):
-            column_name = f'Snippet{i}'
-            code_snippets.append(df[column_name].tolist())
+            column_name = f"Snippet{i}"
+            code_snippets.append(data_frame[column_name].tolist())
 
-        evaluator_scores = df.drop(columns=['', *code_snippets])
+        evaluator_scores = data_frame.drop(columns=["", *code_snippets])
         aggregated_scores = evaluator_scores.mean(axis=1)
 
         return code_snippets, aggregated_scores
 
     def tokenize_and_encode(self, text):
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         input_ids = tokenizer.encode(text, add_special_tokens=True)
         input_ids = torch.tensor(input_ids).unsqueeze(0)  # TODO: Add batch dimension?
         with torch.no_grad():
-            embeddings = self.model.bert(input_ids)[0]
-        return embeddings
+            return self.model.bert(input_ids)[0]
 
     def setup_model(self):
         self.model = CNNModel(2)
@@ -118,16 +115,22 @@ class CodeReadabilityClassifier:
 
             for i in range(0, len(self.X_train), self.batch_size):
                 # x, y = x.to(device), y.to(device)
-                x_batch = torch.Tensor(self.X_train[i:i + self.batch_size]).to(
-                    self.device)
-                y_batch = torch.Tensor(self.y_train[i:i + self.batch_size]).unsqueeze(
-                    1).to(self.device)
+                x_batch = torch.Tensor(self.X_train[i : i + self.batch_size]).to(
+                    self.device
+                )
+                y_batch = (
+                    torch.Tensor(self.y_train[i : i + self.batch_size])
+                    .unsqueeze(1)
+                    .to(self.device)
+                )
 
                 loss = self._train_iteration(x_batch, y_batch)
                 running_loss += loss
 
             print(
-                f"Epoch {epoch + 1}/{self.num_epochs}, Loss: {running_loss / len(self.X_train)}")
+                f"Epoch {epoch + 1}/{self.num_epochs}, "
+                f"Loss: {running_loss / len(self.X_train)}"
+            )
 
     def evaluate(self):
         self.model.eval()
@@ -142,9 +145,11 @@ class CodeReadabilityClassifier:
 
 
 if __name__ == "__main__":
-    data_dir = 'C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/'
-    snippets_dir = os.path.join(data_dir, 'Snippets')
-    csv = os.path.join(data_dir, 'scores.csv')
+    data_dir = (
+        "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
+    )
+    snippets_dir = os.path.join(data_dir, "Snippets")
+    csv = os.path.join(data_dir, "scores.csv")
 
     classifier = CodeReadabilityClassifier()
     classifier.prepare_data(csv, snippets_dir)

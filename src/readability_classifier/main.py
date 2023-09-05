@@ -1,12 +1,21 @@
 import logging
+import os
 import sys
 from argparse import ArgumentParser
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from readability_classifier.models.model2 import CodeReadabilityClassifier
+
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
+
+data_dir = (
+    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
+)
+snippets_dir = os.path.join(data_dir, "Snippets")
+csv = os.path.join(data_dir, "scores.csv")
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
@@ -51,6 +60,7 @@ class Tasks(Enum):
     """
     Enum for the different tasks of the readability classifier.
     """
+
     TRAIN = "TRAIN"
     PREDICT = "PREDICT"
     EVALUATE = "EVALUATE"
@@ -72,8 +82,8 @@ def _set_up_arg_parser() -> ArgumentParser:
     sub_parser = arg_parser.add_subparsers(dest="command", required=True)
 
     train_parser = sub_parser.add_parser(str(Tasks.TRAIN))
-    predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
-    evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
+    # predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
+    # evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
 
     # TODO: Add more params
     train_parser.add_argument("--save", required=False, type=Path)
@@ -82,12 +92,16 @@ def _set_up_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
-def _run_train(parsed_args):
-    # TODO: Replace with actual arguments
+def _run_train(parsed_args) -> None:
+    """
+    Runs the training of the readability classifier.
+    :param parsed_args: Parsed arguments.
+    :return: None
+    """
     # save = parsed_args.save
-
-    # TODO: Call actual function
-    pass
+    classifier = CodeReadabilityClassifier()
+    classifier.prepare_data(csv, snippets_dir)
+    classifier.train()
 
 
 def _run_predict(parsed_args):
