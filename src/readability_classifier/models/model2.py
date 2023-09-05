@@ -7,53 +7,13 @@ from sklearn.model_selection import train_test_split
 import torch.nn as nn
 import torch.optim as optim
 
-data_dir = 'C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/'
-snippets_dir = os.path.join(data_dir, 'Snippets')
-csv = os.path.join(data_dir, 'scores.csv')
-no_snippets = 200
 
-# Load the CSV file
-df = pd.read_csv(csv)
-
-# Extract code snippets and readability scores
-code_snippets = []
-for i in range(1, no_snippets + 1):
-    column_name = f'Snippet{i}'
-    code_snippets.append(df[column_name].tolist())
-
-# Drop empty column at the beginning
-evaluator_scores = df.drop(columns=['', *code_snippets])
-
-# Calculate the mean score across evaluators for each snippet
-aggregated_scores = evaluator_scores.mean(axis=1)
-
-# Tokenize and encode the code snippets
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-bert = BertModel.from_pretrained('bert-base-uncased')
-
-
-def tokenize_and_encode(text):
-    input_ids = tokenizer.encode(text, add_special_tokens=True)
-    input_ids = torch.tensor(input_ids).unsqueeze(0)  # Add batch dimension
-    with torch.no_grad():
-        embeddings = bert(input_ids)[0]
-    return embeddings
-
-
-embeddings = []
-for code_snippet in code_snippets:
-    embeddings.append(tokenize_and_encode(code_snippet))
-
-# Split the data into training and test set (X = embeddings, y = aggregated_scores)
-X_train, X_test, y_train, y_test = train_test_split(embeddings, aggregated_scores,
-                                                    test_size=0.2,
-                                                    random_state=42)
-
-
-# Build and train the model
 class CNNModel(nn.Module):
     def __init__(self, num_classes):
         super(CNNModel, self).__init__()
+
+        # Bert embedding
+        self.bert = BertModel.from_pretrained('bert-base-uncased')
 
         # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
@@ -70,6 +30,9 @@ class CNNModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
+        # Bert embedding
+        x = self.bert(x)[0]
+
         # Apply convolutional and pooling layers
         x = self.pool(nn.functional.relu(self.conv1(x)))
         x = self.pool(nn.functional.relu(self.conv2(x)))
@@ -84,55 +47,106 @@ class CNNModel(nn.Module):
         return x
 
 
-bert = CNNModel(2)
-criterion = nn.MSELoss()
-optimizer = optim.Adam(bert.parameters(), lr=0.001)
+class CodeReadabilityClassifier:
+    def __init__(self, batch_size=32, num_epochs=10,
+                 learning_rate=0.001):
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# TODO: Measure training time and store history weights
+    def prepare_data(self, csv, data_dir):
+        """
+        Loads the data and prepares it for training and evaluation.
+        :param csv: Path to the CSV file containing the scores.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: None
+        """
+        code_snippets, aggregated_scores = self.load_data(csv, data_dir)
+        embeddings = [self.tokenize_and_encode(code) for code in code_snippets]
 
-# Train the model using X_train, y_train
-num_epochs = 10  # TODO: Adjust
-batch_size = 32  # TODO: Adjust
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-bert.to(device)
-for epoch in range(num_epochs):
-    bert.train()
-    running_loss = 0.0
-    # TODO: Add total loss and validation losses
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            embeddings,
+            aggregated_scores,
+            test_size=0.2,
+            random_state=42)
 
-    for i in range(0, len(X_train), batch_size):
-        # Send data to cpu/gpu
-        # x, y = x.to(device), y.to(device)
-        x = torch.Tensor(X_train[i:i + batch_size]).to(device)
-        y = torch.Tensor(y_train[i:i + batch_size]).to(device)
+        self.setup_model()
 
-        # Forward pass
-        outputs = bert(x)
+    def load_data(self, csv, data_dir):
+        df = pd.read_csv(csv)
+        num_columns = df.shape[1]
 
-        # Loss calculation
-        loss = criterion(outputs, y)
+        # TODO: Actually load the code snippets
 
-        # Zero the parameter gradients
-        optimizer.zero_grad()
+        code_snippets = []
+        for i in range(1, num_columns):
+            column_name = f'Snippet{i}'
+            code_snippets.append(df[column_name].tolist())
 
-        # Backward pass
+        evaluator_scores = df.drop(columns=['', *code_snippets])
+        aggregated_scores = evaluator_scores.mean(axis=1)
+
+        return code_snippets, aggregated_scores
+
+    def tokenize_and_encode(self, text):
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        input_ids = tokenizer.encode(text, add_special_tokens=True)
+        input_ids = torch.tensor(input_ids).unsqueeze(0)  # TODO: Add batch dimension?
+        with torch.no_grad():
+            embeddings = self.model.bert(input_ids)[0]
+        return embeddings
+
+    def setup_model(self):
+        self.model = CNNModel(2)
+        self.model.to(self.device)
+        self.criterion = nn.MSELoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+    def _train_iteration(self, x_batch, y_batch):
+        self.optimizer.zero_grad()
+        outputs = self.model(x_batch)
+        loss = self.criterion(outputs, y_batch)
         loss.backward()
+        self.optimizer.step()
+        return loss.item()
 
-        # Update the weights
-        optimizer.step()
+    def train(self):
+        for epoch in range(self.num_epochs):
+            self.model.train()
+            running_loss = 0.0
 
-        # Update total loss
-        running_loss += loss.item()
+            for i in range(0, len(self.X_train), self.batch_size):
+                # x, y = x.to(device), y.to(device)
+                x_batch = torch.Tensor(self.X_train[i:i + self.batch_size]).to(
+                    self.device)
+                y_batch = torch.Tensor(self.y_train[i:i + self.batch_size]).unsqueeze(
+                    1).to(self.device)
 
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(X_train)}")
+                loss = self._train_iteration(x_batch, y_batch)
+                running_loss += loss
 
-# Evaluate the model
-bert.eval()
-with torch.no_grad():
-    # x, y = x.to(device), y.to(device)
-    test_inputs = torch.Tensor(X_test).to(device)
-    test_labels = torch.Tensor(y_test).to(device)
-    predictions = bert(test_inputs)
+            print(
+                f"Epoch {epoch + 1}/{self.num_epochs}, Loss: {running_loss / len(self.X_train)}")
 
-mse = mean_squared_error(test_labels.cpu().numpy(), predictions.cpu().numpy())
-print(f"Mean Squared Error (MSE): {mse}")
+    def evaluate(self):
+        self.model.eval()
+        with torch.no_grad():
+            # x, y = x.to(device), y.to(device)
+            x_batch = torch.Tensor(self.X_test).to(self.device)
+            y_batch = torch.Tensor(self.y_test).unsqueeze(1).to(self.device)
+            predictions = self.model(x_batch)
+
+        mse = mean_squared_error(y_batch.cpu().numpy(), predictions.cpu().numpy())
+        print(f"Mean Squared Error (MSE): {mse}")
+
+
+if __name__ == "__main__":
+    data_dir = 'C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/'
+    snippets_dir = os.path.join(data_dir, 'Snippets')
+    csv = os.path.join(data_dir, 'scores.csv')
+
+    classifier = CodeReadabilityClassifier()
+    classifier.prepare_data(csv, snippets_dir)
+    classifier.train()
+    classifier.evaluate()
