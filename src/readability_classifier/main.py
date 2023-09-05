@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.models.model2 import CodeReadabilityClassifier
+from readability_classifier.models.model import CodeReadabilityClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
