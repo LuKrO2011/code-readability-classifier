@@ -72,20 +72,41 @@ class CodeReadabilityClassifier:
         self.setup_model()
 
     def load_data(self, csv, data_dir):
+        mean_scores = self._load_mean_scores(csv)
+        code_snippets = self._load_code_snippets(data_dir)
+
+        # Combine the scores and code snippets into a pandas DataFrame
+
+        return mean_scores, code_snippets
+
+    def _load_code_snippets(self, data_dir):
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        code_snippets = {}
+
+        for file in os.listdir(data_dir):
+            with open(os.path.join(data_dir, file)) as f:
+                code_snippets[file] = f.read()
+
+        return code_snippets
+
+    def _load_mean_scores(self, csv):
+        """
+        Loads the mean scores from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A pandas Series containing the mean scores.
+        """
         data_frame = pd.read_csv(csv)
-        num_columns = data_frame.shape[1]
 
-        # TODO: Actually load the code snippets
+        # Drop the first column, which contains evaluator names
+        data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
 
-        code_snippets = []
-        for i in range(1, num_columns):
-            column_name = f"Snippet{i}"
-            code_snippets.append(data_frame[column_name].tolist())
-
-        evaluator_scores = data_frame.drop(columns=["", *code_snippets])
-        aggregated_scores = evaluator_scores.mean(axis=1)
-
-        return code_snippets, aggregated_scores
+        # Calculate the mean of the scores for each code snippet
+        return data_frame.mean(axis=0)
 
     def tokenize_and_encode(self, text):
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -149,7 +170,7 @@ if __name__ == "__main__":
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
     )
     snippets_dir = os.path.join(data_dir, "Snippets")
-    csv = os.path.join(data_dir, "scores.csv")
+    csv = os.path.join(data_dir, "scores-test.csv")
 
     classifier = CodeReadabilityClassifier()
     classifier.prepare_data(csv, snippets_dir)
