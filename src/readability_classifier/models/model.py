@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
-MAX_TOKEN_LENGTH = 512
+TOKEN_LENGTH = 512
 DEFAULT_BATCH_SIZE = 32
 
 
@@ -87,8 +87,10 @@ class CodeReadabilityClassifier:
         aggregated_scores, code_snippets = self.load_data(csv, data_dir)
 
         # Tokenize and encode code snippets
+        # TODO: Use Attention Mask!
         embeddings = {
-            name: self.tokenize_and_encode(code) for name, code in code_snippets.items()
+            name: self.tokenize_and_encode(code)[0]
+            for name, code in code_snippets.items()
         }
 
         # Combine embeddings (x) and scores (y) into a dictionary
@@ -157,10 +159,26 @@ class CodeReadabilityClassifier:
     def tokenize_and_encode(self, text):
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         input_ids = tokenizer.encode(
-            text, add_special_tokens=True, truncation=True, max_length=MAX_TOKEN_LENGTH
+            text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
         )
-        input_ids = torch.tensor(input_ids).unsqueeze(0)  # TODO: Add batch dimension?
-        return input_ids
+
+        # Create an attention_mask
+        attention_mask = [1] * len(input_ids) + [0] * (TOKEN_LENGTH - len(input_ids))
+
+        # Ensure the input_ids have a maximum length of MAX_TOKEN_LENGTH
+        if len(input_ids) < TOKEN_LENGTH:
+            # Pad the input_ids with zeros to match MAX_TOKEN_LENGTH
+            input_ids += [0] * (TOKEN_LENGTH - len(input_ids))
+        else:
+            # If the input_ids exceed MAX_TOKEN_LENGTH, truncate them
+            # TODO: Necessary? Already done by tokenizer?
+            input_ids = input_ids[:TOKEN_LENGTH]
+
+        # Convert to PyTorch tensors
+        input_ids = torch.tensor(input_ids).unsqueeze(0)
+        attention_mask = torch.tensor(attention_mask).unsqueeze(0)
+
+        return input_ids, attention_mask
 
     def setup_model(self):
         self.model = CNNModel(2)
