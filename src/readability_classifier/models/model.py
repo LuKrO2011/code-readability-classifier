@@ -8,6 +8,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from transformers import BertModel, BertTokenizer
 
+MAX_TOKEN_LENGTH = 512
+
 
 class CNNModel(nn.Module):
     def __init__(self, num_classes):
@@ -55,6 +57,11 @@ class CodeReadabilityClassifier:
         self.learning_rate = learning_rate
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+
     def prepare_data(self, csv, data_dir):
         """
         Loads the data and prepares it for training and evaluation.
@@ -62,11 +69,24 @@ class CodeReadabilityClassifier:
         :param data_dir: Path to the directory containing the code snippets.
         :return: None
         """
-        code_snippets, aggregated_scores = self.load_data(csv, data_dir)
-        embeddings = [self.tokenize_and_encode(code) for code in code_snippets]
+        # Load data
+        aggregated_scores, code_snippets = self.load_data(csv, data_dir)
 
+        # Tokenize and encode code snippets
+        embeddings = {
+            name: self.tokenize_and_encode(code) for name, code in code_snippets.items()
+        }
+
+        # Combine embeddings (x) and scores (y) into a dictionary
+        data = {embeddings[name]: aggregated_scores[name] for name in code_snippets}
+
+        # Split into x and y
+        x_temp = list(data.keys())
+        y_temp = list(data.values())
+
+        # Split into training and test data
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            embeddings, aggregated_scores, test_size=0.2, random_state=42
+            x_temp, y_temp, test_size=0.2, random_state=42
         )
 
         self.setup_model()
@@ -74,8 +94,6 @@ class CodeReadabilityClassifier:
     def load_data(self, csv, data_dir):
         mean_scores = self._load_mean_scores(csv)
         code_snippets = self._load_code_snippets(data_dir)
-
-        # Combine the scores and code snippets into a pandas DataFrame
 
         return mean_scores, code_snippets
 
@@ -90,7 +108,10 @@ class CodeReadabilityClassifier:
 
         for file in os.listdir(data_dir):
             with open(os.path.join(data_dir, file)) as f:
-                code_snippets[file] = f.read()
+                # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
+                file_name = file.split(".")[0]
+                file_name = f"Snippet{file_name}"
+                code_snippets[file_name] = f.read()
 
         return code_snippets
 
@@ -106,14 +127,18 @@ class CodeReadabilityClassifier:
         data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
 
         # Calculate the mean of the scores for each code snippet
-        return data_frame.mean(axis=0)
+        data_frame = data_frame.mean(axis=0)
+
+        # Turn into dictionary with file names as keys and mean scores as values
+        return data_frame.to_dict()
 
     def tokenize_and_encode(self, text):
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        input_ids = tokenizer.encode(text, add_special_tokens=True)
+        input_ids = tokenizer.encode(
+            text, add_special_tokens=True, truncation=True, max_length=MAX_TOKEN_LENGTH
+        )
         input_ids = torch.tensor(input_ids).unsqueeze(0)  # TODO: Add batch dimension?
-        with torch.no_grad():
-            return self.model.bert(input_ids)[0]
+        return input_ids
 
     def setup_model(self):
         self.model = CNNModel(2)
@@ -167,10 +192,11 @@ class CodeReadabilityClassifier:
 
 if __name__ == "__main__":
     data_dir = (
-        "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
+        "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/"
+        "Datasets/Dataset/Dataset_test/"
     )
     snippets_dir = os.path.join(data_dir, "Snippets")
-    csv = os.path.join(data_dir, "scores-test.csv")
+    csv = os.path.join(data_dir, "scores.csv")
 
     classifier = CodeReadabilityClassifier()
     classifier.prepare_data(csv, snippets_dir)
