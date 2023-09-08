@@ -6,9 +6,23 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
 MAX_TOKEN_LENGTH = 512
+DEFAULT_BATCH_SIZE = 32
+
+
+class ReadabilityDataset(Dataset):
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx], self.labels[idx]
 
 
 class CNNModel(nn.Module):
@@ -51,16 +65,16 @@ class CNNModel(nn.Module):
 
 
 class CodeReadabilityClassifier:
-    def __init__(self, batch_size=32, num_epochs=10, learning_rate=0.001):
+    def __init__(
+        self, batch_size=DEFAULT_BATCH_SIZE, num_epochs=10, learning_rate=0.001
+    ):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
+        self.train_loader = None
+        self.test_loader = None
 
     def prepare_data(self, csv, data_dir):
         """
@@ -80,13 +94,21 @@ class CodeReadabilityClassifier:
         # Combine embeddings (x) and scores (y) into a dictionary
         data = {embeddings[name]: aggregated_scores[name] for name in code_snippets}
 
-        # Split into x and y
-        x_temp = list(data.keys())
-        y_temp = list(data.values())
-
         # Split into training and test data
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            x_temp, y_temp, test_size=0.2, random_state=42
+        x_train, x_test, y_train, y_test = train_test_split(
+            list(data.keys()), list(data.values()), test_size=0.2
+        )
+
+        # Convert the split data to a ReadabilityDatasets
+        train_dataset = ReadabilityDataset(x_train, y_train)
+        test_dataset = ReadabilityDataset(x_test, y_test)
+
+        # Create data loaders
+        self.train_loader = DataLoader(
+            train_dataset, batch_size=self.batch_size, shuffle=True
+        )
+        self.test_loader = DataLoader(
+            test_dataset, batch_size=self.batch_size, shuffle=False
         )
 
         self.setup_model()
@@ -155,35 +177,31 @@ class CodeReadabilityClassifier:
         return loss.item()
 
     def train(self):
+        """
+        Trains the model.
+        :return: None
+        """
         for epoch in range(self.num_epochs):
             self.model.train()
             running_loss = 0.0
 
-            for i in range(0, len(self.X_train), self.batch_size):
-                # x, y = x.to(device), y.to(device)
-                x_batch = torch.Tensor(self.X_train[i : i + self.batch_size]).to(
-                    self.device
-                )
-                y_batch = (
-                    torch.Tensor(self.y_train[i : i + self.batch_size])
-                    .unsqueeze(1)
-                    .to(self.device)
-                )
+            # Iterate over the training dataset in mini-batches
+            for _batch_idx, (inputs, labels) in enumerate(self.train_loader):
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
 
-                loss = self._train_iteration(x_batch, y_batch)
+                loss = self._train_iteration(inputs, labels)
                 running_loss += loss
 
             print(
                 f"Epoch {epoch + 1}/{self.num_epochs}, "
-                f"Loss: {running_loss / len(self.X_train)}"
+                f"Loss: {running_loss / len(self.train_loader)}"
             )
 
     def evaluate(self):
         self.model.eval()
         with torch.no_grad():
-            # x, y = x.to(device), y.to(device)
-            x_batch = torch.Tensor(self.X_test).to(self.device)
-            y_batch = torch.Tensor(self.y_test).unsqueeze(1).to(self.device)
+            x_batch, y_batch = next(iter(self.test_loader))
+            x_batch, y_batch = x_batch.to(self.device), y_batch.to(self.device)
             predictions = self.model(x_batch)
 
         mse = mean_squared_error(y_batch.cpu().numpy(), predictions.cpu().numpy())
