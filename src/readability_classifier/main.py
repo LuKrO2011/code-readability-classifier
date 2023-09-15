@@ -248,7 +248,7 @@ def main(args: list[str]) -> int:
 
     # Set up logging and specify logfile name
     logfile = DEFAULT_LOG_FILE
-    if parsed_args.save:
+    if hasattr(parsed_args, "save") and parsed_args.save:
         folder_path = Path(parsed_args.save)
         folder_name = Path(parsed_args.save).name
         logfile = folder_path / Path(f"{DEFAULT_LOG_FILE_NAME}-{folder_name}.log")
