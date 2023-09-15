@@ -8,12 +8,12 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
-TOKEN_LENGTH = 512
-DEFAULT_BATCH_SIZE = 8
+TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
+DEFAULT_BATCH_SIZE = 8  # Small to avoid CUDA out of memory errors on local machine
 
 
 class ReadabilityDataset(Dataset):
-    def __init__(self, data_dict: dict[str, tuple[list[int], list[int], float]]):
+    def __init__(self, data_dict: dict[str, tuple[torch.Tensor, torch.Tensor, float]]):
         """
         Initialize the dataset with a dictionary containing data samples.
 
@@ -59,7 +59,18 @@ class ReadabilityDataset(Dataset):
 
 
 class CNNModel(nn.Module):
-    def __init__(self, num_classes):
+    """
+    A CNN model for code readability classification. The model consists of a Bert
+    embedding layer, two convolutional layers, two max-pooling layers, two fully
+    connected layers and a dropout layer.
+    """
+
+    def __init__(self, num_classes: int) -> None:
+        """
+        Initialize the model. The number of classes is set to 1 for regression.
+        Then 5 means very readable, 1 means very unreadable (Likert scale).
+        :param num_classes: The number of classes.
+        """
         super().__init__()
 
         # Bert embedding
@@ -79,7 +90,15 @@ class CNNModel(nn.Module):
         # Dropout layer to reduce overfitting
         self.dropout = nn.Dropout(0.5)
 
-    def forward(self, input_ids, attention_mask):
+    def forward(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Forward pass of the model.
+        :param input_ids:   Tensor of input_ids for the BERT model.
+        :param attention_mask: Tensor of attention_mask for the BERT model.
+        :return: The output of the model.
+        """
         # Bert embedding
         x = self.bert(input_ids, attention_mask=attention_mask)
 
@@ -101,8 +120,18 @@ class CNNModel(nn.Module):
 
 
 class CodeReadabilityClassifier:
+    """
+    A code readability classifier based on a CNN model. The model is trained on code
+    snippets and their corresponding scores. The code snippets are tokenized and
+    encoded using the BERT tokenizer. The model is trained on the encoded code
+    snippets and their scores.
+    """
+
     def __init__(
-        self, batch_size=DEFAULT_BATCH_SIZE, num_epochs=10, learning_rate=0.001
+        self,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        num_epochs: int = 10,
+        learning_rate: float = 0.001,
     ):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
@@ -112,7 +141,7 @@ class CodeReadabilityClassifier:
         self.train_loader = None
         self.test_loader = None
 
-    def prepare_data(self, csv, data_dir):
+    def prepare_data(self, csv: str, data_dir: str) -> None:
         """
         Loads the data and prepares it for training and evaluation.
         :param csv: Path to the CSV file containing the scores.
@@ -155,13 +184,19 @@ class CodeReadabilityClassifier:
 
         self.setup_model()
 
-    def load_data(self, csv, data_dir):
+    def load_data(self, csv: str, data_dir: str) -> tuple[pd.Series, dict]:
+        """
+        Loads the data from the CSV file and the code snippets from the files.
+        :param csv: The path to the CSV file containing the scores.
+        :param data_dir: The path to the directory containing the code snippets.
+        :return: A tuple containing the mean scores and the code snippets.
+        """
         mean_scores = self._load_mean_scores(csv)
         code_snippets = self._load_code_snippets(data_dir)
 
         return mean_scores, code_snippets
 
-    def _load_code_snippets(self, data_dir):
+    def _load_code_snippets(self, data_dir: str) -> dict:
         """
         Loads the code snippets from the files to a dictionary. The file names are used
         as keys and the code snippets as values.
@@ -170,6 +205,7 @@ class CodeReadabilityClassifier:
         """
         code_snippets = {}
 
+        # Iterate through the files in the directory
         for file in os.listdir(data_dir):
             with open(os.path.join(data_dir, file)) as f:
                 # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
@@ -179,7 +215,7 @@ class CodeReadabilityClassifier:
 
         return code_snippets
 
-    def _load_mean_scores(self, csv):
+    def _load_mean_scores(self, csv: str) -> dict:
         """
         Loads the mean scores from the CSV file.
         :param csv: Path to the CSV file containing the scores.
@@ -196,7 +232,12 @@ class CodeReadabilityClassifier:
         # Turn into dictionary with file names as keys and mean scores as values
         return data_frame.to_dict()
 
-    def tokenize_and_encode(self, text):
+    def tokenize_and_encode(self, text: str) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Tokenizes and encodes the given text using the BERT tokenizer.
+        :param text: The text to tokenize and encode.
+        :return: A tuple containing the input_ids and the attention_mask.
+        """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         input_ids = tokenizer.encode(
             text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
@@ -221,12 +262,26 @@ class CodeReadabilityClassifier:
         return input_ids, attention_mask
 
     def setup_model(self):
+        """
+        Sets up the model. This includes initializing the model, the loss function and
+        the optimizer.
+        :return: None
+        """
         self.model = CNNModel(1)  # Set number of classes to 1 for regression
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-    def _train_iteration(self, x_batch, y_batch, attention_mask=None):
+    def _train_iteration(
+        self, x_batch: torch.Tensor, y_batch: torch.Tensor, attention_mask: torch.Tensor
+    ) -> float:
+        """
+        Performs a single training iteration.
+        :param x_batch: The input_ids of the batch.
+        :param y_batch: The scores of the batch.
+        :param attention_mask: The attention_mask of the batch.
+        :return: The loss of the batch.
+        """
         self.optimizer.zero_grad()
         outputs = self.model(x_batch, attention_mask)
         loss = self.criterion(outputs, y_batch)
