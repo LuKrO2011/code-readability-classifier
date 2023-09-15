@@ -44,6 +44,7 @@ class ReadabilityDataset(Dataset):
                 - 'attention_mask': Tensor of attention_mask for the BERT model.
                 - 'scores': Tensor of aggregated_scores for the sample.
         """
+        # TODO: Check where to convert data into tensors. Maybe here instead?
         name = self.names[idx]
         input_ids, attention_mask, scores = self.data_dict[name]
 
@@ -73,7 +74,7 @@ class CNNModel(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=(2, 1))
 
         # Fully connected layers
-        self.fc1 = nn.Linear(64 * 49, 128)  # TODO: Adjust
+        self.fc1 = nn.Linear(126 * 64, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
         # Dropout layer to reduce overfitting
@@ -83,12 +84,15 @@ class CNNModel(nn.Module):
         # Bert embedding
         x = self.bert(input_ids, attention_mask=attention_mask)
 
+        # Convert the output of the Bert embedding to fitting shape for conv layers
+        x = x[0].unsqueeze(1)
+
         # Apply convolutional and pooling layers
         x = self.pool(nn.functional.relu(self.conv1(x)))
         x = self.pool(nn.functional.relu(self.conv2(x)))
 
-        # Flatten the feature map
-        x = x.view(-1, 64 * 49)  # TODO: Adjust
+        # Flatten the output of the conv layers
+        x = x.view(x.size(0), -1)
 
         # Apply fully connected layers with dropout
         x = self.dropout(nn.functional.relu(self.fc1(x)))
