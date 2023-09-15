@@ -119,42 +119,36 @@ class CNNModel(nn.Module):
         return x
 
 
-class CodeReadabilityClassifier:
+class CsvFolderDataLoader:
     """
-    A code readability classifier based on a CNN model. The model is trained on code
-    snippets and their corresponding scores. The code snippets are tokenized and
-    encoded using the BERT tokenizer. The model is trained on the encoded code
-    snippets and their scores.
+    A data loader for loading data from a CSV file and the corresponding code snippets.
+    TODO: Add hierarchy for different dataset formats?
     """
 
     def __init__(
         self,
         batch_size: int = DEFAULT_BATCH_SIZE,
-        num_epochs: int = 10,
-        learning_rate: float = 0.001,
     ):
+        """
+        Initializes the data loader.
+        :param batch_size: The batch size.
+        """
         self.batch_size = batch_size
-        self.num_epochs = num_epochs
-        self.learning_rate = learning_rate
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.train_loader = None
-        self.test_loader = None
-
-    def prepare_data(self, csv: str, data_dir: str) -> None:
+    def load(self, csv: str, data_dir: str) -> tuple[DataLoader, DataLoader]:
         """
         Loads the data and prepares it for training and evaluation.
         :param csv: Path to the CSV file containing the scores.
         :param data_dir: Path to the directory containing the code snippets.
-        :return: None
+        :return: A tuple containing the training and test data loaders.
         """
         # Load data
-        aggregated_scores, code_snippets = self._load_data(csv, data_dir)
+        aggregated_scores, code_snippets = self._load_from_storage(csv, data_dir)
 
         # Tokenize and encode code snippets
         embeddings = {}
         for name, snippet in code_snippets.items():
-            input_ids, attention_mask = self.tokenize_and_encode(snippet)
+            input_ids, attention_mask = self._tokenize_and_encode(snippet)
             embeddings[name] = (input_ids, attention_mask)
 
         # Combine embeddings (x) and scores (y) into a dictionary
@@ -175,16 +169,16 @@ class CodeReadabilityClassifier:
         test_dataset = ReadabilityDataset(test_data)
 
         # Create data loaders
-        self.train_loader = DataLoader(
+        train_loader = DataLoader(
             train_dataset, batch_size=self.batch_size, shuffle=True
         )
-        self.test_loader = DataLoader(
+        test_loader = DataLoader(
             test_dataset, batch_size=self.batch_size, shuffle=False
         )
 
-        self.setup_model()
+        return train_loader, test_loader
 
-    def _load_data(self, csv: str, data_dir: str) -> tuple[dict, dict]:
+    def _load_from_storage(self, csv: str, data_dir: str) -> tuple[dict, dict]:
         """
         Loads the data from the CSV file and the code snippets from the files.
         :param csv: The path to the CSV file containing the scores.
@@ -232,7 +226,7 @@ class CodeReadabilityClassifier:
         # Turn into dictionary with file names as keys and mean scores as values
         return data_frame.to_dict()
 
-    def tokenize_and_encode(self, text: str) -> tuple[torch.Tensor, torch.Tensor]:
+    def _tokenize_and_encode(self, text: str) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
         :param text: The text to tokenize and encode.
@@ -261,7 +255,42 @@ class CodeReadabilityClassifier:
 
         return input_ids, attention_mask
 
-    def setup_model(self):
+
+class CodeReadabilityClassifier:
+    """
+    A code readability classifier based on a CNN model. The model is trained on code
+    snippets and their corresponding scores. The code snippets are tokenized and
+    encoded using the BERT tokenizer. The model is trained on the encoded code
+    snippets and their scores.
+    """
+
+    def __init__(
+        self,
+        train_loader: DataLoader = None,
+        test_loader: DataLoader = None,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        num_epochs: int = 10,
+        learning_rate: float = 0.001,
+    ):
+        """
+        Initializes the classifier.
+        :param train_loader: The data loader for the training data.
+        :param test_loader: The data loader for the test data.
+        :param batch_size: The batch size.
+        :param num_epochs: The number of epochs.
+        :param learning_rate: The learning rate.
+        """
+        self.train_loader = train_loader
+        self.test_loader = test_loader
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Set up the model on initialization
+        self._setup_model()
+
+    def _setup_model(self):
         """
         Sets up the model. This includes initializing the model, the loss function and
         the optimizer.
@@ -294,6 +323,9 @@ class CodeReadabilityClassifier:
         Trains the model.
         :return: None
         """
+        if self.train_loader is None:
+            raise ValueError("No training data provided.")
+
         for epoch in range(self.num_epochs):
             self.model.train()
             running_loss = 0.0
@@ -321,6 +353,9 @@ class CodeReadabilityClassifier:
         Evaluates the model.
         :return: None
         """
+        if self.test_loader is None:
+            raise ValueError("No test data provided.")
+
         self.model.eval()
         with torch.no_grad():
             y_batch = []  # True scores
@@ -355,7 +390,8 @@ if __name__ == "__main__":
     snippets_dir = os.path.join(data_dir, "Snippets")
     csv = os.path.join(data_dir, "scores.csv")
 
-    classifier = CodeReadabilityClassifier()
-    classifier.prepare_data(csv, snippets_dir)
+    data_loader = CsvFolderDataLoader()
+    train_loader, test_loader = data_loader.load(csv, snippets_dir)
+    classifier = CodeReadabilityClassifier(train_loader, test_loader)
     classifier.train()
     classifier.evaluate()
