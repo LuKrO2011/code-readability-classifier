@@ -1,3 +1,79 @@
-= Readability classifier for source code
+= Predicting Source Code Readability
 
-TODO: Write usage instructions here
+This Python program utilizes machine learning to predict the readability of source code snippets. It is designed to work with Python 3.11.5 and uses Poetry for package management.
+
+== Table of Contents
+* link:##installation[Installation]
+* link:##usage[Usage]
+** link:##predict[Predict]
+** link:##train[Train]
+
+== Installation
+
+To set up the project and its dependencies, follow these steps:
+
+Clone this repository to your local machine.
+[source,bash]
+----
+git clone https://github.com/LuKrO2011/readability-classifier
+cd readability-classifier
+----
+
+Install Poetry if you haven't already.
+[source,bash]
+----
+pip install poetry
+----
+
+Create a virtual environment and install the project's dependencies using Poetry.
+[source,bash]
+----
+poetry install
+----
+
+Now you're ready to use the source code readability prediction tool.
+
+== Usage
+
+=== Predict
+
+To predict the readability of a source code snippet, use the following command:
+
+[source,bash]
+----
+poetry run python main.py PREDICT --model MODEL --input INPUT [--token-length TOKEN_LENGTH]
+----
+
+* `--model` or `-m`: Path to the pre-trained machine learning model.
+* `--input` or `-i`: Path to the source code snippet you want to evaluate.
+* `--token-length` or `-l` (optional): The token length of the snippet (cutting/padding applied).
+
+Example:
+[source,bash]
+----
+poetry run python main.py PREDICT --model <model_path> --input <input_file>
+----
+
+=== Train
+
+To train a new machine learning model for source code readability prediction, use the following command:
+
+[source,bash]
+----
+poetry run python main.py TRAIN --input INPUT [--save SAVE] [--evaluate EVALUATE] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
+----
+
+* `--input` or `-i`: Path to the dataset containing a folder 'Snippets' and 'scores.csv'.
+* `--save` or `-s` (optional): Path to the folder where the trained model should be stored.
+* `--evaluate` (optional): Whether to evaluate the model after training. Defaults to `True`.
+* `--token-length` or `-l` (optional): The token length of the snippets (cutting/padding applied).
+* `--batch-size` or `-b` (optional): The batch size for training.
+* `--epochs` or `-e` (optional): The number of epochs for training.
+* `--learning-rate` or `-r` (optional): The learning rate for training.
+
+
+Example:
+[source,bash]
+----
+poetry run python main.py TRAIN --input <dataset_path> --save <model_save_path>
+----
