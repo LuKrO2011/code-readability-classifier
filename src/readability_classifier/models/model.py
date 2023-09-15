@@ -4,7 +4,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
@@ -260,15 +259,34 @@ class CodeReadabilityClassifier:
                 f"Loss: {running_loss / len(self.train_loader)}"
             )
 
-    def evaluate(self):
+    def evaluate(self) -> None:
+        """
+        Evaluates the model.
+        :return: None
+        """
         self.model.eval()
         with torch.no_grad():
-            x_batch, y_batch = next(iter(self.test_loader))
-            x_batch, y_batch = x_batch.to(self.device), y_batch.to(self.device)
-            predictions = self.model(x_batch)
+            y_batch = []  # True scores
+            predictions = []  # List to store model predictions
 
-        mse = mean_squared_error(y_batch.cpu().numpy(), predictions.cpu().numpy())
-        print(f"Mean Squared Error (MSE): {mse}")
+            # Iterate through the test loader to evaluate the model
+            for batch in self.test_loader:
+                input_ids = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                scores = batch["scores"].to(self.device)
+
+                y_batch.append(scores)
+                predictions.append(self.model(input_ids, attention_mask))
+
+            # Concatenate the lists of tensors to create a single tensor
+            y_batch = torch.cat(y_batch, dim=0)
+            predictions = torch.cat(predictions, dim=0)
+
+            # Compute Mean Squared Error (MSE) using PyTorch
+            mse = torch.mean((y_batch - predictions) ** 2).item()
+
+            # Print the Mean Squared Error (MSE)
+            print(f"Mean Squared Error (MSE): {mse}")
 
 
 if __name__ == "__main__":
