@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
+# TODO: Make token length configurable
 TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_BATCH_SIZE = 8  # Small to avoid CUDA out of memory errors on local machine
 
@@ -414,33 +415,3 @@ class CodeReadabilityClassifier:
             attention_mask = attention_mask.to(self.device)
             prediction = self.model(input_ids, attention_mask)
             return prediction.item()
-
-
-if __name__ == "__main__":
-    data_dir = (
-        "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/"
-        # "Datasets/Dataset/Dataset_test/"
-        "Datasets/Dataset/Dataset/"
-    )
-    snippets_dir = os.path.join(data_dir, "Snippets")
-    csv = os.path.join(data_dir, "scores.csv")
-
-    # Load the data
-    data_loader = CsvFolderDataLoader()
-    train_loader, test_loader = data_loader.load(csv, snippets_dir)
-
-    # Train and evaluate the model
-    classifier = CodeReadabilityClassifier(train_loader, test_loader)
-    classifier.train()
-    classifier.evaluate()
-
-    # Store the model
-    classifier.store("model.pt")
-
-    # Load the model
-    classifier.load("model.pt")
-
-    # Predict the readability of a code snippet
-    code_snippet = "def foo():\n    return 1"
-    prediction = classifier.predict(code_snippet)
-    print(f"Predicted readability: {prediction}")

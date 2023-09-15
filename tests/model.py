@@ -10,9 +10,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")
 MODEL_PATH = os.path.join(RESOURCES_DIR, "model.pt")
 DATA_DIR = (
-    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/"
-    # "Datasets/Dataset/Dataset_test/"
-    "Datasets/Dataset/Dataset/"
+    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
 )
 
 

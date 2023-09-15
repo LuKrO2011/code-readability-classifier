@@ -2,20 +2,19 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.models.model import CodeReadabilityClassifier
+from readability_classifier.models.model import (
+    CodeReadabilityClassifier,
+    CsvFolderDataLoader,
+)
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
-
-data_dir = (
-    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
-)
-snippets_dir = os.path.join(data_dir, "Snippets")
-csv = os.path.join(data_dir, "scores.csv")
+DEFAULT_MODEL_FILE = "model"
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
@@ -62,8 +61,8 @@ class Tasks(Enum):
     """
 
     TRAIN = "TRAIN"
-    PREDICT = "PREDICT"
     EVALUATE = "EVALUATE"
+    PREDICT = "PREDICT"
 
     @classmethod
     def _missing_(cls, value: object) -> Any:
@@ -81,13 +80,81 @@ def _set_up_arg_parser() -> ArgumentParser:
     arg_parser = ArgumentParser()
     sub_parser = arg_parser.add_subparsers(dest="command", required=True)
 
+    # Parser for the training task
     train_parser = sub_parser.add_parser(str(Tasks.TRAIN))
-    # predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
+    train_parser.add_argument(
+        "--input",
+        "-i",
+        required=True,
+        type=Path,
+        help="Path to the dataset (containing a folder 'Snippets' and scores.csv).",
+    )
+    train_parser.add_argument(
+        "--save",
+        "-s",
+        required=False,
+        type=Path,
+        help="Path to the folder where the model should be stored.",
+    )
+    train_parser.add_argument(
+        "--evaluate",
+        required=False,
+        type=bool,
+        default=True,
+        help="Whether the model should be evaluated after training.",
+    )
+    train_parser.add_argument(
+        "--token-length",
+        "-l",
+        required=False,
+        type=int,
+        default=512,
+        help="The token length of the snippets (cutting/padding applied).",
+    )
+    train_parser.add_argument(
+        "--batch-size",
+        "-b",
+        required=False,
+        type=int,
+        default=8,
+        help="The batch size for training.",
+    )
+    train_parser.add_argument(
+        "--epochs",
+        "-e",
+        required=False,
+        type=int,
+        default=10,
+        help="The number of epochs for training.",
+    )
+    train_parser.add_argument(
+        "--learning-rate",
+        "-r",
+        required=False,
+        type=float,
+        default=0.0001,
+        help="The learning rate for training.",
+    )
+
+    # Parser for the evaluation task TODO: Implement
     # evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
 
-    # TODO: Add more params
-    train_parser.add_argument("--save", required=False, type=Path)
-    # train_parser.add_argument("--delta", required=False, type=int, default=10800)
+    # Parser for the prediction task
+    predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
+    predict_parser.add_argument(
+        "--model", "-m", required=True, type=Path, help="Path to the model."
+    )
+    predict_parser.add_argument(
+        "--input", "-i", required=True, type=Path, help="Path to the snippet."
+    )
+    predict_parser.add_argument(
+        "--token-length",
+        "-l",
+        required=False,
+        type=int,
+        default=512,
+        help="The token length of the snippet (cutting/padding applied).",
+    )
 
     return arg_parser
 
@@ -98,26 +165,75 @@ def _run_train(parsed_args) -> None:
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    # save = parsed_args.save
-    classifier = CodeReadabilityClassifier()
-    classifier.prepare_data(csv, snippets_dir)
+    # Get the parsed arguments
+    data_dir = parsed_args.input
+    store_dir = parsed_args.save
+    evaluate = parsed_args.evaluate
+    token_length = parsed_args.token_length
+    batch_size = parsed_args.batch_size
+    num_epochs = parsed_args.epochs
+    learning_rate = parsed_args.learning_rate
+
+    # Get the paths for loading the data
+    # TODO: Replace with actual arguments path and csv
+    snippets_dir = os.path.join(data_dir, "Snippets")
+    csv = os.path.join(data_dir, "scores.csv")
+
+    # Load the data
+    data_loader = CsvFolderDataLoader(batch_size=batch_size)
+    train_loader, test_loader = data_loader.load(csv, snippets_dir)
+
+    # Train the model
+    classifier = CodeReadabilityClassifier(
+        train_loader,
+        test_loader,
+        batch_size=batch_size,
+        num_epochs=num_epochs,
+        learning_rate=learning_rate,
+    )
     classifier.train()
+
+    # Evaluate the model
+    if evaluate:
+        classifier.evaluate()
+
+    # Get the model store name
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    store_name = f"{DEFAULT_MODEL_FILE}-{token_length}-{batch_size}-{current_time}.pt"
+    if store_dir:
+        store_name = os.path.join(store_dir, store_name)
+
+    # Store the model
+    classifier.store(store_name)
 
 
 def _run_predict(parsed_args):
-    # TODO: Replace with actual arguments
-    # save = parsed_args.save
+    """
+    Runs the prediction of the readability classifier.
+    :param parsed_args: Parsed arguments.
+    :return: None
+    """
+    # Get the parsed arguments
+    model_path = parsed_args.model
+    snippet_path = parsed_args.input
+    # token_length = parsed_args.token_length
 
-    # TODO: Call actual function
-    pass
+    # Load the model
+    classifier = CodeReadabilityClassifier()
+    classifier.load(model_path)
+
+    # Predict the readability of the snippet
+    with open(snippet_path) as snippet_file:
+        snippet = snippet_file.read()
+        readability = classifier.predict(snippet)
+        logging.info(f"Readability of snippet: {readability}")
 
 
 def _run_evaluate(parsed_args):
-    # TODO: Replace with actual arguments
-    # save = parsed_args.save
-
-    # TODO: Call actual function
-    pass
+    raise NotImplementedError(
+        "Separate evaluation is not implemented. "
+        "Please use the --evaluate flag when training."
+    )
 
 
 def main(args: list[str]) -> int:
