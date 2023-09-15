@@ -14,15 +14,48 @@ DEFAULT_BATCH_SIZE = 32
 
 
 class ReadabilityDataset(Dataset):
-    def __init__(self, data, labels):
-        self.data = data
-        self.labels = labels
+    def __init__(self, data_dict: dict[str, tuple[list[int], list[int], float]]):
+        """
+        Initialize the dataset with a dictionary containing data samples.
 
-    def __len__(self):
-        return len(self.data)
+        Args:
+            data_dict (dict): A dictionary where keys are sample names and values are
+            tuples (input_ids, attention_mask, aggregated_scores).
+        """
+        self.data_dict = data_dict
+        self.names = list(data_dict.keys())
 
-    def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
+    def __len__(self) -> int:
+        """
+        Return the total number of samples in the dataset.
+        """
+        return len(self.names)
+
+    def __getitem__(self, idx: int) -> dict:
+        """
+        Return a sample from the dataset by its index.
+
+        Args:
+            idx (int): Index of the sample to retrieve.
+
+        Returns:
+            sample (dict): A dictionary containing the following keys:
+                - 'input_ids': Tensor of input_ids for the BERT model.
+                - 'attention_mask': Tensor of attention_mask for the BERT model.
+                - 'scores': Tensor of aggregated_scores for the sample.
+        """
+        name = self.names[idx]
+        input_ids, attention_mask, scores = self.data_dict[name]
+
+        # Remove the dimension of size 1
+        input_ids = input_ids.squeeze()
+        attention_mask = attention_mask.squeeze()
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "scores": torch.tensor(scores, dtype=torch.float),
+        }
 
 
 class CNNModel(nn.Module):
@@ -46,9 +79,9 @@ class CNNModel(nn.Module):
         # Dropout layer to reduce overfitting
         self.dropout = nn.Dropout(0.5)
 
-    def forward(self, x):
+    def forward(self, input_ids, attention_mask):
         # Bert embedding
-        x = self.bert(x)[0]
+        x = self.bert(input_ids, attention_mask=attention_mask)
 
         # Apply convolutional and pooling layers
         x = self.pool(nn.functional.relu(self.conv1(x)))
@@ -87,23 +120,27 @@ class CodeReadabilityClassifier:
         aggregated_scores, code_snippets = self.load_data(csv, data_dir)
 
         # Tokenize and encode code snippets
-        # TODO: Use Attention Mask!
-        embeddings = {
-            name: self.tokenize_and_encode(code)[0]
-            for name, code in code_snippets.items()
-        }
+        embeddings = {}
+        for name, snippet in code_snippets.items():
+            input_ids, attention_mask = self.tokenize_and_encode(snippet)
+            embeddings[name] = (input_ids, attention_mask)
 
         # Combine embeddings (x) and scores (y) into a dictionary
-        data = {embeddings[name]: aggregated_scores[name] for name in code_snippets}
+        data = {}
+        for name, (input_ids, attention_mask) in embeddings.items():
+            data[name] = (input_ids, attention_mask, aggregated_scores[name])
 
         # Split into training and test data
-        x_train, x_test, y_train, y_test = train_test_split(
-            list(data.keys()), list(data.values()), test_size=0.2
+        names = list(data.keys())
+        train_names, test_names = train_test_split(
+            names, test_size=0.2, random_state=42
         )
+        train_data = {name: data[name] for name in train_names}
+        test_data = {name: data[name] for name in test_names}
 
         # Convert the split data to a ReadabilityDatasets
-        train_dataset = ReadabilityDataset(x_train, y_train)
-        test_dataset = ReadabilityDataset(x_test, y_test)
+        train_dataset = ReadabilityDataset(train_data)
+        test_dataset = ReadabilityDataset(test_data)
 
         # Create data loaders
         self.train_loader = DataLoader(
@@ -186,9 +223,9 @@ class CodeReadabilityClassifier:
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-    def _train_iteration(self, x_batch, y_batch):
+    def _train_iteration(self, x_batch, y_batch, attention_mask=None):
         self.optimizer.zero_grad()
-        outputs = self.model(x_batch)
+        outputs = self.model(x_batch, attention_mask)
         loss = self.criterion(outputs, y_batch)
         loss.backward()
         self.optimizer.step()
@@ -204,10 +241,14 @@ class CodeReadabilityClassifier:
             running_loss = 0.0
 
             # Iterate over the training dataset in mini-batches
-            for _batch_idx, (inputs, labels) in enumerate(self.train_loader):
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
+            for batch in self.train_loader:
+                input_ids = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                scores = batch["scores"].to(self.device)
 
-                loss = self._train_iteration(inputs, labels)
+                loss = self._train_iteration(
+                    input_ids, scores, attention_mask=attention_mask
+                )
                 running_loss += loss
 
             print(
