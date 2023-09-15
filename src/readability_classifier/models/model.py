@@ -237,6 +237,7 @@ class CsvFolderDataLoader:
         :return: A tuple containing the input_ids and the attention_mask.
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        # TODO: USE tokenizer(...) instead of .encode!!!!
         input_ids = tokenizer.encode(
             text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
         )

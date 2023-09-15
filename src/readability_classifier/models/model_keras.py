@@ -3,11 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from transformers import BertTokenizer, TFBertModel
+from datasets import Dataset
+from transformers import BertTokenizer, DataCollatorWithPadding, TFBertModel
 
 TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_BATCH_SIZE = 8  # Small to avoid memory errors
+
+
+# TODO: Use this for bert: https://huggingface.co/docs/datasets/use_dataset
 
 
 class ReadabilityDataset(tf.keras.utils.Sequence):
@@ -27,11 +30,7 @@ class ReadabilityDataset(tf.keras.utils.Sequence):
         attention_mask = np.array([item[1] for item in batch_data])
         scores = np.array([item[2] for item in batch_data])
 
-        return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "scores": scores,
-        }
+        return ({"input_ids": input_ids, "attention_mask": attention_mask}, scores)
 
 
 class CodeReadabilityRegressor(tf.keras.Model):
@@ -60,27 +59,49 @@ class CsvFolderDataLoader:
     def load(self, csv, data_dir):
         aggregated_scores, code_snippets = self._load_from_storage(csv, data_dir)
 
-        embeddings = {}
+        embeddings = []
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         for name, snippet in code_snippets.items():
             input_ids, attention_mask = self.tokenize_and_encode(snippet, tokenizer)
-            embeddings[name] = (input_ids, attention_mask)
+            embeddings.append(
+                {
+                    "input_ids": input_ids,
+                    "attention_mask": attention_mask,
+                    "scores": aggregated_scores[name],
+                }
+            )
 
-        data = {}
-        for name, (input_ids, attention_mask) in embeddings.items():
-            data[name] = (input_ids, attention_mask, aggregated_scores[name])
-
-        names = list(data.keys())
-        train_names, test_names = train_test_split(
-            names, test_size=0.2, random_state=42
+        # Convert to dataset
+        dataset = Dataset.from_list(embeddings)
+        dataset.set_format(
+            type="torch", columns=["input_ids", "attention_mask", "scores"]
         )
-        train_data = {name: data[name] for name in train_names}
-        test_data = {name: data[name] for name in test_names}
 
-        train_generator = ReadabilityDataset(train_data, batch_size=self.batch_size)
-        test_generator = ReadabilityDataset(test_data, batch_size=self.batch_size)
+        # Split into train and test
+        dataset = dataset.train_test_split(test_size=0.2)
+        train_data = dataset["train"]
+        test_data = dataset["test"]
 
-        return train_generator, test_generator
+        # Use hugging-faces to_tf_dataset to create a tf.data.Dataset
+        # TODO: Why DataCollatorWithPadding?
+        data_collator = DataCollatorWithPadding(
+            tokenizer=tokenizer, return_tensors="tf"
+        )
+        train_data.to_tf_dataset(
+            columns=["input_ids", "attention_mask", "scores"],
+            batch_size=self.batch_size,
+            collate_fn=data_collator,
+            shuffle=True,
+        )
+
+        test_data.to_tf_dataset(
+            columns=["input_ids", "attention_mask", "scores"],
+            batch_size=self.batch_size,
+            collate_fn=data_collator,
+            shuffle=True,
+        )
+
+        return train_data, test_data
 
     def _load_from_storage(self, csv, data_dir):
         mean_scores = self._load_mean_scores(csv)
@@ -104,18 +125,20 @@ class CsvFolderDataLoader:
 
     @staticmethod
     def tokenize_and_encode(text, tokenizer):
-        input_ids = tokenizer.encode(
+        encoded_dict = tokenizer(
             text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
         )
 
-        attention_mask = [1] * len(input_ids) + [0] * (TOKEN_LENGTH - len(input_ids))
+        # Pad the sequence to max length
+        padded = tokenizer.pad(
+            encoded_dict, padding="max_length", max_length=TOKEN_LENGTH
+        )
+        input_ids = padded["input_ids"]
+        attention_mask = padded["attention_mask"]
+        # TODO: is padded["token_type_ids"] useful somehow?
+        # token_type_ids = padded["token_type_ids"]
 
-        if len(input_ids) < TOKEN_LENGTH:
-            input_ids += [0] * (TOKEN_LENGTH - len(input_ids))
-        else:
-            input_ids = input_ids[:TOKEN_LENGTH]
-
-        return np.array(input_ids), np.array(attention_mask)
+        return input_ids, attention_mask
 
 
 class CodeReadabilityClassifier:
@@ -147,8 +170,9 @@ class CodeReadabilityClassifier:
 
         self.model.compile(optimizer=self.optimizer, loss=self.loss_fn)
 
-        self.model.fit(
-            self.train_generator,
+        return self.model.fit(
+            x=self.train_generator,
+            batch_size=self.batch_size,
             epochs=self.num_epochs,
             verbose=1,
         )
