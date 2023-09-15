@@ -87,15 +87,17 @@ class CsvFolderDataLoader:
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer, return_tensors="tf"
         )
-        train_data.to_tf_dataset(
-            columns=["input_ids", "attention_mask", "scores"],
+        train_data = train_data.to_tf_dataset(
+            columns=["input_ids", "attention_mask"],
+            label_cols=["scores"],
             batch_size=self.batch_size,
             collate_fn=data_collator,
             shuffle=True,
         )
 
-        test_data.to_tf_dataset(
-            columns=["input_ids", "attention_mask", "scores"],
+        test_data = test_data.to_tf_dataset(
+            columns=["input_ids", "attention_mask"],
+            label_cols=["scores"],
             batch_size=self.batch_size,
             collate_fn=data_collator,
             shuffle=True,
