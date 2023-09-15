@@ -12,23 +12,29 @@ This Python program utilizes machine learning to predict the readability of sour
 
 To set up the project and its dependencies, follow these steps:
 
-Clone this repository to your local machine.
+Clone this repository to your local machine:
 [source,bash]
 ----
 git clone https://github.com/LuKrO2011/readability-classifier
 cd readability-classifier
 ----
 
-Install Poetry if you haven't already.
+Install Poetry if you haven't already:
 [source,bash]
 ----
 pip install poetry
 ----
 
-Create a virtual environment and install the project's dependencies using Poetry.
+Create a virtual environment and install the project's dependencies using Poetry:
 [source,bash]
 ----
 poetry install
+----
+
+Activate the virtual environment:
+[source,bash]
+----
+poetry shell
 ----
 
 Now you're ready to use the source code readability prediction tool.
@@ -41,7 +47,7 @@ To predict the readability of a source code snippet, use the following command:
 
 [source,bash]
 ----
-poetry run python main.py PREDICT --model MODEL --input INPUT [--token-length TOKEN_LENGTH]
+python src/readability_classifier/main.py PREDICT --model MODEL --input INPUT [--token-length TOKEN_LENGTH]
 ----
 
 * `--model` or `-m`: Path to the pre-trained machine learning model.
@@ -51,7 +57,7 @@ poetry run python main.py PREDICT --model MODEL --input INPUT [--token-length TO
 Example:
 [source,bash]
 ----
-poetry run python main.py PREDICT --model <model_path> --input <input_file>
+python src/readability_classifier/main.py PREDICT --model <model_path> --input <input_file>
 ----
 
 === Train
@@ -60,7 +66,7 @@ To train a new machine learning model for source code readability prediction, us
 
 [source,bash]
 ----
-poetry run python main.py TRAIN --input INPUT [--save SAVE] [--evaluate EVALUATE] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
+python src/readability_classifier/main.py TRAIN --input INPUT [--save SAVE] [--evaluate EVALUATE] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
 ----
 
 * `--input` or `-i`: Path to the dataset containing a folder 'Snippets' and 'scores.csv'.
@@ -71,9 +77,8 @@ poetry run python main.py TRAIN --input INPUT [--save SAVE] [--evaluate EVALUATE
 * `--epochs` or `-e` (optional): The number of epochs for training.
 * `--learning-rate` or `-r` (optional): The learning rate for training.
 
-
 Example:
 [source,bash]
 ----
-poetry run python main.py TRAIN --input <dataset_path> --save <model_save_path>
+python src/readability_classifier/main.py TRAIN --input <dataset_path> --save <model_save_path>
 ----
