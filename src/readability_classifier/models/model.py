@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
 TOKEN_LENGTH = 512
-DEFAULT_BATCH_SIZE = 32
+DEFAULT_BATCH_SIZE = 8
 
 
 class ReadabilityDataset(Dataset):
@@ -73,7 +73,7 @@ class CNNModel(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=(2, 1))
 
         # Fully connected layers
-        self.fc1 = nn.Linear(126 * 64, 128)
+        self.fc1 = nn.Linear(8064, 128)  # 8 * 8064 = shape of x
         self.fc2 = nn.Linear(128, num_classes)
 
         # Dropout layer to reduce overfitting
@@ -221,7 +221,7 @@ class CodeReadabilityClassifier:
         return input_ids, attention_mask
 
     def setup_model(self):
-        self.model = CNNModel(2)
+        self.model = CNNModel(1)  # Set number of classes to 1 for regression
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -247,7 +247,9 @@ class CodeReadabilityClassifier:
             for batch in self.train_loader:
                 input_ids = batch["input_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
-                scores = batch["scores"].to(self.device)
+                scores = (
+                    batch["scores"].unsqueeze(1).to(self.device)
+                )  # Add dimension for matching batch size
 
                 loss = self._train_iteration(
                     input_ids, scores, attention_mask=attention_mask
@@ -292,7 +294,8 @@ class CodeReadabilityClassifier:
 if __name__ == "__main__":
     data_dir = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/"
-        "Datasets/Dataset/Dataset_test/"
+        # "Datasets/Dataset/Dataset_test/"
+        "Datasets/Dataset/Dataset/"
     )
     snippets_dir = os.path.join(data_dir, "Snippets")
     csv = os.path.join(data_dir, "scores.csv")
