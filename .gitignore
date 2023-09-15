@@ -280,3 +280,6 @@ poetry.toml
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode
+
+# Ignore models
+tests/res/models/*

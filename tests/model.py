@@ -8,7 +8,7 @@ from readability_classifier.models.model import (
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")
-MODEL_PATH = os.path.join(RESOURCES_DIR, "model.pt")
+MODEL_PATH = os.path.join(RESOURCES_DIR, "res/models/model.pt")
 DATA_DIR = (
     "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
 )
@@ -41,6 +41,7 @@ class TestModel(unittest.TestCase):
         # Store the model
         classifier.store("model.pt")
 
+    @unittest.skip("Test requires a model, which is too large for GitHub.")
     def test_predict(self) -> None:
         """
         Test the prediction of the model. Therefore, the model must be loaded
