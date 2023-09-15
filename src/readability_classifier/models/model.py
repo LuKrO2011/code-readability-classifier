@@ -148,7 +148,7 @@ class CsvFolderDataLoader:
         # Tokenize and encode code snippets
         embeddings = {}
         for name, snippet in code_snippets.items():
-            input_ids, attention_mask = self._tokenize_and_encode(snippet)
+            input_ids, attention_mask = self.tokenize_and_encode(snippet)
             embeddings[name] = (input_ids, attention_mask)
 
         # Combine embeddings (x) and scores (y) into a dictionary
@@ -226,7 +226,9 @@ class CsvFolderDataLoader:
         # Turn into dictionary with file names as keys and mean scores as values
         return data_frame.to_dict()
 
-    def _tokenize_and_encode(self, text: str) -> tuple[torch.Tensor, torch.Tensor]:
+    # TODO: Move into separate class?
+    @staticmethod
+    def tokenize_and_encode(text: str) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
         :param text: The text to tokenize and encode.
@@ -268,6 +270,7 @@ class CodeReadabilityClassifier:
         self,
         train_loader: DataLoader = None,
         test_loader: DataLoader = None,
+        model_path: str = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
         num_epochs: int = 10,
         learning_rate: float = 0.001,
@@ -380,6 +383,38 @@ class CodeReadabilityClassifier:
             # Print the Mean Squared Error (MSE)
             print(f"Mean Squared Error (MSE): {mse}")
 
+    def store(self, path: str) -> None:
+        """
+        Stores the model at the given path.
+        :param path: The path to store the model.
+        :return: None
+        """
+        torch.save(self.model.state_dict(), path)
+
+    def load(self, path: str) -> None:
+        """
+        Loads the model from the given path.
+        :param path: The path to load the model from.
+        :return: None
+        """
+        self.model.load_state_dict(torch.load(path))
+
+    def predict(self, code_snippet: str) -> float:
+        """
+        Predicts the readability of the given code snippet.
+        :param code_snippet: The code snippet to predict the readability of.
+        :return: The predicted readability.
+        """
+        self.model.eval()
+        with torch.no_grad():
+            input_ids, attention_mask = CsvFolderDataLoader.tokenize_and_encode(
+                code_snippet
+            )
+            input_ids = input_ids.to(self.device)
+            attention_mask = attention_mask.to(self.device)
+            prediction = self.model(input_ids, attention_mask)
+            return prediction.item()
+
 
 if __name__ == "__main__":
     data_dir = (
@@ -390,8 +425,22 @@ if __name__ == "__main__":
     snippets_dir = os.path.join(data_dir, "Snippets")
     csv = os.path.join(data_dir, "scores.csv")
 
+    # Load the data
     data_loader = CsvFolderDataLoader()
     train_loader, test_loader = data_loader.load(csv, snippets_dir)
+
+    # Train and evaluate the model
     classifier = CodeReadabilityClassifier(train_loader, test_loader)
     classifier.train()
     classifier.evaluate()
+
+    # Store the model
+    classifier.store("model.pt")
+
+    # Load the model
+    classifier.load("model.pt")
+
+    # Predict the readability of a code snippet
+    code_snippet = "def foo():\n    return 1"
+    prediction = classifier.predict(code_snippet)
+    print(f"Predicted readability: {prediction}")
