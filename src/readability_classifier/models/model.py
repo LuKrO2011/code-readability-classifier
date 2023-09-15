@@ -149,7 +149,7 @@ class CodeReadabilityClassifier:
         :return: None
         """
         # Load data
-        aggregated_scores, code_snippets = self.load_data(csv, data_dir)
+        aggregated_scores, code_snippets = self._load_data(csv, data_dir)
 
         # Tokenize and encode code snippets
         embeddings = {}
@@ -184,7 +184,7 @@ class CodeReadabilityClassifier:
 
         self.setup_model()
 
-    def load_data(self, csv: str, data_dir: str) -> tuple[pd.Series, dict]:
+    def _load_data(self, csv: str, data_dir: str) -> tuple[dict, dict]:
         """
         Loads the data from the CSV file and the code snippets from the files.
         :param csv: The path to the CSV file containing the scores.
