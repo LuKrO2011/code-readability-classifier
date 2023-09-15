@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pandas as pd
@@ -347,7 +348,7 @@ class CodeReadabilityClassifier:
                 )
                 running_loss += loss
 
-            print(
+            logging.info(
                 f"Epoch {epoch + 1}/{self.num_epochs}, "
                 f"Loss: {running_loss / len(self.train_loader)}"
             )
@@ -381,8 +382,8 @@ class CodeReadabilityClassifier:
             # Compute Mean Squared Error (MSE) using PyTorch
             mse = torch.mean((y_batch - predictions) ** 2).item()
 
-            # Print the Mean Squared Error (MSE)
-            print(f"Mean Squared Error (MSE): {mse}")
+            # Log the MSE
+            logging.info(f"MSE: {mse}")
 
     def store(self, path: str) -> None:
         """
