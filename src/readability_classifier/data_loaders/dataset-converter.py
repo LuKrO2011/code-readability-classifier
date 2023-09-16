@@ -2,7 +2,7 @@ import os
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from datasets import Dataset, DatasetDict
+from datasets import Dataset
 
 
 class CodeLoader(ABC):
@@ -204,7 +204,7 @@ class CsvFolderToDataset:
         self.csv_loader = csv_loader
         self.code_loader = code_loader
 
-    def convert_to_dataset(self, csv: str, data_dir: str) -> DatasetDict:
+    def convert_to_dataset(self, csv: str, data_dir: str) -> Dataset:
         """
         Loads the data and converts it to the HuggingFace format.
         :param csv: Path to the CSV file containing the scores.
@@ -219,12 +219,7 @@ class CsvFolderToDataset:
             data[file_name] = {"code": code_snippets[file_name], "score": score}
 
         # Convert to HuggingFace format
-        dataset = Dataset.from_dict(data)
-
-        # Split into train and test
-        dataset = dataset.train_test_split(test_size=0.2)
-
-        return dataset
+        return Dataset.from_dict(data)
 
     def _load_from_storage(self, csv: str, data_dir: str) -> tuple[dict, dict]:
         """
@@ -245,6 +240,8 @@ DATA_DIR = (
 )
 
 if __name__ == "__main__":
+    # TODO: Write script to store all datasets -> Perform again
+
     # Get the paths for loading the data
     csv = os.path.join(DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(DATA_DIR, "Snippets")
