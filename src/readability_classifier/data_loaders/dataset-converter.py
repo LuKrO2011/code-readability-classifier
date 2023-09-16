@@ -1,7 +1,137 @@
 import os
+from abc import ABC, abstractmethod
 
 import pandas as pd
 from datasets import Dataset, DatasetDict
+
+
+class CodeLoader(ABC):
+    """
+    Loads the code snippets from the files.
+    """
+
+    @abstractmethod
+    def load(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        pass
+
+
+class ScalabrioCodeLoader(CodeLoader):
+    """
+    Loads the code snippets of the Scalabrio dataset.
+    """
+
+    def load(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        code_snippets = {}
+
+        # Iterate through the files in the directory
+        for file in os.listdir(data_dir):
+            with open(os.path.join(data_dir, file)) as f:
+                # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
+                file_name = file.split(".")[0]
+                file_name = f"Snippet{file_name}"
+                code_snippets[file_name] = f.read()
+
+        return code_snippets
+
+
+class BWCodeLoader(CodeLoader):
+    """
+    Loads the code snippets of the BW dataset.
+    """
+
+    def load(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        code_snippets = {}
+
+        # Iterate through the files in the directory
+        for file in os.listdir(data_dir):
+            with open(os.path.join(data_dir, file)) as f:
+                file_name = file.split(".")[0]
+                code_snippets[file_name] = f.read()
+
+        return code_snippets
+
+
+class CsvLoader(ABC):
+    """
+    Loads the ratings data from a CSV file.
+    """
+
+    @abstractmethod
+    def load(self, csv: str) -> dict:
+        """
+        Loads the data from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A dictionary containing the scores.
+        """
+        pass
+
+
+class ScalabrioCsvLoader(CsvLoader):
+    """
+    Loads the ratings data from the Scalabrio CSV file.
+    """
+
+    def load(self, csv: str) -> dict:
+        """
+        Loads the data from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A dictionary containing the scores.
+        """
+        data_frame = pd.read_csv(csv)
+
+        # Drop the first column, which contains evaluator names
+        data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
+
+        # Calculate the mean of the scores for each code snippet
+        data_frame = data_frame.mean(axis=0)
+
+        # Turn into dictionary with file names as keys and mean scores as values
+        return data_frame.to_dict()
+
+
+class BWCsvLoader(CsvLoader):
+    """
+    Loads the ratings data from the BW CSV file.
+    """
+
+    def load(self, csv: str) -> dict:
+        """
+        Loads the data from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A dictionary containing the scores.
+        """
+        # Load the data. The first row already contains scores
+        data_frame = pd.read_csv(csv, header=None)
+
+        # Drop the first two column, which contains evaluator names
+        data_frame = data_frame.drop(columns=data_frame.columns[:2], axis=1)
+
+        # Add a header for all columns (1 - x)
+        data_frame.columns = [f"{i}" for i in range(1, len(data_frame.columns) + 1)]
+
+        # Calculate the mean of the scores for each code snippet
+        data_frame = data_frame.mean(axis=0)
+
+        # Turn into dictionary with file names as keys and mean scores as values
+        return data_frame.to_dict()
 
 
 class CsvFolderToDataset:
@@ -9,10 +139,14 @@ class CsvFolderToDataset:
     A data loader for loading data from a CSV file and the corresponding code snippets.
     """
 
-    def __init__(self):
+    def __init__(self, csv_loader: CsvLoader, code_loader: CodeLoader):
         """
         Initializes the data loader.
+        :param csv_loader: The CSV loader.
+        :param code_loader: The code loader.
         """
+        self.csv_loader = csv_loader
+        self.code_loader = code_loader
 
     def convert_to_dataset(self, csv: str, data_dir: str) -> DatasetDict:
         """
@@ -43,51 +177,13 @@ class CsvFolderToDataset:
         :param data_dir: The path to the directory containing the code snippets.
         :return: A tuple containing the mean scores and the code snippets.
         """
-        mean_scores = self._load_mean_scores(csv)
-        code_snippets = self._load_code_snippets(data_dir)
+        mean_scores = self.csv_loader.load(csv)
+        code_snippets = self.code_loader.load(data_dir)
 
         return mean_scores, code_snippets
 
-    def _load_code_snippets(self, data_dir: str) -> dict:
-        """
-        Loads the code snippets from the files to a dictionary. The file names are used
-        as keys and the code snippets as values.
-        :param data_dir: Path to the directory containing the code snippets.
-        :return: The code snippets as a dictionary.
-        """
-        code_snippets = {}
 
-        # Iterate through the files in the directory
-        for file in os.listdir(data_dir):
-            with open(os.path.join(data_dir, file)) as f:
-                # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
-                file_name = file.split(".")[0]
-                file_name = f"Snippet{file_name}"
-                code_snippets[file_name] = f.read()
-
-        return code_snippets
-
-    def _load_mean_scores(self, csv: str) -> dict:
-        """
-        Loads the mean scores from the CSV file.
-        :param csv: Path to the CSV file containing the scores.
-        :return: A pandas Series containing the mean scores.
-        """
-        data_frame = pd.read_csv(csv)
-
-        # Drop the first column, which contains evaluator names
-        data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
-
-        # Calculate the mean of the scores for each code snippet
-        data_frame = data_frame.mean(axis=0)
-
-        # Turn into dictionary with file names as keys and mean scores as values
-        return data_frame.to_dict()
-
-
-DATA_DIR = (
-    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
-)
+DATA_DIR = "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/DatasetBW"
 
 if __name__ == "__main__":
     # Get the paths for loading the data
@@ -95,7 +191,9 @@ if __name__ == "__main__":
     snippets_dir = os.path.join(DATA_DIR, "Snippets")
 
     # Load the data
-    data_loader = CsvFolderToDataset()
+    data_loader = CsvFolderToDataset(
+        csv_loader=BWCsvLoader(), code_loader=BWCodeLoader()
+    )
     dataset = data_loader.convert_to_dataset(csv, snippets_dir)
 
     # Store the dataset
