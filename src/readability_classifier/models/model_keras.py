@@ -1,40 +1,30 @@
+import logging
 import os
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from datasets import Dataset
+from tensorflow.python.client import device_lib
 from transformers import BertTokenizer, DataCollatorWithPadding, TFBertModel
 
+# TODO: Make token length configurable
 TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_BATCH_SIZE = 8  # Small to avoid memory errors
 
 
-# TODO: Use this for bert: https://huggingface.co/docs/datasets/use_dataset
-
-
-class ReadabilityDataset(tf.keras.utils.Sequence):
-    def __init__(self, data_dict, batch_size=DEFAULT_BATCH_SIZE):
-        self.data_dict = data_dict
-        self.names = list(data_dict.keys())
-        self.batch_size = batch_size
-
-    def __len__(self):
-        return int(np.ceil(len(self.names) / self.batch_size))
-
-    def __getitem__(self, idx):
-        batch_names = self.names[idx * self.batch_size : (idx + 1) * self.batch_size]
-        batch_data = [self.data_dict[name] for name in batch_names]
-
-        input_ids = np.array([item[0] for item in batch_data])
-        attention_mask = np.array([item[1] for item in batch_data])
-        scores = np.array([item[2] for item in batch_data])
-
-        return ({"input_ids": input_ids, "attention_mask": attention_mask}, scores)
-
-
 class CodeReadabilityRegressor(tf.keras.Model):
-    def __init__(self, num_classes):
+    """
+    A regression model that predicts the readability of a code snippet. The model
+    uses BERT as a feature extractor and a simple feed-forward network as a
+    regressor.
+    """
+
+    def __init__(self, num_classes: int) -> None:
+        """
+        Initialize the model.
+        :param num_classes:
+        """
         super().__init__()
 
         self.bert = TFBertModel.from_pretrained("bert-base-uncased")
@@ -42,7 +32,13 @@ class CodeReadabilityRegressor(tf.keras.Model):
         self.fc1 = tf.keras.layers.Dense(128, activation="relu")
         self.fc2 = tf.keras.layers.Dense(num_classes, activation="linear")
 
-    def call(self, inputs):
+    def call(self, inputs: dict, **kwargs) -> tf.Tensor:
+        """
+        Call the model. This is the forward pass.
+        :param inputs: The input data
+        :param kwargs: Additional arguments
+        :return: The output of the model
+        """
         input_ids = inputs["input_ids"]
         attention_mask = inputs["attention_mask"]
 
@@ -53,10 +49,26 @@ class CodeReadabilityRegressor(tf.keras.Model):
 
 
 class CsvFolderDataLoader:
-    def __init__(self, batch_size=DEFAULT_BATCH_SIZE):
+    """
+    A data loader for loading data from a CSV file and the corresponding code snippets.
+    TODO: Add hierarchy for different dataset formats?
+    TODO: Convert to huggingface datasets?
+    """
+
+    def __init__(self, batch_size: int = DEFAULT_BATCH_SIZE):
+        """
+        Initializes the data loader.
+        :param batch_size: The batch size.
+        """
         self.batch_size = batch_size
 
-    def load(self, csv, data_dir):
+    def load(self, csv: str, data_dir: str) -> tuple[Dataset, Dataset]:
+        """
+        Loads the data and prepares it for training and evaluation.
+        :param csv: Path to the CSV file containing the scores.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The training and test data.
+        """
         aggregated_scores, code_snippets = self._load_from_storage(csv, data_dir)
 
         embeddings = []
@@ -105,28 +117,64 @@ class CsvFolderDataLoader:
 
         return train_data, test_data
 
-    def _load_from_storage(self, csv, data_dir):
+    def _load_from_storage(self, csv: str, data_dir: str) -> tuple[dict, dict]:
+        """
+        Loads the data from the CSV file and the code snippets from the files.
+        :param csv: The path to the CSV file containing the scores.
+        :param data_dir: The path to the directory containing the code snippets.
+        :return: A tuple containing the mean scores and the code snippets.
+        """
         mean_scores = self._load_mean_scores(csv)
         code_snippets = self._load_code_snippets(data_dir)
+
         return mean_scores, code_snippets
 
-    def _load_code_snippets(self, data_dir):
+    def _load_code_snippets(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
         code_snippets = {}
+
+        # Iterate through the files in the directory
         for file in os.listdir(data_dir):
             with open(os.path.join(data_dir, file)) as f:
+                # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
                 file_name = file.split(".")[0]
                 file_name = f"Snippet{file_name}"
                 code_snippets[file_name] = f.read()
+
         return code_snippets
 
-    def _load_mean_scores(self, csv):
+    def _load_mean_scores(self, csv: str) -> dict:
+        """
+        Loads the mean scores from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A pandas Series containing the mean scores.
+        """
         data_frame = pd.read_csv(csv)
+
+        # Drop the first column, which contains evaluator names
         data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
+
+        # Calculate the mean of the scores for each code snippet
         data_frame = data_frame.mean(axis=0)
+
+        # Turn into dictionary with file names as keys and mean scores as values
         return data_frame.to_dict()
 
     @staticmethod
-    def tokenize_and_encode(text, tokenizer):
+    def tokenize_and_encode(
+        text: str, tokenizer: BertTokenizer
+    ) -> tuple[list[int], list[int]]:
+        """
+        Tokenizes and encodes the given text using the given tokenizer.
+        :param text: The text to tokenize and encode.
+        :param tokenizer: The tokenizer to use.
+        :return: A tuple containing the input IDs and the attention mask.
+        """
         encoded_dict = tokenizer(
             text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
         )
@@ -144,6 +192,13 @@ class CsvFolderDataLoader:
 
 
 class CodeReadabilityClassifier:
+    """
+    A code readability classifier based on a CNN model. The model is trained on code
+    snippets and their corresponding scores. The code snippets are tokenized and
+    encoded using the BERT tokenizer. The model is trained on the encoded code
+    snippets and their scores.
+    """
+
     def __init__(
         self,
         train_generator=None,
@@ -153,20 +208,40 @@ class CodeReadabilityClassifier:
         num_epochs=10,
         learning_rate=0.001,
     ):
+        """
+        Initializes the classifier.
+        :param train_generator: The training data.
+        :param test_generator: The test data.
+        :param batch_size: The batch size.
+        :param num_epochs: The number of epochs.
+        :param learning_rate: The learning rate.
+        """
         self.train_generator = train_generator
         self.test_generator = test_generator
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
+        # TODO: to gpu?
 
+        # Set up the model on initialization
         self._setup_model()
 
-    def _setup_model(self):
+    def _setup_model(self) -> None:
+        """
+        Sets up the model. This includes initializing the model, the loss function and
+        the optimizer.
+        :return: None
+        """
         self.model = CodeReadabilityRegressor(1)
+        # TODO: To gpu?
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         self.loss_fn = tf.keras.losses.MeanSquaredError()
 
-    def train(self):
+    def train(self) -> None:
+        """
+        Trains the model.
+        :return: None
+        """
         if self.train_generator is None:
             raise ValueError("No training data provided.")
 
@@ -179,20 +254,40 @@ class CodeReadabilityClassifier:
             verbose=1,
         )
 
-    def evaluate(self):
+    def evaluate(self) -> None:
+        """
+        Evaluates the model.
+        :return: None
+        :return:
+        """
         if self.test_generator is None:
             raise ValueError("No test data provided.")
 
         loss = self.model.evaluate(self.test_generator, verbose=0)
-        print("Mean Squared Error (MSE):", loss)
+        logging.info(f"Test loss: {loss}")
 
-    def store(self, path):
+    def store(self, path: str) -> None:
+        """
+        Stores the model at the given path.
+        :param path: The path to store the model.
+        :return: None
+        """
         self.model.save_weights(path)
 
-    def load(self, path):
+    def load(self, path: str) -> None:
+        """
+        Loads the model from the given path.
+        :param path: The path to load the model from.
+        :return: None
+        """
         self.model.load_weights(path)
 
-    def predict(self, code_snippet):
+    def predict(self, code_snippet: str) -> float:
+        """
+        Predicts the readability of the given code snippet.
+        :param code_snippet: The code snippet to predict the readability of.
+        :return: The predicted readability.
+        """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         input_ids, attention_mask = CsvFolderDataLoader.tokenize_and_encode(
             code_snippet, tokenizer
@@ -210,6 +305,14 @@ DATA_DIR = (
 )
 
 if __name__ == "__main__":
+
+    def check_gpu():
+        local_device_protos = device_lib.list_local_devices()
+        return [x.name for x in local_device_protos if x.device_type == "GPU"]
+
+    # logging.info(f"Available GPUs: {check_gpu()}")
+    print(f"Available GPUs: {check_gpu()}")
+
     snippets_dir = os.path.join(DATA_DIR, "Snippets")
     csv_path = os.path.join(DATA_DIR, "scores.csv")
 

@@ -125,6 +125,7 @@ class CsvFolderDataLoader:
     """
     A data loader for loading data from a CSV file and the corresponding code snippets.
     TODO: Add hierarchy for different dataset formats?
+    TODO: Convert to huggingface datasets?
     """
 
     def __init__(
