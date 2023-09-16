@@ -69,6 +69,29 @@ class BWCodeLoader(CodeLoader):
         return code_snippets
 
 
+class DornCodeLoader(CodeLoader):
+    """
+    Loads the java code snippets of the Dorn dataset.
+    """
+
+    def load(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary. The file names are used
+        as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        code_snippets = {}
+
+        # Iterate through the files in the directory
+        for file in os.listdir(data_dir):
+            with open(os.path.join(data_dir, file)) as f:
+                file_name = file.split(".")[0]
+                code_snippets[file_name] = f.read()
+
+        return code_snippets
+
+
 class CsvLoader(ABC):
     """
     Loads the ratings data from a CSV file.
@@ -134,6 +157,39 @@ class BWCsvLoader(CsvLoader):
         return data_frame.to_dict()
 
 
+class DornCsvLoader(CsvLoader):
+    """
+    Loads the ratings data from the Dorn CSV file.
+    """
+
+    def load(self, csv: str) -> dict:
+        """
+        Loads the data from the CSV file.
+        :param csv: Path to the CSV file containing the scores.
+        :return: A dictionary containing the scores.
+        """
+        # Load the data. The first row already contains scores
+        data_frame = pd.read_csv(csv, header=None)
+
+        # Drop the first column, which contains evaluator names
+        data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
+
+        # Add a header for all columns (1 - x)
+        first_file_number = 101
+        data_frame.columns = [
+            f"{i}"
+            for i in range(
+                first_file_number, first_file_number + len(data_frame.columns)
+            )
+        ]
+
+        # Calculate the mean of the scores for each code snippet
+        data_frame = data_frame.mean(axis=0)
+
+        # Turn into dictionary with file names as keys and mean scores as values
+        return data_frame.to_dict()
+
+
 class CsvFolderToDataset:
     """
     A data loader for loading data from a CSV file and the corresponding code snippets.
@@ -183,7 +239,10 @@ class CsvFolderToDataset:
         return mean_scores, code_snippets
 
 
-DATA_DIR = "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/DatasetBW"
+DATA_DIR = (
+    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
+    "DatasetDornJava/dataset"
+)
 
 if __name__ == "__main__":
     # Get the paths for loading the data
@@ -192,7 +251,7 @@ if __name__ == "__main__":
 
     # Load the data
     data_loader = CsvFolderToDataset(
-        csv_loader=BWCsvLoader(), code_loader=BWCodeLoader()
+        csv_loader=DornCsvLoader(), code_loader=DornCodeLoader()
     )
     dataset = data_loader.convert_to_dataset(csv, snippets_dir)
 
