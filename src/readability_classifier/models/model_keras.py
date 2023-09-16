@@ -221,7 +221,6 @@ class CodeReadabilityClassifier:
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
-        # TODO: to gpu?
 
         # Set up the model on initialization
         self._setup_model()
@@ -233,7 +232,6 @@ class CodeReadabilityClassifier:
         :return: None
         """
         self.model = CodeReadabilityRegressor(1)
-        # TODO: To gpu?
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         self.loss_fn = tf.keras.losses.MeanSquaredError()
 
