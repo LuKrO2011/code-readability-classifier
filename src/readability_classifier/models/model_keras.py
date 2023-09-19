@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from datasets import Dataset
-from tensorflow.python.client import device_lib
 from transformers import BertTokenizer, DataCollatorWithPadding, TFBertModel
 
 # TODO: Make token length configurable
@@ -303,14 +302,6 @@ DATA_DIR = (
 )
 
 if __name__ == "__main__":
-
-    def check_gpu():
-        local_device_protos = device_lib.list_local_devices()
-        return [x.name for x in local_device_protos if x.device_type == "GPU"]
-
-    # logging.info(f"Available GPUs: {check_gpu()}")
-    print(f"Available GPUs: {check_gpu()}")
-
     snippets_dir = os.path.join(DATA_DIR, "Snippets")
     csv_path = os.path.join(DATA_DIR, "scores.csv")
 
