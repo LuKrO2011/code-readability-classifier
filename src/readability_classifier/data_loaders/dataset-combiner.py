@@ -15,21 +15,24 @@ def combine_datasets(input_paths: list[str], output_path: str) -> None:
 
     # Combine the datasets
     combined_dataset = concatenate_datasets(datasets)
+
+    # Save the combined dataset
     combined_dataset.save_to_disk(output_path)
 
 
 if __name__ == "__main__":
+    dataset_name = "dataset_not_splitted"
     dorn_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
-        "DatasetDornJava/dataset/dataset"
+        "DatasetDornJava/dataset/" + dataset_name
     )
     bw_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/DatasetBW/"
-        "dataset"
+        + dataset_name
     )
     scalabrio_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
-        "Dataset/Dataset/dataset"
+        "Dataset/Dataset/" + dataset_name
     )
     combined_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Combined"

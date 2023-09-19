@@ -213,13 +213,13 @@ class CsvFolderToDataset:
         """
         aggregated_scores, code_snippets = self._load_from_storage(csv, data_dir)
 
-        # Combine the scores and the code snippets into a single dictionary
-        data = {}
+        # Combine the scores and the code snippets into a list
+        data = []
         for file_name, score in aggregated_scores.items():
-            data[file_name] = {"code": code_snippets[file_name], "score": score}
+            data.append({"code_snippet": code_snippets[file_name], "score": score})
 
-        # Convert to HuggingFace format
-        return Dataset.from_dict(data)
+        # Convert to HuggingFace dataset
+        return Dataset.from_list(data)
 
     def _load_from_storage(self, csv: str, data_dir: str) -> tuple[dict, dict]:
         """
@@ -234,17 +234,47 @@ class CsvFolderToDataset:
         return mean_scores, code_snippets
 
 
-DATA_DIR = (
+SCALABRIO_DATA_DIR = (
+    "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset"
+)
+BW_DATA_DIR = "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/DatasetBW/"
+DORN_DATA_DIR = (
     "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
     "DatasetDornJava/dataset"
 )
 
 if __name__ == "__main__":
-    # TODO: Write script to store all datasets -> Perform again
+    output_name = "dataset_not_splitted"
 
     # Get the paths for loading the data
-    csv = os.path.join(DATA_DIR, "scores.csv")
-    snippets_dir = os.path.join(DATA_DIR, "Snippets")
+    csv = os.path.join(SCALABRIO_DATA_DIR, "scores.csv")
+    snippets_dir = os.path.join(SCALABRIO_DATA_DIR, "Snippets")
+
+    # Load the data
+    data_loader = CsvFolderToDataset(
+        csv_loader=ScalabrioCsvLoader(), code_loader=ScalabrioCodeLoader()
+    )
+    dataset = data_loader.convert_to_dataset(csv, snippets_dir)
+
+    # Store the dataset
+    dataset.save_to_disk(os.path.join(SCALABRIO_DATA_DIR, output_name))
+
+    # Get the paths for loading the data
+    csv = os.path.join(BW_DATA_DIR, "scores.csv")
+    snippets_dir = os.path.join(BW_DATA_DIR, "Snippets")
+
+    # Load the data
+    data_loader = CsvFolderToDataset(
+        csv_loader=BWCsvLoader(), code_loader=BWCodeLoader()
+    )
+    dataset = data_loader.convert_to_dataset(csv, snippets_dir)
+
+    # Store the dataset
+    dataset.save_to_disk(os.path.join(BW_DATA_DIR, output_name))
+
+    # Get the paths for loading the data
+    csv = os.path.join(DORN_DATA_DIR, "scores.csv")
+    snippets_dir = os.path.join(DORN_DATA_DIR, "Snippets")
 
     # Load the data
     data_loader = CsvFolderToDataset(
@@ -253,4 +283,4 @@ if __name__ == "__main__":
     dataset = data_loader.convert_to_dataset(csv, snippets_dir)
 
     # Store the dataset
-    dataset.save_to_disk(os.path.join(DATA_DIR, "dataset"))
+    dataset.save_to_disk(os.path.join(DORN_DATA_DIR, output_name))
