@@ -37,11 +37,11 @@ class ReadabilityDataset(Dataset):
         :return: A dictionary containing the input_ids, attention_mask and the score
         for the sample.
         """
-        # TODO: Convert scores to tensor somewhere else to make this obsolete.
+        # TODO: This is obsolete?
         return {
             "input_ids": self.data[idx]["input_ids"],
             "attention_mask": self.data[idx]["attention_mask"],
-            "scores": self.data[idx]["scores"],
+            "score": self.data[idx]["score"],
         }
 
 
@@ -175,7 +175,7 @@ class DatasetEncoder:
                 {
                     "input_ids": input_ids.squeeze(),
                     "attention_mask": attention_mask.squeeze(),
-                    "scores": torch.tensor(data["score"]),
+                    "score": torch.tensor(data["score"]),
                 }
             )
 
@@ -292,12 +292,12 @@ class CodeReadabilityClassifier:
             for batch in self.train_loader:
                 input_ids = batch["input_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
-                scores = (
-                    batch["scores"].unsqueeze(1).to(self.device)
+                score = (
+                    batch["score"].unsqueeze(1).to(self.device)
                 )  # Add dimension for matching batch size
 
                 loss = self._train_iteration(
-                    input_ids, scores, attention_mask=attention_mask
+                    input_ids, score, attention_mask=attention_mask
                 )
                 running_loss += loss
 
@@ -323,9 +323,9 @@ class CodeReadabilityClassifier:
             for batch in self.test_loader:
                 input_ids = batch["input_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
-                scores = batch["scores"].to(self.device)
+                score = batch["score"].to(self.device)
 
-                y_batch.append(scores)
+                y_batch.append(score)
                 predictions.append(self.model(input_ids, attention_mask))
 
             # Concatenate the lists of tensors to create a single tensor
