@@ -133,7 +133,7 @@ def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
     for sample in dataset_list:
         sample["input_ids"] = torch.tensor(sample["input_ids"]).long()
         sample["attention_mask"] = torch.tensor(sample["attention_mask"]).long()
-        sample["score"] = torch.tensor([sample["score"]], dtype=torch.float32)
+        sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 
     return dataset_list
 
