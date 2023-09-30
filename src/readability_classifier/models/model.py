@@ -121,13 +121,21 @@ def load_raw_data(data_dir: str) -> list[dict]:
 def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
     """
     Loads the BERT encoded data from a dataset in the given directory as a list of
-    tuples (input_ids, attention_mask, score).
+    dictionaries containing torch.Tensors (input_ids, attention_mask, score).
     :param data_dir: The path to the directory containing the data.
-    :return: A list of dictionaries containing the input_ids, attention_mask and the
-    score for the sample.
+    :return: A list of dictionaries containing the input_ids, attention_mask, and the
+    score for the sample as torch.Tensors.
     """
     dataset = load_from_disk(data_dir)
-    return dataset.to_list()
+    dataset_list = dataset.to_list()
+
+    # Convert loaded data to torch.Tensors
+    for sample in dataset_list:
+        sample["input_ids"] = torch.tensor(sample["input_ids"]).long()
+        sample["attention_mask"] = torch.tensor(sample["attention_mask"]).long()
+        sample["score"] = torch.tensor([sample["score"]], dtype=torch.float32)
+
+    return dataset_list
 
 
 def encoded_data_to_dataloaders(
