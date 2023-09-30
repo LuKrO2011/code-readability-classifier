@@ -1,3 +1,4 @@
+import logging
 import os
 from abc import ABC, abstractmethod
 
@@ -42,6 +43,7 @@ class ScalabrioCodeLoader(CodeLoader):
                 file_name = file.split(".")[0]
                 file_name = f"Snippet{file_name}"
                 code_snippets[file_name] = f.read()
+                logging.info(f"Loaded code snippet {file_name}")
 
         return code_snippets
 
@@ -65,6 +67,7 @@ class BWCodeLoader(CodeLoader):
             with open(os.path.join(data_dir, file)) as f:
                 file_name = file.split(".")[0]
                 code_snippets[file_name] = f.read()
+                logging.info(f"Loaded code snippet {file_name}")
 
         return code_snippets
 
@@ -88,6 +91,7 @@ class DornCodeLoader(CodeLoader):
             with open(os.path.join(data_dir, file)) as f:
                 file_name = file.split(".")[0]
                 code_snippets[file_name] = f.read()
+                logging.info(f"Loaded code snippet {file_name}")
 
         return code_snippets
 
@@ -119,6 +123,7 @@ class KrodCodeLoader(CodeLoader):
                 with open(os.path.join(root, file)) as f:
                     file_name = self._file_name(data_dir, file, root)
                     code_snippets[file_name] = f.read()
+                    logging.info(f"Loaded code snippet {file_name}")
 
         return code_snippets
 
@@ -176,7 +181,12 @@ class ScalabrioCsvLoader(CsvLoader):
         data_frame = data_frame.mean(axis=0)
 
         # Turn into dictionary with file names as keys and mean scores as values
-        return data_frame.to_dict()
+        data_dict = data_frame.to_dict()
+
+        # Log the number of loaded scores
+        logging.info(f"Loaded {len(data_dict)} scores from {csv}")
+
+        return data_dict
 
 
 class BWCsvLoader(CsvLoader):
@@ -203,7 +213,12 @@ class BWCsvLoader(CsvLoader):
         data_frame = data_frame.mean(axis=0)
 
         # Turn into dictionary with file names as keys and mean scores as values
-        return data_frame.to_dict()
+        data_dict = data_frame.to_dict()
+
+        # Log the number of loaded scores
+        logging.info(f"Loaded {len(data_dict)} scores from {csv}")
+
+        return data_dict
 
 
 class DornCsvLoader(CsvLoader):
@@ -236,7 +251,12 @@ class DornCsvLoader(CsvLoader):
         data_frame = data_frame.mean(axis=0)
 
         # Turn into dictionary with file names as keys and mean scores as values
-        return data_frame.to_dict()
+        data_dict = data_frame.to_dict()
+
+        # Log the number of loaded scores
+        logging.info(f"Loaded {len(data_dict)} scores from {csv}")
+
+        return data_dict
 
 
 class CsvFolderToDataset:
@@ -266,6 +286,9 @@ class CsvFolderToDataset:
         data = []
         for file_name, score in aggregated_scores.items():
             data.append({"code_snippet": code_snippets[file_name], "score": score})
+
+        # Log the number of loaded code snippets
+        logging.info(f"Loaded {len(data)} code snippets with scores")
 
         # Convert to HuggingFace dataset
         return Dataset.from_list(data)
@@ -321,6 +344,9 @@ class TwoFoldersToDataset:
         for _, code_snippet in rdh_code_snippets.items():
             data.append({"code_snippet": code_snippet, "score": rdh_score})
 
+        # Log the number of loaded code snippets
+        logging.info(f"Loaded {len(data)} code snippets with estimated scores")
+
         # Convert to HuggingFace dataset
         return Dataset.from_list(data)
 
@@ -342,6 +368,9 @@ def scalabrio():
     csv = os.path.join(SCALABRIO_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(SCALABRIO_DATA_DIR, "Snippets")
 
+    # Log the configuration
+    logging.info(f"Loading data from {snippets_dir} with scores from {csv}")
+
     # Load the data
     data_loader = CsvFolderToDataset(
         csv_loader=ScalabrioCsvLoader(), code_loader=ScalabrioCodeLoader()
@@ -351,11 +380,17 @@ def scalabrio():
     # Store the dataset
     dataset.save_to_disk(os.path.join(SCALABRIO_DATA_DIR, output_name))
 
+    # Log the number of saved code snippets
+    logging.info(f"Saved {len(dataset)} to {output_name}")
+
 
 def bw():
     # Get the paths for loading the data
     csv = os.path.join(BW_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(BW_DATA_DIR, "Snippets")
+
+    # Log the configuration
+    logging.info(f"Loading data from {snippets_dir} with scores from {csv}")
 
     # Load the data
     data_loader = CsvFolderToDataset(
@@ -366,11 +401,17 @@ def bw():
     # Store the dataset
     dataset.save_to_disk(os.path.join(BW_DATA_DIR, output_name))
 
+    # Log the number of saved code snippets
+    logging.info(f"Saved {len(dataset)} to {output_name}")
+
 
 def dorn():
     # Get the paths for loading the data
     csv = os.path.join(DORN_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(DORN_DATA_DIR, "Snippets")
+
+    # Log the configuration
+    logging.info(f"Loading data from {snippets_dir} with scores from {csv}")
 
     # Load the data
     data_loader = CsvFolderToDataset(
@@ -381,11 +422,17 @@ def dorn():
     # Store the dataset
     dataset.save_to_disk(os.path.join(DORN_DATA_DIR, output_name))
 
+    # Log the number of saved code snippets
+    logging.info(f"Saved {len(dataset)} to {output_name}")
+
 
 def krod():
     # Get the paths for loading the data
     original = os.path.join(KROD_DATA_DIR, "methods")
     rdh = os.path.join(KROD_DATA_DIR, "rdh_output18_methods")
+
+    # Log the configuration
+    logging.info(f"Loading data from {original} and {rdh}")
 
     # Load the data
     data_loader = TwoFoldersToDataset(
@@ -396,6 +443,9 @@ def krod():
 
     # Store the dataset
     dataset.save_to_disk(os.path.join(KROD_DATA_DIR, output_name))
+
+    # Log the number of saved code snippets
+    logging.info(f"Saved {len(dataset)} to {output_name}")
 
 
 if __name__ == "__main__":
