@@ -7,9 +7,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from datasets import Dataset
+
 from readability_classifier.models.model import (
     CodeReadabilityClassifier,
-    CsvFolderDataLoader,
+    DatasetEncoder,
+    encoded_data_to_dataloaders,
+    load_encoded_data,
+    load_raw_data,
 )
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -87,7 +92,14 @@ def _set_up_arg_parser() -> ArgumentParser:
         "-i",
         required=True,
         type=Path,
-        help="Path to the dataset (containing a folder 'Snippets' and scores.csv).",
+        help="Path to the dataset.",
+    )
+    train_parser.add_argument(
+        "--encoded",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Whether the dataset is already encoded by BERT.",
     )
     train_parser.add_argument(
         "--save",
@@ -99,8 +111,8 @@ def _set_up_arg_parser() -> ArgumentParser:
     train_parser.add_argument(
         "--evaluate",
         required=False,
-        type=bool,
         default=True,
+        action="store_false",
         help="Whether the model should be evaluated after training.",
     )
     train_parser.add_argument(
@@ -167,6 +179,7 @@ def _run_train(parsed_args) -> None:
     """
     # Get the parsed arguments
     data_dir = parsed_args.input
+    encoded = parsed_args.encoded
     store_dir = parsed_args.save
     evaluate = parsed_args.evaluate
     token_length = parsed_args.token_length
@@ -174,14 +187,17 @@ def _run_train(parsed_args) -> None:
     num_epochs = parsed_args.epochs
     learning_rate = parsed_args.learning_rate
 
-    # Get the paths for loading the data
-    # TODO: Replace with actual arguments path and csv
-    snippets_dir = os.path.join(data_dir, "Snippets")
-    csv = os.path.join(data_dir, "scores.csv")
+    if not encoded:
+        raw_data = load_raw_data(data_dir)
+        encoded_data = DatasetEncoder().encode(raw_data)
 
-    # Load the data
-    data_loader = CsvFolderDataLoader(batch_size=batch_size)
-    train_loader, test_loader = data_loader.load(csv, snippets_dir)
+        # Convert the encoded data to Hugging faces format
+        encoded_dir = Path(data_dir) / ".." / "Encoded"
+        Dataset.from_list(encoded_data).save_to_disk(encoded_dir)
+    else:
+        encoded_data = load_encoded_data(data_dir)
+
+    train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
 
     # Train the model
     classifier = CodeReadabilityClassifier(

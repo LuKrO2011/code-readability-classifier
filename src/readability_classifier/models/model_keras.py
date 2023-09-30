@@ -7,6 +7,8 @@ import tensorflow as tf
 from datasets import Dataset
 from transformers import BertTokenizer, DataCollatorWithPadding, TFBertModel
 
+# WARNING: THIS FILE IS DEPRECATED!!!
+
 # TODO: Make token length configurable
 TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_BATCH_SIZE = 8  # Small to avoid memory errors

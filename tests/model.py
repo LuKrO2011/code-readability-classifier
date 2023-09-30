@@ -3,7 +3,7 @@ import unittest
 
 from readability_classifier.models.model import (
     CodeReadabilityClassifier,
-    CsvFolderDataLoader,
+    DatasetEncoder,
 )
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,8 +30,8 @@ class TestModel(unittest.TestCase):
         csv = os.path.join(DATA_DIR, "scores.csv")
 
         # Load the data
-        data_loader = CsvFolderDataLoader()
-        train_loader, test_loader = data_loader.load(csv, snippets_dir)
+        data_loader = DatasetEncoder()
+        train_loader, test_loader = data_loader.encode(csv, snippets_dir)
 
         # Train and evaluate the model
         classifier = CodeReadabilityClassifier(train_loader, test_loader)

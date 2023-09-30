@@ -1,10 +1,9 @@
 import logging
-import os
 
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from datasets import load_from_disk
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
@@ -15,48 +14,34 @@ DEFAULT_BATCH_SIZE = 8  # Small to avoid CUDA out of memory errors on local mach
 
 
 class ReadabilityDataset(Dataset):
-    def __init__(self, data_dict: dict[str, tuple[torch.Tensor, torch.Tensor, float]]):
+    def __init__(self, data: list[dict[str, torch.Tensor]]):
         """
         Initialize the dataset with a dictionary containing data samples.
-
-        Args:
-            data_dict (dict): A dictionary where keys are sample names and values are
-            tuples (input_ids, attention_mask, aggregated_scores).
+        Each data sample is a dict containing the input_ids, attention_mask and the
+        score for the sample.
+        :param data: A list of dictionaries containing the data samples.
         """
-        self.data_dict = data_dict
-        self.names = list(data_dict.keys())
+        self.data = data
 
     def __len__(self) -> int:
         """
         Return the total number of samples in the dataset.
         """
-        return len(self.names)
+        return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         """
-        Return a sample from the dataset by its index.
-
-        Args:
-            idx (int): Index of the sample to retrieve.
-
-        Returns:
-            sample (dict): A dictionary containing the following keys:
-                - 'input_ids': Tensor of input_ids for the BERT model.
-                - 'attention_mask': Tensor of attention_mask for the BERT model.
-                - 'scores': Tensor of aggregated_scores for the sample.
+        Return a sample from the dataset by its index. The sample is a dictionary
+        containing the input_ids, attention_mask and the score for the sample.
+        :param idx: The index of the sample.
+        :return: A dictionary containing the input_ids, attention_mask and the score
+        for the sample.
         """
-        # TODO: Check where to convert data into tensors. Maybe here instead?
-        name = self.names[idx]
-        input_ids, attention_mask, scores = self.data_dict[name]
-
-        # Remove the dimension of size 1
-        input_ids = input_ids.squeeze()
-        attention_mask = attention_mask.squeeze()
-
+        # TODO: Convert scores to tensor somewhere else to make this obsolete.
         return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "scores": torch.tensor(scores, dtype=torch.float),
+            "input_ids": self.data[idx]["input_ids"],
+            "attention_mask": self.data[idx]["attention_mask"],
+            "scores": self.data[idx]["scores"],
         }
 
 
@@ -121,115 +106,81 @@ class CNNModel(nn.Module):
         return x
 
 
-class CsvFolderDataLoader:
+# TODO: Make class?
+def load_raw_data(data_dir: str) -> list[dict]:
     """
-    A data loader for loading data from a CSV file and the corresponding code snippets.
-    TODO: Add hierarchy for different dataset formats?
-    TODO: Convert to huggingface datasets?
+    Loads the data from a dataset in the given directory as a list of dictionaries
+    code_snippet, score.
+    :param data_dir: The path to the directory containing the data.
+    :return: A list of dictionaries.
+    """
+    dataset = load_from_disk(data_dir)
+    return dataset.to_list()
+
+
+def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
+    """
+    Loads the BERT encoded data from a dataset in the given directory as a list of
+    tuples (input_ids, attention_mask, score).
+    :param data_dir: The path to the directory containing the data.
+    :return: A list of dictionaries containing the input_ids, attention_mask and the
+    score for the sample.
+    """
+    dataset = load_from_disk(data_dir)
+    return dataset.to_list()
+
+
+def encoded_data_to_dataloaders(
+    encoded_data: list[dict[str, torch.Tensor]], batch_size: int = DEFAULT_BATCH_SIZE
+) -> tuple[DataLoader, DataLoader]:
+    """
+    Converts the encoded data to a training and test data loader.
+    :param encoded_data: The encoded data.
+    :param batch_size: The batch size.
+    :return: A tuple containing the training and test data loader.
+    """
+    # Split data into training and test data
+    train_data, test_data = train_test_split(
+        encoded_data, test_size=0.2, random_state=42
+    )
+
+    # Convert the split data to a ReadabilityDataset
+    train_dataset = ReadabilityDataset(train_data)
+    test_dataset = ReadabilityDataset(test_data)
+
+    # Create data loaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, test_loader
+
+
+# TODO: Move out of class?
+class DatasetEncoder:
+    """
+    A class for encoding the code of the dataset with BERT.
     """
 
-    def __init__(
-        self,
-        batch_size: int = DEFAULT_BATCH_SIZE,
-    ):
+    def encode(self, unencoded_dataset: list[dict]) -> list[dict]:
         """
-        Initializes the data loader.
-        :param batch_size: The batch size.
+        Encodes the given dataset with BERT.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
         """
-        self.batch_size = batch_size
+        # Tokenize and encode the code snippets
+        encoded_data = []
+        for data in unencoded_dataset:
+            input_ids, attention_mask = self.tokenize_and_encode(data["code_snippet"])
+            encoded_data.append(
+                {
+                    "input_ids": input_ids.squeeze(),
+                    "attention_mask": attention_mask.squeeze(),
+                    "scores": torch.tensor(data["score"]),
+                }
+            )
 
-    def load(self, csv: str, data_dir: str) -> tuple[DataLoader, DataLoader]:
-        """
-        Loads the data and prepares it for training and evaluation.
-        :param csv: Path to the CSV file containing the scores.
-        :param data_dir: Path to the directory containing the code snippets.
-        :return: A tuple containing the training and test data loaders.
-        """
-        # Load data
-        aggregated_scores, code_snippets = self._load_from_storage(csv, data_dir)
+        return encoded_data
 
-        # Tokenize and encode code snippets
-        embeddings = {}
-        for name, snippet in code_snippets.items():
-            input_ids, attention_mask = self.tokenize_and_encode(snippet)
-            embeddings[name] = (input_ids, attention_mask)
-
-        # Combine embeddings (x) and scores (y) into a dictionary
-        data = {}
-        for name, (input_ids, attention_mask) in embeddings.items():
-            data[name] = (input_ids, attention_mask, aggregated_scores[name])
-
-        # Split into training and test data
-        names = list(data.keys())
-        train_names, test_names = train_test_split(
-            names, test_size=0.2, random_state=42
-        )
-        train_data = {name: data[name] for name in train_names}
-        test_data = {name: data[name] for name in test_names}
-
-        # Convert the split data to a ReadabilityDatasets
-        train_dataset = ReadabilityDataset(train_data)
-        test_dataset = ReadabilityDataset(test_data)
-
-        # Create data loaders
-        train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True
-        )
-        test_loader = DataLoader(
-            test_dataset, batch_size=self.batch_size, shuffle=False
-        )
-
-        return train_loader, test_loader
-
-    def _load_from_storage(self, csv: str, data_dir: str) -> tuple[dict, dict]:
-        """
-        Loads the data from the CSV file and the code snippets from the files.
-        :param csv: The path to the CSV file containing the scores.
-        :param data_dir: The path to the directory containing the code snippets.
-        :return: A tuple containing the mean scores and the code snippets.
-        """
-        mean_scores = self._load_mean_scores(csv)
-        code_snippets = self._load_code_snippets(data_dir)
-
-        return mean_scores, code_snippets
-
-    def _load_code_snippets(self, data_dir: str) -> dict:
-        """
-        Loads the code snippets from the files to a dictionary. The file names are used
-        as keys and the code snippets as values.
-        :param data_dir: Path to the directory containing the code snippets.
-        :return: The code snippets as a dictionary.
-        """
-        code_snippets = {}
-
-        # Iterate through the files in the directory
-        for file in os.listdir(data_dir):
-            with open(os.path.join(data_dir, file)) as f:
-                # Replace "1.jsnp" with "Snippet1" etc. to match file names in the CSV
-                file_name = file.split(".")[0]
-                file_name = f"Snippet{file_name}"
-                code_snippets[file_name] = f.read()
-
-        return code_snippets
-
-    def _load_mean_scores(self, csv: str) -> dict:
-        """
-        Loads the mean scores from the CSV file.
-        :param csv: Path to the CSV file containing the scores.
-        :return: A pandas Series containing the mean scores.
-        """
-        data_frame = pd.read_csv(csv)
-
-        # Drop the first column, which contains evaluator names
-        data_frame = data_frame.drop(columns=data_frame.columns[0], axis=1)
-
-        # Calculate the mean of the scores for each code snippet
-        data_frame = data_frame.mean(axis=0)
-
-        # Turn into dictionary with file names as keys and mean scores as values
-        return data_frame.to_dict()
-
-    # TODO: Move into separate class?
     @staticmethod
     def tokenize_and_encode(text: str) -> tuple[torch.Tensor, torch.Tensor]:
         """
@@ -411,9 +362,7 @@ class CodeReadabilityClassifier:
         """
         self.model.eval()
         with torch.no_grad():
-            input_ids, attention_mask = CsvFolderDataLoader.tokenize_and_encode(
-                code_snippet
-            )
+            input_ids, attention_mask = DatasetEncoder.tokenize_and_encode(code_snippet)
             input_ids = input_ids.to(self.device)
             attention_mask = attention_mask.to(self.device)
             prediction = self.model(input_ids, attention_mask)
