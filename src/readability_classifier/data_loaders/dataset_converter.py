@@ -92,6 +92,37 @@ class DornCodeLoader(CodeLoader):
         return code_snippets
 
 
+class KrodCodeLoader(CodeLoader):
+    """
+    Loads the java code snippets of the own dataset (krod).
+    """
+
+    def __init__(self, name_appendix: str = ""):
+        """
+        Initializes the code loader.
+        """
+        super().__init__()
+        self.name_appendix = name_appendix
+
+    def load(self, data_dir: str) -> dict:
+        """
+        Loads the code snippets from the files to a dictionary.
+        The path name and file names are used as keys and the code snippets as values.
+        :param data_dir: Path to the directory containing the code snippets.
+        :return: The code snippets as a dictionary.
+        """
+        code_snippets = {}
+
+        # Iterate through the files in the directory and subdirectories
+        for root, _, files in os.walk(data_dir):
+            for file in files:
+                with open(os.path.join(root, file)) as f:
+                    file_name = os.path.join(root, file) + self.name_appendix
+                    code_snippets[file_name] = f.read()
+
+        return code_snippets
+
+
 class CsvLoader(ABC):
     """
     Loads the ratings data from a CSV file.
@@ -232,6 +263,48 @@ class CsvFolderToDataset:
         code_snippets = self.code_loader.load(data_dir)
 
         return mean_scores, code_snippets
+
+
+class TwoFoldersToDataset:
+    """
+    A data loader for loading code snippets from two folders and assuming scores.
+    """
+
+    def __init__(self, original_loader: CodeLoader, rdh_loader: CodeLoader):
+        """
+        Initializes the data loader.
+        :param original_loader: The code loader.
+        """
+        self.code_loader = original_loader
+        self.rdh_loader = rdh_loader
+
+    def convert_to_dataset(
+        self,
+        original_data_dir: str,
+        rdh_data_dir: str,
+        original_score: float = 4.5,
+        rdh_score: float = 1.5,
+    ) -> Dataset:
+        """
+        Loads the data and converts it to the HuggingFace format.
+        :param original_data_dir: Path to the directory containing the original code
+        :param rdh_data_dir: Path to the directory containing the RDH code
+        :param original_score: The score for the original code
+        :param rdh_score: The score for the RDH code
+        :return: The HuggingFace datasets.
+        """
+        original_code_snippets = self.code_loader.load(original_data_dir)
+        rdh_code_snippets = self.rdh_loader.load(rdh_data_dir)
+
+        # Combine the scores and the code snippets into a list
+        data = []
+        for _, code_snippet in original_code_snippets.items():
+            data.append({"code_snippet": code_snippet, "score": original_score})
+        for _, code_snippet in rdh_code_snippets.items():
+            data.append({"code_snippet": code_snippet, "score": rdh_score})
+
+        # Convert to HuggingFace dataset
+        return Dataset.from_list(data)
 
 
 SCALABRIO_DATA_DIR = (

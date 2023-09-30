@@ -8,8 +8,10 @@ from src.readability_classifier.data_loaders.dataset_converter import (
     CsvFolderToDataset,
     DornCodeLoader,
     DornCsvLoader,
+    KrodCodeLoader,
     ScalabrioCodeLoader,
     ScalabrioCsvLoader,
+    TwoFoldersToDataset,
 )
 
 
@@ -77,6 +79,25 @@ class TestDataConversion(unittest.TestCase):
             csv_loader=DornCsvLoader(), code_loader=DornCodeLoader()
         )
         dataset = data_loader.convert_to_dataset(csv, snippets_dir)
+
+        # Store the dataset
+        dataset.save_to_disk(self.output_dir)
+
+        # Check if the dataset was saved successfully
+        assert os.path.exists(self.output_dir)
+
+    def test_KrodingerDataConversion(self):
+        # Test loading and saving Krodinger dataset
+        data_dir = os.path.join(self.test_data_dir, "krod")
+        original = os.path.join(data_dir, "original")
+        rdh = os.path.join(data_dir, "rdh")
+
+        # Load the data
+        data_loader = TwoFoldersToDataset(
+            original_loader=KrodCodeLoader(),
+            rdh_loader=KrodCodeLoader(name_appendix="rdh"),
+        )
+        dataset = data_loader.convert_to_dataset(original, rdh)
 
         # Store the dataset
         dataset.save_to_disk(self.output_dir)
