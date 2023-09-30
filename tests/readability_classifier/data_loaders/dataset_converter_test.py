@@ -86,7 +86,7 @@ class TestDataConversion(unittest.TestCase):
         # Check if the dataset was saved successfully
         assert os.path.exists(self.output_dir)
 
-    def test_KrodingerDataConversion(self):
+    def test_KrodDataConversion(self):
         # Test loading and saving Krodinger dataset
         data_dir = os.path.join(self.test_data_dir, "krod")
         original = os.path.join(data_dir, "original")
@@ -95,7 +95,7 @@ class TestDataConversion(unittest.TestCase):
         # Load the data
         data_loader = TwoFoldersToDataset(
             original_loader=KrodCodeLoader(),
-            rdh_loader=KrodCodeLoader(name_appendix="rdh"),
+            rdh_loader=KrodCodeLoader(name_appendix="_rdh"),
         )
         dataset = data_loader.convert_to_dataset(original, rdh)
 

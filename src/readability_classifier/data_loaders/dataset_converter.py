@@ -117,10 +117,28 @@ class KrodCodeLoader(CodeLoader):
         for root, _, files in os.walk(data_dir):
             for file in files:
                 with open(os.path.join(root, file)) as f:
-                    file_name = os.path.join(root, file) + self.name_appendix
+                    file_name = self._file_name(data_dir, file, root)
                     code_snippets[file_name] = f.read()
 
         return code_snippets
+
+    def _file_name(self, data_dir: str, file: str, root: str) -> str:
+        """
+        Creates the file name from the file name and the path.
+        :param data_dir: The path to the directory containing the code snippets.
+        :param file: The file name.
+        :param root: The path to the file.
+        """
+        file_name = os.path.join(root, file)
+        file_name = file_name.replace(data_dir, "")
+        file_name = file_name.replace("\\", "/")
+        file_name = file_name.replace("/", "_")
+        if file_name.startswith("_"):
+            file_name = file_name[1:]
+        file_name = file_name.replace(".java", "")
+        file_name = file_name.replace(" ", "")
+        file_name = file_name + self.name_appendix
+        return file_name
 
 
 class CsvLoader(ABC):
