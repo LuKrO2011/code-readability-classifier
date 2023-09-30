@@ -12,12 +12,10 @@ from src.readability_classifier.data_loaders.dataset_converter import (
     ScalabrioCsvLoader,
 )
 
-# TODO: Add test data in resources
-
 
 class TestDataConversion(unittest.TestCase):
     output_dir = None  # Set to "output" to generate output
-    test_data_dir = "resources/raw_data"
+    test_data_dir = "res/raw_data"
 
     def setUp(self):
         # Create temporary directories for testing if output directory is None
