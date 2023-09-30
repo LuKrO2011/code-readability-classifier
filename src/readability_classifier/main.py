@@ -7,8 +7,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from datasets import Dataset
-
 from readability_classifier.models.model import (
     CodeReadabilityClassifier,
     DatasetEncoder,
@@ -192,8 +190,8 @@ def _run_train(parsed_args) -> None:
         encoded_data = DatasetEncoder().encode(raw_data)
 
         # Convert the encoded data to Hugging faces format
-        encoded_dir = Path(data_dir) / ".." / "Encoded"
-        Dataset.from_list(encoded_data).save_to_disk(encoded_dir)
+        # encoded_dir = Path(data_dir) / ".." / "Encoded"
+        # Dataset.from_list(encoded_data).save_to_disk(encoded_dir)
     else:
         encoded_data = load_encoded_data(data_dir)
 
