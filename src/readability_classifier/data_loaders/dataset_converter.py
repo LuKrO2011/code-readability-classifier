@@ -120,6 +120,10 @@ class KrodCodeLoader(CodeLoader):
         # Iterate through the files in the directory and subdirectories
         for root, _, files in os.walk(data_dir):
             for file in files:
+                # Skip non-java files
+                if not file.endswith(".java"):
+                    continue
+
                 with open(os.path.join(root, file)) as f:
                     file_name = self._file_name(data_dir, file, root)
                     code_snippets[file_name] = f.read()
