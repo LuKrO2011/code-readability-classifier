@@ -333,10 +333,11 @@ DORN_DATA_DIR = (
     "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
     "DatasetDornJava/dataset"
 )
+KROD_DATA_DIR = r"D:\PyCharm_Projects_D\styler2.0"
+output_name = "dataset_1"
 
-if __name__ == "__main__":
-    output_name = "dataset_not_splitted"
 
+def scalabrio():
     # Get the paths for loading the data
     csv = os.path.join(SCALABRIO_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(SCALABRIO_DATA_DIR, "Snippets")
@@ -350,6 +351,8 @@ if __name__ == "__main__":
     # Store the dataset
     dataset.save_to_disk(os.path.join(SCALABRIO_DATA_DIR, output_name))
 
+
+def bw():
     # Get the paths for loading the data
     csv = os.path.join(BW_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(BW_DATA_DIR, "Snippets")
@@ -363,6 +366,8 @@ if __name__ == "__main__":
     # Store the dataset
     dataset.save_to_disk(os.path.join(BW_DATA_DIR, output_name))
 
+
+def dorn():
     # Get the paths for loading the data
     csv = os.path.join(DORN_DATA_DIR, "scores.csv")
     snippets_dir = os.path.join(DORN_DATA_DIR, "Snippets")
@@ -375,3 +380,23 @@ if __name__ == "__main__":
 
     # Store the dataset
     dataset.save_to_disk(os.path.join(DORN_DATA_DIR, output_name))
+
+
+def krod():
+    # Get the paths for loading the data
+    original = os.path.join(KROD_DATA_DIR, "methods")
+    rdh = os.path.join(KROD_DATA_DIR, "rdh_output18_methods")
+
+    # Load the data
+    data_loader = TwoFoldersToDataset(
+        original_loader=KrodCodeLoader(),
+        rdh_loader=KrodCodeLoader(name_appendix="_rdh"),
+    )
+    dataset = data_loader.convert_to_dataset(original, rdh)
+
+    # Store the dataset
+    dataset.save_to_disk(os.path.join(KROD_DATA_DIR, output_name))
+
+
+if __name__ == "__main__":
+    krod()
