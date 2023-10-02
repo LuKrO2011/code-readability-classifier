@@ -283,3 +283,6 @@ poetry.toml
 
 # Ignore models
 tests/res/models/*
+
+# Ignore raw krod dataset because its to large
+tests/res/raw_datasets/krod/*
