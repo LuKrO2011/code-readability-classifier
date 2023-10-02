@@ -41,6 +41,8 @@ def test_forward_pass(model):
     # Check if the output has the expected shape
     assert output.shape == (NUM_CLASSES, BATCH_SIZE)
 
+    # TODO: Check range of output values
+
 
 def test_backward_pass(model, criterion):
     # Create test x_batch with shape (1, 512) and values between 1 and 9999
@@ -63,5 +65,26 @@ def test_backward_pass(model, criterion):
     assert any(param.grad is not None for param in model.parameters())
 
 
-def test_prediction(model):
-    pass
+# TODO: Merge with prev test.
+def test_update_weights(model, criterion, optimizer):
+    # Create test x_batch with shape (1, 512) and values between 1 and 9999
+    input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
+
+    # Create test attention mask with shape (1, 512)
+    attention_mask = torch.ones(SHAPE).long()
+
+    # Create target data
+    target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
+
+    # Calculate output data
+    output_data = model(input_data, attention_mask)
+
+    # Perform a backward pass
+    loss = criterion(output_data, target_data)
+    loss.backward()
+
+    # Update weights
+    optimizer.step()
+
+    # Check if weights are updated
+    assert any(param.grad is not None for param in model.parameters())
