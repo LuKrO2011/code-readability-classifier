@@ -1,18 +1,23 @@
 = Predicting Source Code Readability
 
-This Python program utilizes machine learning to predict the readability of source code snippets. It is designed to work with Python 3.11.5 and uses Poetry for package management.
+This Python program utilizes machine learning to predict the readability of source code snippets.
+It is designed to work with Python 3.11.5 and uses Poetry for package management.
 
 == Table of Contents
-* link:##installation[Installation]
-* link:##usage[Usage]
-** link:##predict[Predict]
-** link:##train[Train]
 
+* <<Installation>>
+* <<Usage>>
+** <<Predict>>
+** <<Train>>
+** <<Dataset>>
+
+[[Installation]]
 == Installation
 
 To set up the project and its dependencies, follow these steps:
 
 Clone this repository to your local machine:
+
 [source,bash]
 ----
 git clone https://github.com/LuKrO2011/readability-classifier
@@ -20,18 +25,21 @@ cd readability-classifier
 ----
 
 Install Poetry if you haven't already:
+
 [source,bash]
 ----
 pip install poetry
 ----
 
 Create a virtual environment and install the project's dependencies using Poetry:
+
 [source,bash]
 ----
 poetry install
 ----
 
 Activate the virtual environment:
+
 [source,bash]
 ----
 poetry shell
@@ -39,8 +47,10 @@ poetry shell
 
 Now you're ready to use the source code readability prediction tool.
 
+[[Usage]]
 == Usage
 
+[[Predict]]
 === Predict
 
 To predict the readability of a source code snippet, use the following command:
@@ -55,30 +65,51 @@ python src/readability_classifier/main.py PREDICT --model MODEL --input INPUT [-
 * `--token-length` or `-l` (optional): The token length of the snippet (cutting/padding applied).
 
 Example:
+
 [source,bash]
 ----
-python src/readability_classifier/main.py PREDICT --model <model_path> --input <input_file>
+python src/readability_classifier/main.py PREDICT --model tests/res/models/model.pt --input <snippet_path>
 ----
 
+[[Train]]
 === Train
 
 To train a new machine learning model for source code readability prediction, use the following command:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py TRAIN --input INPUT [--save SAVE] [--evaluate EVALUATE] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
+python src/readability_classifier/main.py TRAIN --input INPUT [--save SAVE] [--intermediate INTERMEDIATE] [--evaluate] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
 ----
 
 * `--input` or `-i`: Path to the dataset containing a folder 'Snippets' and 'scores.csv'.
 * `--save` or `-s` (optional): Path to the folder where the trained model should be stored.
-* `--evaluate` (optional): Whether to evaluate the model after training. Defaults to `True`.
+If not specified, the model is not stored.
+* `--intermediate` (optional): Path to the folder where intermediate results should be stored.
+If not specified, the intermediate results are not stored.
+* `--evaluate` (optional): Whether to evaluate the model after training.
 * `--token-length` or `-l` (optional): The token length of the snippets (cutting/padding applied).
 * `--batch-size` or `-b` (optional): The batch size for training.
 * `--epochs` or `-e` (optional): The number of epochs for training.
 * `--learning-rate` or `-r` (optional): The learning rate for training.
 
 Example:
+
 [source,bash]
 ----
-python src/readability_classifier/main.py TRAIN --input <dataset_path> --save <model_save_path>
+python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/bw --save <output-path>
 ----
+
+[[Dataset]]
+== Dataset
+
+The datasets used for training and evaluation are from the following sources:
+
+* BW: Raymond PL Buse and Westley R Weimer. ‘Learning a metric for code readability’
+* Dorn: Jonathan Dorn. ‘A general software readability model’.
+* Scalabrio: Simone Scalabrino et al. ‘Improving code readability models with textual features’.
+* Krod: TODO
+
+In order to use the datasets with the model, they need to be converted into link:https://huggingface.co/docs/datasets/index[Hugging Face's Dataset format].
+This can be done using the dataset_converter.py script.
+Datasets can be combined arbitrarily using the dataset_combiner.py script.
+A command line interface for those will come soon.
