@@ -153,7 +153,7 @@ def test_encode(encoder):
 
 
 def test_load_encoded_dataset():
-    data_dir = "res/encoded_datasets/scalabrio"
+    data_dir = "res/encoded_datasets/bw"
 
     # Load encoded data
     encoded_data = load_encoded_dataset(data_dir)

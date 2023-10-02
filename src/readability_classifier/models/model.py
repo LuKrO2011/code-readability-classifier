@@ -38,13 +38,7 @@ class ReadabilityDataset(Dataset):
         :return: A dictionary containing the input_ids, attention_mask and the score
         for the sample.
         """
-        # TODO: This is obsolete?
-        return {
-            "input_ids": self.data[idx]["input_ids"],
-            "token_type_ids": self.data[idx]["token_type_ids"],
-            "attention_mask": self.data[idx]["attention_mask"],
-            "score": self.data[idx]["score"],
-        }
+        return self.data[idx]
 
 
 class CNNModel(nn.Module):
@@ -141,10 +135,10 @@ def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
 
     # Convert loaded data to torch.Tensors
     for sample in dataset_list:
-        sample["input_ids"] = torch.tensor(sample["input_ids"]).long()
-        sample["token_type_ids"] = torch.tensor(sample["token_type_ids"]).long()
-        sample["attention_mask"] = torch.tensor(sample["attention_mask"]).long()
-        sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
+        sample["input_ids"] = torch.tensor(sample["input_ids"])
+        sample["token_type_ids"] = torch.tensor(sample["token_type_ids"])
+        sample["attention_mask"] = torch.tensor(sample["attention_mask"])
+        sample["score"] = torch.tensor(sample["score"])
 
     return dataset_list
 
@@ -279,7 +273,7 @@ class DatasetEncoder:
                     "input_ids": input_ids[i],
                     "token_type_ids": token_type_ids[i],
                     "attention_mask": attention_mask[i],
-                    "score": torch.tensor(batch[i]["score"], dtype=torch.float32),
+                    "score": torch.tensor(batch[i]["score"]),
                 }
             )
 
