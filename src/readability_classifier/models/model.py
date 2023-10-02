@@ -41,6 +41,7 @@ class ReadabilityDataset(Dataset):
         # TODO: This is obsolete?
         return {
             "input_ids": self.data[idx]["input_ids"],
+            "token_type_ids": self.data[idx]["token_type_ids"],
             "attention_mask": self.data[idx]["attention_mask"],
             "score": self.data[idx]["score"],
         }
@@ -80,16 +81,22 @@ class CNNModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(
-        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+        self,
+        input_ids: torch.Tensor,
+        token_type_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         """
         Forward pass of the model.
         :param input_ids:   Tensor of input_ids for the BERT model.
+        :param token_type_ids: Tensor of token_type_ids for the BERT model.
         :param attention_mask: Tensor of attention_mask for the BERT model.
         :return: The output of the model.
         """
         # Bert embedding
-        x = self.bert(input_ids, attention_mask=attention_mask)
+        x = self.bert(
+            input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask
+        )
 
         # Convert the output of the Bert embedding to fitting shape for conv layers
         x = x[0].unsqueeze(1)
@@ -135,6 +142,7 @@ def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
     # Convert loaded data to torch.Tensors
     for sample in dataset_list:
         sample["input_ids"] = torch.tensor(sample["input_ids"]).long()
+        sample["token_type_ids"] = torch.tensor(sample["token_type_ids"]).long()
         sample["attention_mask"] = torch.tensor(sample["attention_mask"]).long()
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 
@@ -235,6 +243,7 @@ class DatasetEncoder:
 
         return {
             "input_ids": encoding["input_ids"],
+            "token_type_ids": encoding["token_type_ids"],
             "attention_mask": encoding["attention_mask"],
         }
 
@@ -247,8 +256,7 @@ class DatasetEncoder:
         """
         encoded_batch = []
 
-        # Encode the code snippets using tokenizer.encode_plus(...)
-        # TODO: Beside attention mask and padding, also use token_type_ids?
+        # Encode the code snippets batch
         batch_encoding = tokenizer.batch_encode_plus(
             [sample["code_snippet"] for sample in batch],
             add_special_tokens=True,
@@ -261,6 +269,7 @@ class DatasetEncoder:
 
         # Extract input ids and attention mask from batch_encoding
         input_ids = batch_encoding["input_ids"]
+        token_type_ids = batch_encoding["token_type_ids"]
         attention_mask = batch_encoding["attention_mask"]
 
         # Create a dictionary for each sample in the batch
@@ -268,6 +277,7 @@ class DatasetEncoder:
             encoded_batch.append(
                 {
                     "input_ids": input_ids[i],
+                    "token_type_ids": token_type_ids[i],
                     "attention_mask": attention_mask[i],
                     "score": torch.tensor(batch[i]["score"], dtype=torch.float32),
                 }
@@ -323,17 +333,22 @@ class CodeReadabilityClassifier:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def _train_iteration(
-        self, x_batch: torch.Tensor, y_batch: torch.Tensor, attention_mask: torch.Tensor
+        self,
+        x_batch: torch.Tensor,
+        token_type_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        y_batch: torch.Tensor,
     ) -> float:
         """
         Performs a single training iteration.
         :param x_batch: The input_ids of the batch.
-        :param y_batch: The scores of the batch.
+        :param token_type_ids: The token_type_ids of the batch.
         :param attention_mask: The attention_mask of the batch.
+         :param y_batch: The scores of the batch.
         :return: The loss of the batch.
         """
         self.optimizer.zero_grad()
-        outputs = self.model(x_batch, attention_mask)
+        outputs = self.model(x_batch, token_type_ids, attention_mask)
         loss = self.criterion(outputs, y_batch)
         loss.backward()
         self.optimizer.step()
@@ -354,13 +369,17 @@ class CodeReadabilityClassifier:
             # Iterate over the training dataset in mini-batches
             for batch in self.train_loader:
                 input_ids = batch["input_ids"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
                 score = (
                     batch["score"].unsqueeze(1).to(self.device)
                 )  # Add dimension for matching batch size
 
                 loss = self._train_iteration(
-                    input_ids, score, attention_mask=attention_mask
+                    input_ids,
+                    token_type_ids=token_type_ids,
+                    attention_mask=attention_mask,
+                    y_batch=score,
                 )
                 running_loss += loss
 
@@ -385,11 +404,14 @@ class CodeReadabilityClassifier:
             # Iterate through the test loader to evaluate the model
             for batch in self.test_loader:
                 input_ids = batch["input_ids"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
                 score = batch["score"].to(self.device)
 
                 y_batch.append(score)
-                predictions.append(self.model(input_ids, attention_mask))
+                predictions.append(
+                    self.model(input_ids, token_type_ids, attention_mask)
+                )
 
             # Concatenate the lists of tensors to create a single tensor
             y_batch = torch.cat(y_batch, dim=0)
@@ -429,11 +451,13 @@ class CodeReadabilityClassifier:
         encoder = DatasetEncoder()
         encoded_text = encoder.encode_text(code_snippet)
         input_ids = encoded_text["input_ids"]
+        token_type_ids = encoded_text["token_type_ids"]
         attention_mask = encoded_text["attention_mask"]
 
         # Predict the readability
         with torch.no_grad():
             input_ids = input_ids.to(self.device)
+            token_type_ids = token_type_ids.to(self.device)
             attention_mask = attention_mask.to(self.device)
-            prediction = self.model(input_ids, attention_mask)
+            prediction = self.model(input_ids, token_type_ids, attention_mask)
             return prediction.item()

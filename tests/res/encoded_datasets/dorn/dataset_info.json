@@ -9,6 +9,13 @@
       },
       "_type": "Sequence"
     },
+    "token_type_ids": {
+      "feature": {
+        "dtype": "int8",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
     "attention_mask": {
       "feature": {
         "dtype": "int8",

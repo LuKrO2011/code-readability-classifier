@@ -13,6 +13,7 @@ from readability_classifier.models.model import (
     encoded_data_to_dataloaders,
     load_encoded_dataset,
     load_raw_dataset,
+    store_encoded_dataset,
 )
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -97,14 +98,22 @@ def _set_up_arg_parser() -> ArgumentParser:
         required=False,
         default=False,
         action="store_true",
-        help="Whether the dataset is already encoded by BERT.",
+        help="Set this flag if the dataset is already encoded.",
     )
     train_parser.add_argument(
         "--save",
         "-s",
         required=False,
         type=Path,
-        help="Path to the folder where the model should be stored.",
+        help="Path to the folder where the model should be stored. If not specified, "
+        "the model is not stored.",
+    )
+    train_parser.add_argument(
+        "--intermediate",
+        required=False,
+        type=Path,
+        help="Path to the folder where intermediate results should be stored. "
+        "If not specified, the intermediate results are not stored.",
     )
     train_parser.add_argument(
         "--evaluate",
@@ -179,6 +188,7 @@ def _run_train(parsed_args) -> None:
     data_dir = parsed_args.input
     encoded = parsed_args.encoded
     store_dir = parsed_args.save
+    intermediate_dir = parsed_args.intermediate
     evaluate = parsed_args.evaluate
     token_length = parsed_args.token_length
     batch_size = parsed_args.batch_size
@@ -189,8 +199,8 @@ def _run_train(parsed_args) -> None:
         raw_data = load_raw_dataset(data_dir)
         encoded_data = DatasetEncoder().encode_dataset(raw_data)
 
-        # TODO: Add mode for storing encoded dataset
-        # store_encoded_dataset(encoded_data, data_dir, token_length)
+        if intermediate_dir:
+            store_encoded_dataset(encoded_data, intermediate_dir)
     else:
         encoded_data = load_encoded_dataset(data_dir)
 

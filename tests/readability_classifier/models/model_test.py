@@ -53,14 +53,13 @@ def encoder():
 
 
 def test_forward_pass(model):
-    # Create test x_batch with shape (1, 512) and values between 1 and 9999
+    # Create test input data
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-
-    # Create test attention mask with shape (1, 512)
+    token_type_ids = torch.zeros(SHAPE).long()
     attention_mask = torch.ones(SHAPE).long()
 
     # Perform a forward pass
-    output = model(input_data, attention_mask)
+    output = model(input_data, token_type_ids, attention_mask)
 
     # Check if the output has the expected shape
     assert output.shape == (NUM_CLASSES, BATCH_SIZE)
@@ -69,20 +68,19 @@ def test_forward_pass(model):
 
 
 def test_backward_pass(model, criterion):
-    # Create test x_batch with shape (1, 512) and values between 1 and 9999
+    # Create test input data
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-
-    # Create test attention mask with shape (1, 512)
+    token_type_ids = torch.zeros(SHAPE).long()
     attention_mask = torch.ones(SHAPE).long()
 
     # Create target data
     target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
 
     # Calculate output data
-    output_data = model(input_data, attention_mask)
+    output = model(input_data, token_type_ids, attention_mask)
 
     # Perform a backward pass
-    loss = criterion(output_data, target_data)
+    loss = criterion(output, target_data)
     loss.backward()
 
     # Check if gradients are updated
@@ -90,20 +88,19 @@ def test_backward_pass(model, criterion):
 
 
 def test_update_weights(model, criterion, optimizer):
-    # Create test x_batch with shape (1, 512) and values between 1 and 9999
+    # Create test input data
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-
-    # Create test attention mask with shape (1, 512)
+    token_type_ids = torch.zeros(SHAPE).long()
     attention_mask = torch.ones(SHAPE).long()
 
     # Create target data
     target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
 
     # Calculate output data
-    output_data = model(input_data, attention_mask)
+    output = model(input_data, token_type_ids, attention_mask)
 
     # Perform a backward pass
-    loss = criterion(output_data, target_data)
+    loss = criterion(output, target_data)
     loss.backward()
 
     # Update weights
