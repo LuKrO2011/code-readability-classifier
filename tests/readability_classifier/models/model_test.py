@@ -1,7 +1,10 @@
+import os
+from tempfile import TemporaryDirectory
+
 import pytest
 import torch
 
-from src.readability_classifier.models.model import CNNModel
+from src.readability_classifier.models.model import CNNModel, CodeReadabilityClassifier
 
 EMBEDDED_MIN = 1
 EMBEDDED_MAX = 9999
@@ -26,6 +29,15 @@ def criterion():
 @pytest.fixture()
 def optimizer(model):
     return torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+
+@pytest.fixture()
+def classifier():
+    return CodeReadabilityClassifier(
+        batch_size=BATCH_SIZE,
+        num_epochs=NUM_EPOCHS,
+        learning_rate=LEARNING_RATE,
+    )
 
 
 def test_forward_pass(model):
@@ -88,3 +100,23 @@ def test_update_weights(model, criterion, optimizer):
 
     # Check if weights are updated
     assert any(param.grad is not None for param in model.parameters())
+
+
+@pytest.mark.skip()  # Disabled, because store in temp dir does not work
+def test_load_store(classifier):
+    model_path = "res/models/model.pt"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load the classifier
+    classifier.load(model_path)
+
+    # Store the classifier
+    classifier.store(temp_dir.name)
+
+    # Check if the model was stored successfully
+    assert os.path.exists(os.path.join(temp_dir.name, "model.pt"))
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
