@@ -50,7 +50,7 @@ def test_backward_pass(model, criterion):
     attention_mask = torch.ones(SHAPE).long()
 
     # Create target data
-    target_data = torch.rand(8, 1).float()
+    target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
 
     # Calculate output data
     output_data = model(input_data, attention_mask)
