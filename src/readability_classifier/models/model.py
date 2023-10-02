@@ -106,13 +106,6 @@ class CNNModel(nn.Module):
 
         return x
 
-    def get_num_classes(self) -> int:
-        """
-        Returns the number of classes.
-        :return: The number of classes.
-        """
-        return self.num_classes
-
 
 # TODO: Make class?
 def load_raw_data(data_dir: str) -> list[dict]:
