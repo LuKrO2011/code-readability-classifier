@@ -131,8 +131,6 @@ def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
     dataset = load_from_disk(data_dir)
     dataset_list = dataset.to_list()
 
-    # TODO: Change data format of model to avoid long (and float32) conversion
-
     # Convert loaded data to torch.Tensors
     for sample in dataset_list:
         sample["input_ids"] = torch.tensor(sample["input_ids"])
