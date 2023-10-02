@@ -189,7 +189,7 @@ class DatasetEncoder:
         """
         self.token_length = token_length
 
-    def encode(self, unencoded_dataset: list[dict]) -> list[dict]:
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> list[dict]:
         """
         Encodes the given dataset with BERT.
         :param unencoded_dataset: The unencoded dataset.
@@ -216,41 +216,28 @@ class DatasetEncoder:
         # Flatten the encoded batches
         return [sample for batch in encoded_batches for sample in batch]
 
-    @staticmethod
-    def tokenize_and_encode(
-        text: str, token_length: int = DEFAULT_TOKEN_LENGTH
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def encode_text(self, text: str) -> dict:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
         :param text: The text to tokenize and encode.
-        :param token_length: The length of the encoded tokens.
-        :return: A tuple containing the input_ids and the attention_mask.
+        :return: A dictionary containing the encoded input_ids and attention_mask.
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        # TODO: USE tokenizer(...) instead of .encode!!!!
-        input_ids = tokenizer.encode_plus(
-            text, add_special_tokens=True, truncation=True, max_length=token_length
+        encoding = tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=self.token_length,
+            padding="max_length",
+            return_attention_mask=True,
+            return_tensors="pt",
         )
 
-        # Create an attention_mask
-        attention_mask = [1] * len(input_ids) + [0] * (token_length - len(input_ids))
+        return {
+            "input_ids": encoding["input_ids"],
+            "attention_mask": encoding["attention_mask"],
+        }
 
-        # Ensure the input_ids have a maximum length of MAX_TOKEN_LENGTH
-        if len(input_ids) < token_length:
-            # Pad the input_ids with zeros to match MAX_TOKEN_LENGTH
-            input_ids += [0] * (token_length - len(input_ids))
-        else:
-            # If the input_ids exceed MAX_TOKEN_LENGTH, truncate them
-            # TODO: Necessary? Already done by tokenizer?
-            input_ids = input_ids[:token_length]
-
-        # Convert to PyTorch tensors
-        input_ids = torch.tensor(input_ids).unsqueeze(0)
-        attention_mask = torch.tensor(attention_mask).unsqueeze(0)
-
-        return input_ids, attention_mask
-
-    # TODO: Methods static or not?
     def _encode_batch(self, batch: list[dict], tokenizer: BertTokenizer) -> list[dict]:
         """
         Tokenizes and encodes a batch of code snippets with BERT.
@@ -437,8 +424,15 @@ class CodeReadabilityClassifier:
         :return: The predicted readability.
         """
         self.model.eval()
+
+        # Encode the code snippet
+        encoder = DatasetEncoder()
+        encoded_text = encoder.encode_text(code_snippet)
+        input_ids = encoded_text["input_ids"]
+        attention_mask = encoded_text["attention_mask"]
+
+        # Predict the readability
         with torch.no_grad():
-            input_ids, attention_mask = DatasetEncoder.tokenize_and_encode(code_snippet)
             input_ids = input_ids.to(self.device)
             attention_mask = attention_mask.to(self.device)
             prediction = self.model(input_ids, attention_mask)

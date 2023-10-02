@@ -31,7 +31,7 @@ class TestModel(unittest.TestCase):
 
         # Load the data
         data_loader = DatasetEncoder()
-        train_loader, test_loader = data_loader.encode(csv, snippets_dir)
+        train_loader, test_loader = data_loader.encode_dataset(csv, snippets_dir)
 
         # Train and evaluate the model
         classifier = CodeReadabilityClassifier(train_loader, test_loader)

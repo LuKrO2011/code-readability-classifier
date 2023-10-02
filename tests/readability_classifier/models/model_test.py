@@ -143,7 +143,7 @@ def test_encode(encoder):
     raw_data = load_raw_dataset(data_dir)
 
     # Encode raw data
-    encoded_data = encoder.encode(raw_data)
+    encoded_data = encoder.encode_dataset(raw_data)
 
     # Store encoded data
     store_encoded_dataset(encoded_data, temp_dir.name)

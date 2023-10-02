@@ -187,7 +187,7 @@ def _run_train(parsed_args) -> None:
 
     if not encoded:
         raw_data = load_raw_dataset(data_dir)
-        encoded_data = DatasetEncoder().encode(raw_data)
+        encoded_data = DatasetEncoder().encode_dataset(raw_data)
 
         # TODO: Add mode for storing encoded dataset
         # store_encoded_dataset(encoded_data, data_dir, token_length)
