@@ -40,6 +40,13 @@ class ReadabilityDataset(Dataset):
         """
         return self.data[idx]
 
+    def to_list(self) -> list[dict]:
+        """
+        Return the dataset as a list.
+        :return: A list containing the data samples.
+        """
+        return self.data
+
 
 class CNNModel(nn.Module):
     """
@@ -120,13 +127,12 @@ def load_raw_dataset(data_dir: str) -> list[dict]:
     return dataset.to_list()
 
 
-def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
+def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
     """
-    Loads the BERT encoded data from a dataset in the given directory as a list of
-    dictionaries containing torch.Tensors (input_ids, attention_mask, score).
+    Loads the BERT encoded data from a dataset in the given directory as a
+    ReadabilityDataset.
     :param data_dir: The path to the directory containing the data.
-    :return: A list of dictionaries containing the input_ids, attention_mask, and the
-    score for the sample as torch.Tensors.
+    :return: A ReadabilityDataset.
     """
     dataset = load_from_disk(data_dir)
     dataset_list = dataset.to_list()
@@ -138,10 +144,10 @@ def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
         sample["attention_mask"] = torch.tensor(sample["attention_mask"])
         sample["score"] = torch.tensor(sample["score"])
 
-    return dataset_list
+    return ReadabilityDataset(dataset_list)
 
 
-def store_encoded_dataset(data: list[dict[str, torch.Tensor]], data_dir: str) -> None:
+def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
     """
     Stores the encoded data in the given directory.
     :param data: The encoded data.
@@ -149,11 +155,11 @@ def store_encoded_dataset(data: list[dict[str, torch.Tensor]], data_dir: str) ->
     :return: None
     """
     # Convert the encoded data to Hugging faces format
-    HFDataset.from_list(data).save_to_disk(data_dir)
+    HFDataset.from_list(data.to_list()).save_to_disk(data_dir)
 
 
 def encoded_data_to_dataloaders(
-    encoded_data: list[dict[str, torch.Tensor]],
+    encoded_data: ReadabilityDataset,
     batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
 ) -> tuple[DataLoader, DataLoader]:
     """
@@ -189,7 +195,7 @@ class DatasetEncoder:
         """
         self.token_length = token_length
 
-    def encode_dataset(self, unencoded_dataset: list[dict]) -> list[dict]:
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
         """
         Encodes the given dataset with BERT.
         :param unencoded_dataset: The unencoded dataset.
@@ -214,7 +220,9 @@ class DatasetEncoder:
             logging.info(f"Encoded batch: {len(encoded_batches)}/{len(batches)}")
 
         # Flatten the encoded batches
-        return [sample for batch in encoded_batches for sample in batch]
+        encoded_dataset = [sample for batch in encoded_batches for sample in batch]
+
+        return ReadabilityDataset(encoded_dataset)
 
     def encode_text(self, text: str) -> dict:
         """
@@ -290,7 +298,6 @@ class CodeReadabilityClassifier:
         self,
         train_loader: DataLoader = None,
         test_loader: DataLoader = None,
-        model_path: str = None,
         batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
         num_epochs: int = 10,
         learning_rate: float = 0.001,
@@ -368,7 +375,7 @@ class CodeReadabilityClassifier:
                 )  # Add dimension for matching batch size
 
                 loss = self._train_iteration(
-                    input_ids,
+                    x_batch=input_ids,
                     token_type_ids=token_type_ids,
                     attention_mask=attention_mask,
                     y_batch=score,
