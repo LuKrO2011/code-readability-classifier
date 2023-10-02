@@ -59,6 +59,7 @@ class CNNModel(nn.Module):
         :param num_classes: The number of classes.
         """
         super().__init__()
+        self.num_classes = num_classes
 
         # Bert embedding
         self.bert = BertModel.from_pretrained("bert-base-uncased")
@@ -105,6 +106,13 @@ class CNNModel(nn.Module):
 
         return x
 
+    def get_num_classes(self) -> int:
+        """
+        Returns the number of classes.
+        :return: The number of classes.
+        """
+        return self.num_classes
+
 
 # TODO: Make class?
 def load_raw_data(data_dir: str) -> list[dict]:
@@ -128,6 +136,8 @@ def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
     """
     dataset = load_from_disk(data_dir)
     dataset_list = dataset.to_list()
+
+    # TODO: Change data format of model to avoid long (and float32) conversion
 
     # Convert loaded data to torch.Tensors
     for sample in dataset_list:
