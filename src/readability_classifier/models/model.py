@@ -144,6 +144,9 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
         sample["attention_mask"] = torch.tensor(sample["attention_mask"])
         sample["score"] = torch.tensor(sample["score"])
 
+    # Log the number of samples in the dataset
+    logging.info(f"Loaded {len(dataset_list)} samples from {data_dir}")
+
     return ReadabilityDataset(dataset_list)
 
 
@@ -156,6 +159,9 @@ def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
     """
     # Convert the encoded data to Hugging faces format
     HFDataset.from_list(data.to_list()).save_to_disk(data_dir)
+
+    # Log the number of samples stored
+    logging.info(f"Stored {len(data)} samples in {data_dir}")
 
 
 def encoded_data_to_dataloaders(
@@ -180,6 +186,10 @@ def encoded_data_to_dataloaders(
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    # Log the number of samples in the training and test data
+    logging.info(f"Training data: {len(train_dataset)} samples")
+    logging.info(f"Test data: {len(test_dataset)} samples")
 
     return train_loader, test_loader
 
@@ -216,11 +226,14 @@ class DatasetEncoder:
         # Encode the batches
         encoded_batches = []
         for batch in batches:
+            logging.info(f"Encoding batch: {len(encoded_batches) + 1}/{len(batches)}")
             encoded_batches.append(self._encode_batch(batch, tokenizer))
-            logging.info(f"Encoded batch: {len(encoded_batches)}/{len(batches)}")
 
         # Flatten the encoded batches
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
+
+        # Log the number of samples in the encoded dataset
+        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)
 
@@ -240,6 +253,9 @@ class DatasetEncoder:
             return_attention_mask=True,
             return_tensors="pt",
         )
+
+        # Log that the text was encoded
+        logging.info("Text encoded.")
 
         return {
             "input_ids": encoding["input_ids"],
@@ -387,6 +403,8 @@ class CodeReadabilityClassifier:
                 f"Loss: {running_loss / len(self.train_loader)}"
             )
 
+        logging.info("Training done.")
+
     def evaluate(self) -> None:
         """
         Evaluates the model.
@@ -429,6 +447,7 @@ class CodeReadabilityClassifier:
         :return: None
         """
         torch.save(self.model.state_dict(), path)
+        logging.info(f"Model stored at {path}")
 
     def load(self, path: str) -> None:
         """
@@ -437,6 +456,7 @@ class CodeReadabilityClassifier:
         :return: None
         """
         self.model.load_state_dict(torch.load(path))
+        logging.info(f"Model loaded from {path}")
 
     def predict(self, code_snippet: str) -> float:
         """
