@@ -4,7 +4,14 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from src.readability_classifier.models.model import CNNModel, CodeReadabilityClassifier
+from src.readability_classifier.models.model import (
+    CNNModel,
+    CodeReadabilityClassifier,
+    DatasetEncoder,
+    load_encoded_dataset,
+    load_raw_dataset,
+    store_encoded_dataset,
+)
 
 EMBEDDED_MIN = 1
 EMBEDDED_MAX = 9999
@@ -38,6 +45,11 @@ def classifier():
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
     )
+
+
+@pytest.fixture()
+def encoder():
+    return DatasetEncoder()
 
 
 def test_forward_pass(model):
@@ -102,7 +114,7 @@ def test_update_weights(model, criterion, optimizer):
 
 
 @pytest.mark.skip()  # Disabled, because store in temp dir does not work
-def test_load_store(classifier):
+def test_load_store_model(classifier):
     model_path = "res/models/model.pt"
 
     # Create temporary directory
@@ -119,3 +131,35 @@ def test_load_store(classifier):
 
     # Clean up temporary directories
     temp_dir.cleanup()
+
+
+def test_encode(encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode raw data
+    encoded_data = encoder.encode(raw_data)
+
+    # Store encoded data
+    store_encoded_dataset(encoded_data, temp_dir.name)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
+
+
+def test_load_encoded_dataset():
+    data_dir = "res/encoded_datasets/scalabrio"
+
+    # Load encoded data
+    encoded_data = load_encoded_dataset(data_dir)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
