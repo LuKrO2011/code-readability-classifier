@@ -11,8 +11,8 @@ from readability_classifier.models.model import (
     CodeReadabilityClassifier,
     DatasetEncoder,
     encoded_data_to_dataloaders,
-    load_encoded_data,
-    load_raw_data,
+    load_encoded_dataset,
+    load_raw_dataset,
 )
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -186,14 +186,13 @@ def _run_train(parsed_args) -> None:
     learning_rate = parsed_args.learning_rate
 
     if not encoded:
-        raw_data = load_raw_data(data_dir)
+        raw_data = load_raw_dataset(data_dir)
         encoded_data = DatasetEncoder().encode(raw_data)
 
-        # Convert the encoded data to Hugging faces format
-        # encoded_dir = Path(data_dir) / ".." / "Encoded"
-        # Dataset.from_list(encoded_data).save_to_disk(encoded_dir)
+        # TODO: Add mode for storing encoded dataset
+        # store_encoded_dataset(encoded_data, data_dir, token_length)
     else:
-        encoded_data = load_encoded_data(data_dir)
+        encoded_data = load_encoded_dataset(data_dir)
 
     train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
 

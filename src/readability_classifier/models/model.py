@@ -3,13 +3,15 @@ import logging
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from datasets import Dataset as HFDataset
 from datasets import load_from_disk
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
-DEFAULT_BATCH_SIZE = 8  # Small to avoid CUDA out of memory errors on local machine
+DEFAULT_MODEL_BATCH_SIZE = 8  # Small - avoid CUDA out of memory errors on local machine
+DEFAULT_ENCODE_BATCH_SIZE = 128
 
 
 class ReadabilityDataset(Dataset):
@@ -106,8 +108,7 @@ class CNNModel(nn.Module):
         return x
 
 
-# TODO: Make class?
-def load_raw_data(data_dir: str) -> list[dict]:
+def load_raw_dataset(data_dir: str) -> list[dict]:
     """
     Loads the data from a dataset in the given directory as a list of dictionaries
     code_snippet, score.
@@ -118,7 +119,7 @@ def load_raw_data(data_dir: str) -> list[dict]:
     return dataset.to_list()
 
 
-def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
+def load_encoded_dataset(data_dir: str) -> list[dict[str, torch.Tensor]]:
     """
     Loads the BERT encoded data from a dataset in the given directory as a list of
     dictionaries containing torch.Tensors (input_ids, attention_mask, score).
@@ -140,8 +141,20 @@ def load_encoded_data(data_dir: str) -> list[dict[str, torch.Tensor]]:
     return dataset_list
 
 
+def store_encoded_dataset(data: list[dict[str, torch.Tensor]], data_dir: str) -> None:
+    """
+    Stores the encoded data in the given directory.
+    :param data: The encoded data.
+    :param data_dir: The directory to store the encoded data in.
+    :return: None
+    """
+    # Convert the encoded data to Hugging faces format
+    HFDataset.from_list(data).save_to_disk(data_dir)
+
+
 def encoded_data_to_dataloaders(
-    encoded_data: list[dict[str, torch.Tensor]], batch_size: int = DEFAULT_BATCH_SIZE
+    encoded_data: list[dict[str, torch.Tensor]],
+    batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
 ) -> tuple[DataLoader, DataLoader]:
     """
     Converts the encoded data to a training and test data loader.
@@ -165,7 +178,6 @@ def encoded_data_to_dataloaders(
     return train_loader, test_loader
 
 
-# TODO: Move out of class?
 class DatasetEncoder:
     """
     A class for encoding the code of the dataset with BERT.
@@ -184,18 +196,21 @@ class DatasetEncoder:
         :return: The encoded dataset.
         """
         # Tokenize and encode the code snippets
-        encoded_data = []
-        for data in unencoded_dataset:
-            input_ids, attention_mask = self.tokenize_and_encode(data["code_snippet"])
-            encoded_data.append(
-                {
-                    "input_ids": input_ids.squeeze(),
-                    "attention_mask": attention_mask.squeeze(),
-                    "score": torch.tensor(data["score"]),
-                }
-            )
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-        return encoded_data
+        # Convert data to batches
+        batches = [
+            unencoded_dataset[i : i + DEFAULT_ENCODE_BATCH_SIZE]
+            for i in range(0, len(unencoded_dataset), DEFAULT_ENCODE_BATCH_SIZE)
+        ]
+
+        # Encode the batches
+        encoded_batches = []
+        for batch in batches:
+            encoded_batches.append(self._encode_batch(batch, tokenizer))
+
+        # Flatten the encoded batches
+        return [sample for batch in encoded_batches for sample in batch]
 
     @staticmethod
     def tokenize_and_encode(
@@ -209,7 +224,7 @@ class DatasetEncoder:
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         # TODO: USE tokenizer(...) instead of .encode!!!!
-        input_ids = tokenizer.encode(
+        input_ids = tokenizer.encode_plus(
             text, add_special_tokens=True, truncation=True, max_length=token_length
         )
 
@@ -231,6 +246,44 @@ class DatasetEncoder:
 
         return input_ids, attention_mask
 
+    # TODO: Methods static or not?
+    def _encode_batch(self, batch: list[dict], tokenizer: BertTokenizer) -> list[dict]:
+        """
+        Tokenizes and encodes a batch of code snippets with BERT.
+        :param batch: The batch of code snippets.
+        :param tokenizer: The BERT tokenizer.
+        :return: The encoded batch.
+        """
+        encoded_batch = []
+
+        # Encode the code snippets using tokenizer.encode_plus(...)
+        # TODO: Beside attention mask and padding, also use token_type_ids?
+        batch_encoding = tokenizer.batch_encode_plus(
+            [sample["code_snippet"] for sample in batch],
+            add_special_tokens=True,
+            truncation=True,
+            max_length=self.token_length,
+            padding="max_length",
+            return_attention_mask=True,
+            return_tensors="pt",
+        )
+
+        # Extract input ids and attention mask from batch_encoding
+        input_ids = batch_encoding["input_ids"]
+        attention_mask = batch_encoding["attention_mask"]
+
+        # Create a dictionary for each sample in the batch
+        for i in range(len(batch)):
+            encoded_batch.append(
+                {
+                    "input_ids": input_ids[i],
+                    "attention_mask": attention_mask[i],
+                    "score": torch.tensor(batch[i]["score"], dtype=torch.float32),
+                }
+            )
+
+        return encoded_batch
+
 
 class CodeReadabilityClassifier:
     """
@@ -245,7 +298,7 @@ class CodeReadabilityClassifier:
         train_loader: DataLoader = None,
         test_loader: DataLoader = None,
         model_path: str = None,
-        batch_size: int = DEFAULT_BATCH_SIZE,
+        batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
         num_epochs: int = 10,
         learning_rate: float = 0.001,
     ):
