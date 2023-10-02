@@ -11,7 +11,7 @@ from transformers import BertModel, BertTokenizer
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_MODEL_BATCH_SIZE = 8  # Small - avoid CUDA out of memory errors on local machine
-DEFAULT_ENCODE_BATCH_SIZE = 128
+DEFAULT_ENCODE_BATCH_SIZE = 512
 
 
 class ReadabilityDataset(Dataset):
@@ -204,10 +204,14 @@ class DatasetEncoder:
             for i in range(0, len(unencoded_dataset), DEFAULT_ENCODE_BATCH_SIZE)
         ]
 
+        # Log the number of batches to encode
+        logging.info(f"Number of batches to encode: {len(batches)}")
+
         # Encode the batches
         encoded_batches = []
         for batch in batches:
             encoded_batches.append(self._encode_batch(batch, tokenizer))
+            logging.info(f"Encoded batch: {len(encoded_batches)}/{len(batches)}")
 
         # Flatten the encoded batches
         return [sample for batch in encoded_batches for sample in batch]
