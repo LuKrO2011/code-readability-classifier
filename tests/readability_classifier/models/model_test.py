@@ -77,7 +77,6 @@ def test_backward_pass(model, criterion):
     assert any(param.grad is not None for param in model.parameters())
 
 
-# TODO: Merge with prev test.
 def test_update_weights(model, criterion, optimizer):
     # Create test x_batch with shape (1, 512) and values between 1 and 9999
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()

@@ -8,8 +8,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 
-# TODO: Make token length configurable
-TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
+DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_BATCH_SIZE = 8  # Small to avoid CUDA out of memory errors on local machine
 
 
@@ -172,6 +171,12 @@ class DatasetEncoder:
     A class for encoding the code of the dataset with BERT.
     """
 
+    def __init__(self, token_length: int = DEFAULT_TOKEN_LENGTH):
+        """
+        Initializes the DatasetEncoder.
+        """
+        self.token_length = token_length
+
     def encode(self, unencoded_dataset: list[dict]) -> list[dict]:
         """
         Encodes the given dataset with BERT.
@@ -193,29 +198,32 @@ class DatasetEncoder:
         return encoded_data
 
     @staticmethod
-    def tokenize_and_encode(text: str) -> tuple[torch.Tensor, torch.Tensor]:
+    def tokenize_and_encode(
+        text: str, token_length: int = DEFAULT_TOKEN_LENGTH
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
         :param text: The text to tokenize and encode.
+        :param token_length: The length of the encoded tokens.
         :return: A tuple containing the input_ids and the attention_mask.
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         # TODO: USE tokenizer(...) instead of .encode!!!!
         input_ids = tokenizer.encode(
-            text, add_special_tokens=True, truncation=True, max_length=TOKEN_LENGTH
+            text, add_special_tokens=True, truncation=True, max_length=token_length
         )
 
         # Create an attention_mask
-        attention_mask = [1] * len(input_ids) + [0] * (TOKEN_LENGTH - len(input_ids))
+        attention_mask = [1] * len(input_ids) + [0] * (token_length - len(input_ids))
 
         # Ensure the input_ids have a maximum length of MAX_TOKEN_LENGTH
-        if len(input_ids) < TOKEN_LENGTH:
+        if len(input_ids) < token_length:
             # Pad the input_ids with zeros to match MAX_TOKEN_LENGTH
-            input_ids += [0] * (TOKEN_LENGTH - len(input_ids))
+            input_ids += [0] * (token_length - len(input_ids))
         else:
             # If the input_ids exceed MAX_TOKEN_LENGTH, truncate them
             # TODO: Necessary? Already done by tokenizer?
-            input_ids = input_ids[:TOKEN_LENGTH]
+            input_ids = input_ids[:token_length]
 
         # Convert to PyTorch tensors
         input_ids = torch.tensor(input_ids).unsqueeze(0)
