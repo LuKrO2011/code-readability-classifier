@@ -113,3 +113,24 @@ In order to use the datasets with the model, they need to be converted into link
 This can be done using the dataset_converter.py script.
 Datasets can be combined arbitrarily using the dataset_combiner.py script.
 A command line interface for those will come soon.
+
+
+[[Podman]]
+== Podman
+To build the podman container, run the following command:
+[source,bash]
+----
+podman build -t readability-classifier .
+----
+- t : name of the container
+- . : path to the Dockerfile
+
+To run the podman container, run the following command:
+[source,bash]
+----
+podman run -it --rm -v $(pwd):/app readability-classifier
+----
+- it : interactive mode
+- rm : remove container after exit
+- v $(pwd):/app : mount current directory to /app in container
+- readability-classifier : name of the container
