@@ -2,7 +2,6 @@ import unittest
 from tempfile import TemporaryDirectory
 
 import numpy as np
-import pytest
 
 from readability_classifier.utils.strucutral import (
     java_to_structural_representation,
@@ -12,25 +11,6 @@ from readability_classifier.utils.strucutral import (
 )
 
 
-def test_buse14():
-    java_path = "res/mi/raw/Buse14.java"
-    matrix_path = "res/mi/structural/Buse14.java.matrix"
-    java_code = read_java_code_from_file(java_path)
-    matrix_actual = java_to_structural_representation(java_code)
-    matrix_expected = read_matrix_from_file(matrix_path)
-    assert np.array_equal(matrix_actual, matrix_expected)
-
-
-def test_buse23():
-    java_path = "res/mi/raw/Buse23.java"
-    matrix_path = "res/mi/structural/Buse23.java.matrix"
-    java_code = read_java_code_from_file(java_path)
-    matrix_actual = java_to_structural_representation(java_code)
-    matrix_expected = read_matrix_from_file(matrix_path)
-    assert np.array_equal(matrix_actual, matrix_expected)
-
-
-# TODO: Refactor this and dataset_converter_test.py
 class TestStructural(unittest.TestCase):
     output_dir = None  # Set to "output" to generate output
     java_dir = "res/mi/raw/"
@@ -49,26 +29,7 @@ class TestStructural(unittest.TestCase):
         if self.temp_dir is not None:
             self.temp_dir.cleanup()
 
-    def test_buse14(self):
-        java_path = self.java_dir + "Buse14.java"
-        matrix_path = self.matrix_dir + "Buse14.java.matrix"
-
-        # Convert java to matrix
-        java_code = read_java_code_from_file(java_path)
-        matrix_actual = java_to_structural_representation(java_code)
-
-        # Save matrix to file in output dir
-        save_matrix_to_file(matrix_actual, self.output_dir + "/Buse14.java.matrix")
-
-        # Load expected and actual matrix
-        matrix_actual = read_matrix_from_file(self.output_dir + "/Buse14.java.matrix")
-        matrix_expected = read_matrix_from_file(matrix_path)
-
-        # Check if matrices are equal
-        assert np.array_equal(matrix_actual, matrix_expected)
-
-    @pytest.mark.parametrize("name", ["Buse14", "Buse23"])
-    def test_structural(self, name):
+    def template_structural(self, name):
         java_name = name + ".java"
         java_path = self.java_dir + java_name
         matrix_name = name + ".java.matrix"
@@ -87,3 +48,9 @@ class TestStructural(unittest.TestCase):
 
         # Check if matrices are equal
         assert np.array_equal(matrix_actual, matrix_expected)
+
+    def test_Buse14(self):
+        self.template_structural("Buse14")
+
+    def test_Buse23(self):
+        self.template_structural("Buse23")
