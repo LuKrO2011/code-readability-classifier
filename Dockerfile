@@ -1,42 +1,133 @@
-# Stage 1: Build Stage
-# Use the specified PyTorch base image
-FROM anibali/pytorch:2.0.1-cuda11.8-ubuntu22.04
+# syntax=docker/dockerfile:1
+# Keep this syntax directive! It's used to enable Docker BuildKit
 
-# Set the working directory in the container
+################################
+# PYTHON-BASE
+# Sets up all our shared environment variables
+################################
+FROM python:3.11.6-slim as python-base
+
+    # Python
+ENV PYTHONUNBUFFERED=1 \
+    # pip
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    \
+    # Poetry
+    # https://python-poetry.org/docs/configuration/#using-environment-variables
+    POETRY_VERSION=1.6.1 \
+    # make poetry install to this location
+    POETRY_HOME="/opt/poetry" \
+    # do not ask any interactive question
+    POETRY_NO_INTERACTION=1 \
+    # never create virtual environment automaticly, only use env prepared by us
+    POETRY_VIRTUALENVS_CREATE=false \
+    \
+    # this is where our requirements + virtual environment will live
+    VIRTUAL_ENV="/venv" \
+    \
+    # Node.js major version. Remove if you don't need.
+    NODE_MAJOR=18
+
+# prepend poetry and venv to path
+ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
+
+# prepare virtual env
+RUN python -m venv $VIRTUAL_ENV
+
+# working directory and Python path
+WORKDIR /app
+ENV PYTHONPATH="/app:$PYTHONPATH"
+
+# pretrained models cache path. Remove if you don't need.
+# ref: https://huggingface.co/docs/transformers/installation?highlight=transformers_cache#caching-models
+# ENV TRANSFORMERS_CACHE="/opt/transformers_cache/"
+
+################################
+# BUILDER-BASE
+# Used to build deps + create our virtual environment
+################################
+FROM python-base as builder-base
+RUN apt-get update && \
+    apt-get install -y \
+    apt-transport-https \
+    gnupg \
+    ca-certificates \
+    build-essential \
+    git \
+    nano \
+    curl
+
+## install Node.js. Remove if you don't need.
+#RUN mkdir -p /etc/apt/keyrings && \
+#    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+#    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list && \
+#    apt-get update && apt-get install -y nodejs
+
+# install poetry - respects $POETRY_VERSION & $POETRY_HOME
+# The --mount will mount the buildx cache directory to where
+# Poetry and Pip store their cache so that they can re-use it
+RUN curl -sSL https://install.python-poetry.org | python -
+#RUN --mount=type=cache,target=/root/.cache \
+#    curl -sSL https://install.python-poetry.org | python -
+
+# used to init dependencies
+WORKDIR /app
+COPY poetry.lock pyproject.toml ./
+COPY src/readability_classifier/ src/readability_classifier/
+
+# install runtime deps to VIRTUAL_ENV
+RUN poetry install --no-root --only main
+#RUN --mount=type=cache,target=/root/.cache \
+#    poetry install --no-root --only main \
+
+# populate Huggingface model cache. Remove if you don't need.
+# RUN poetry run python scripts/bootstrap.py
+
+# build C dependencies. Remove if you don't need.
+# RUN --mount=type=cache,target=/app/scripts/vendor \
+#    poetry run python scripts/build-c-denpendencies.py && \
+#    cp scripts/lib/*.so /usr/lib
+
+################################
+# DEVELOPMENT
+# Image used during development / testing
+################################
+FROM builder-base as development
+
 WORKDIR /app
 
-# Copy the entire readability_classifier directory into the container
-COPY src/readability_classifier /app/readability_classifier
+# quicker install as runtime deps are already installed
+RUN poetry install --no-root
+#RUN --mount=type=cache,target=/root/.cache \
+#    poetry install --no-root --with test,lint
 
-# Copy your poetry files into the container
-COPY pyproject.toml poetry.lock /app/
+EXPOSE 8080
+CMD ["bash"]
 
-# Install Python and required system packages as root
-USER root
-RUN apt-get update && \
+
+################################
+# PRODUCTION
+# Final image used for runtime
+################################
+FROM python-base as production
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    curl \
-    ca-certificates \
-    libjpeg-dev \
-    libpng-dev \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-USER user
+    ca-certificates && \
+    apt-get clean
 
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python -
+# copy in our built poetry + venv
+COPY --from=builder-base $POETRY_HOME $POETRY_HOME
+COPY --from=builder-base $VIRTUAL_ENV $VIRTUAL_ENV
+# copy in our C dependencies. Remove if you don't need.
+# COPY --from=builder-base /app/scripts/lib/*.so /usr/lib
+# copy in pre-populated transformer cache. Remove if you don't need.
+# COPY --from=builder-base $TRANSFORMERS_CACHE $TRANSFORMERS_CACHE
 
-# Set the PATH environment variable
-ENV PATH="/home/user/.local/bin:$PATH"
+WORKDIR /app
+COPY poetry.lock pyproject.toml ./
+COPY src/readability_classifier/ src/readability_classifier/
 
-# Install Python dependencies using Poetry
-RUN poetry config virtualenvs.create false && poetry install
-
-# Define the command to run when the container starts
-CMD ["python", "readability_classifier/main.py -h"]
+EXPOSE 8080
+CMD ["python", "src/readability_classifier/main.py -h"]
