@@ -1,6 +1,4 @@
 import os
-import unittest
-from tempfile import TemporaryDirectory
 
 from src.readability_classifier.data_loaders.dataset_converter import (
     BWCodeLoader,
@@ -13,24 +11,11 @@ from src.readability_classifier.data_loaders.dataset_converter import (
     ScalabrioCsvLoader,
     TwoFoldersToDataset,
 )
+from tests.readability_classifier.utils.utils import DirTest
 
 
-class TestDataConversion(unittest.TestCase):
-    output_dir = None  # Set to "output" to generate output
+class TestDataConversion(DirTest):
     test_data_dir = "res/raw_data"
-
-    def setUp(self):
-        # Create temporary directories for testing if output directory is None
-        if self.output_dir is None:
-            self.temp_dir = TemporaryDirectory()
-            self.output_dir = self.temp_dir.name
-        else:
-            self.temp_dir = None
-
-    def tearDown(self):
-        # Clean up temporary directories
-        if self.temp_dir is not None:
-            self.temp_dir.cleanup()
 
     def test_ScalabrioDataConversion(self):
         # Test loading and saving Scalabrio dataset

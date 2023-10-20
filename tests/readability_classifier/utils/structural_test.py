@@ -1,6 +1,3 @@
-import unittest
-from tempfile import TemporaryDirectory
-
 import numpy as np
 
 from readability_classifier.utils.strucutral import (
@@ -9,25 +6,12 @@ from readability_classifier.utils.strucutral import (
     read_matrix_from_file,
     save_matrix_to_file,
 )
+from tests.readability_classifier.utils.utils import DirTest
 
 
-class TestStructural(unittest.TestCase):
-    output_dir = None  # Set to "output" to generate output
+class TestStructural(DirTest):
     java_dir = "res/mi/raw/"
     matrix_dir = "res/mi/structural/"
-
-    def setUp(self):
-        # Create temporary directories for testing if output directory is None
-        if self.output_dir is None:
-            self.temp_dir = TemporaryDirectory()
-            self.output_dir = self.temp_dir.name
-        else:
-            self.temp_dir = None
-
-    def tearDown(self):
-        # Clean up temporary directories
-        if self.temp_dir is not None:
-            self.temp_dir.cleanup()
 
     def template_structural(self, name):
         java_name = name + ".java"
