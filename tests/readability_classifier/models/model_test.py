@@ -5,9 +5,9 @@ import pytest
 import torch
 
 from src.readability_classifier.models.model import (
-    CNNModel,
     CodeReadabilityClassifier,
     DatasetEncoder,
+    SemanticExtractor,
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,
@@ -25,7 +25,7 @@ LEARNING_RATE = 0.001
 
 @pytest.fixture()
 def model():
-    return CNNModel(num_classes=NUM_CLASSES)
+    return SemanticExtractor(num_classes=NUM_CLASSES)
 
 
 @pytest.fixture()

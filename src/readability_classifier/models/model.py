@@ -48,18 +48,57 @@ class ReadabilityDataset(Dataset):
         return self.data
 
 
-class CNNModel(nn.Module):
+class VisualExtractor(nn.Module):
     """
-    A CNN model for code readability classification. The model consists of a Bert
-    embedding layer, two convolutional layers, two max-pooling layers, two fully
-    connected layers and a dropout layer.
+    A visual feature extractor for code readability classification. The model consists
+    of multiple alternating 2D convolution and max-pooling layers plus a flatten layer.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the model.
+        """
+        super().__init__()
+
+        # Alternating 2D convolution and max-pooling layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 1))
+        self.pool3 = nn.MaxPool2d(kernel_size=(2, 1))
+
+        # Flatten layer
+        self.flatten = nn.Flatten()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the model.
+        :param x: The input tensor.
+        :return: The output tensor.
+        """
+        # Apply convolutional and pooling layers
+        x = self.pool1(nn.functional.relu(self.conv1(x)))
+        x = self.pool2(nn.functional.relu(self.conv2(x)))
+        x = self.pool3(nn.functional.relu(self.conv3(x)))
+
+        # Flatten the output of the conv layers
+        x = self.flatten(x)
+
+        return x
+
+
+# TODO: Remove num_classes parameter
+class SemanticExtractor(nn.Module):
+    """
+    A structural feature extractor for code readability classification.
+    The model consists of a Bert embedding layer, two convolutional layers,
+    two max-pooling layers, two fully connected layers and a dropout layer.
     """
 
     def __init__(self, num_classes: int) -> None:
         """
-        Initialize the model. The number of classes is set to 1 for regression.
-        Then 5 means very readable, 1 means very unreadable (Likert scale).
-        :param num_classes: The number of classes.
+        Initialize the model.
         """
         super().__init__()
         self.num_classes = num_classes
@@ -112,6 +151,112 @@ class CNNModel(nn.Module):
         # Apply fully connected layers with dropout
         x = self.dropout(nn.functional.relu(self.fc1(x)))
         x = self.fc2(x)
+
+        return x
+
+
+class StructuralExtractor(nn.Module):
+    """
+    A structural feature extractor for code readability classification. The model
+    consists of alternating 2D convolution and max-pooling layers plus a flatten layer.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the model.
+        """
+        super().__init__()
+
+        # Alternating 2D convolution and max-pooling layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 1))
+        self.pool3 = nn.MaxPool2d(kernel_size=(2, 1))
+
+        # Flatten layer
+        self.flatten = nn.Flatten()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the model.
+        :param x: The input tensor.
+        :return: The output tensor.
+        """
+        # Apply convolutional and pooling layers
+        x = self.pool1(nn.functional.relu(self.conv1(x)))
+        x = self.pool2(nn.functional.relu(self.conv2(x)))
+        x = self.pool3(nn.functional.relu(self.conv3(x)))
+
+        # Flatten the output of the conv layers
+        x = self.flatten(x)
+
+        return x
+
+
+class ReadabilityClassifier(nn.Module):
+    """
+    A code readability classifier based on a CNN model.
+    The model consists of a visual, a semantic and a structural feature extractor plus
+    own layers. The own layers consist of:
+    1. Fully connected layer
+    2. Dropout layer
+    3. Fully connected layer
+    4. Fully connected layer
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the model.
+        """
+        super().__init__()
+
+        # Feature extractors
+        self.visual_extractor = VisualExtractor()
+        self.semantic_extractor = SemanticExtractor(1)
+        self.structural_extractor = StructuralExtractor()
+
+        # Own layers
+        self.fc1 = nn.Linear(8064, 128)
+        self.dropout = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 1)
+
+    def forward(
+        self,
+        image: torch.Tensor,
+        input_ids: torch.Tensor,
+        token_type_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        character_matrix: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Forward pass of the model.
+        :param image: The image tensor.
+        :param input_ids:   Tensor of input_ids for the BERT model.
+        :param token_type_ids: Tensor of token_type_ids for the BERT model.
+        :param attention_mask: Tensor of attention_mask for the BERT model.
+        :param character_matrix: The character matrix tensor.
+        :return: The output of the model.
+        """
+        # Feature extractors
+        visual_features = self.visual_extractor(image)
+        semantic_features = self.semantic_extractor(
+            input_ids, token_type_ids, attention_mask
+        )
+        structural_features = self.structural_extractor(character_matrix)
+
+        # Concatenate the features
+        features = torch.cat(
+            (visual_features, semantic_features, structural_features), dim=1
+        )
+
+        # Apply own layers
+        x = nn.functional.relu(self.fc1(features))
+        x = self.dropout(x)
+        x = nn.functional.relu(self.fc2(x))
+        x = self.fc3(x)
 
         return x
 
@@ -342,7 +487,7 @@ class CodeReadabilityClassifier:
         the optimizer.
         :return: None
         """
-        self.model = CNNModel(1)  # Set number of classes to 1 for regression
+        self.model = SemanticExtractor(1)  # Set number of classes to 1 for regression
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
