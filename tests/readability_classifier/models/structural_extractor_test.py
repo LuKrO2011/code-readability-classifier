@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from readability_classifier.models.structural_extractor import StructuralExtractor
+from src.readability_classifier.models.structural_extractor import StructuralExtractor
 
 MIN = 1
 MAX = 9999
@@ -19,10 +19,20 @@ def structural_extractor():
 
 def test_forward_pass(structural_extractor):
     # Create test input data
-    input_data = torch.randint(MIN, MAX, SHAPE).float()
+    input_data, _ = create_test_data()
 
     # Run the forward pass
     output = structural_extractor(input_data)
 
     # Check the output shape
     assert output.shape == (1, 89600)
+
+
+def create_test_data():
+    # Create test input data
+    input_data = torch.randint(MIN, MAX, SHAPE).float()
+
+    # Create target data
+    target_data = torch.rand(BATCH_SIZE, 1).float()
+
+    return input_data, target_data

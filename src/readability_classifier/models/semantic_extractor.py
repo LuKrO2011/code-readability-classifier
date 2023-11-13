@@ -1,39 +1,64 @@
 import torch
+from torch import device
 from torch import nn as nn
 from transformers import BertModel
 
+# from src.readability_classifier.models.model import DEFAULT_TOKEN_LENGTH
+DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 
-# TODO: Remove num_classes parameter
+
+class BiLSTM(nn.Module):
+    """
+    https://www.scaler.com/topics/pytorch/lstm-pytorch/
+    """
+
+    def __init__(
+        self,
+        input_size=DEFAULT_TOKEN_LENGTH,
+        hidden_size=128,
+        num_layers=3,
+        num_classes=10,
+    ):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(
+            input_size, hidden_size, num_layers, batch_first=True, bidirectional=True
+        )
+        self.fc = nn.Linear(hidden_size * 2, num_classes)
+
+    def forward(self, x):
+        h0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(device)
+        c0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(device)
+
+        out, _ = self.lstm(x, (h0, c0))
+        out = self.fc(out[:, -1, :])
+
+        return out
+
+
 class SemanticExtractor(nn.Module):
     """
     A structural feature extractor for code readability classification.
-    The model consists of a Bert embedding layer, two convolutional layers,
-    two max-pooling layers, two fully connected layers and a dropout layer.
+    The model consists of a Bert embedding layer, a convolutional layer, a max pooling
+    layer, another convolutional layer and a BiLSTM layer. Relu is used as the
+    activation function.
     """
 
-    def __init__(self, num_classes: int) -> None:
+    def __init__(self) -> None:
         """
         Initialize the model.
         """
         super().__init__()
-        self.num_classes = num_classes
 
         # Bert embedding
         self.bert = BertModel.from_pretrained("bert-base-uncased")
 
-        # Convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
-
-        # Max-pooling layers
-        self.pool = nn.MaxPool2d(kernel_size=(2, 1))
-
-        # Fully connected layers
-        self.fc1 = nn.Linear(8064, 128)  # 8 * 8064 = shape of x
-        self.fc2 = nn.Linear(128, num_classes)
-
-        # Dropout layer to reduce overfitting
-        self.dropout = nn.Dropout(0.5)
+        # Layers
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=32)
+        self.maxpool = nn.MaxPool1d(kernel_size=3)
+        self.conv2 = nn.Conv1d(in_channels=32, out_channels=32, kernel_size=32)
+        self.bilstm = BiLSTM()
 
     def forward(
         self,
@@ -56,15 +81,10 @@ class SemanticExtractor(nn.Module):
         # Convert the output of the Bert embedding to fitting shape for conv layers
         x = x[0].unsqueeze(1)
 
-        # Apply convolutional and pooling layers
-        x = self.pool(nn.functional.relu(self.conv1(x)))
-        x = self.pool(nn.functional.relu(self.conv2(x)))
-
-        # Flatten the output of the conv layers
-        x = x.view(x.size(0), -1)
-
-        # Apply fully connected layers with dropout
-        x = self.dropout(nn.functional.relu(self.fc1(x)))
-        x = self.fc2(x)
+        # Apply Layers
+        x = nn.ReLU()(self.conv1(x))
+        x = self.maxpool(x)
+        x = nn.ReLU()(self.conv2(x))
+        x = self.bilstm(x)
 
         return x

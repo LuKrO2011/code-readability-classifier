@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from readability_classifier.models.semantic_extractor import SemanticExtractor
 from src.readability_classifier.models.model import (
     CodeReadabilityClassifier,
     DatasetEncoder,
@@ -12,6 +11,7 @@ from src.readability_classifier.models.model import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from src.readability_classifier.models.semantic_extractor import SemanticExtractor
 
 EMBEDDED_MIN = 1
 EMBEDDED_MAX = 9999
