@@ -7,7 +7,11 @@ from datasets import Dataset as HFDataset
 from datasets import load_from_disk
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
-from transformers import BertModel, BertTokenizer
+from transformers import BertTokenizer
+
+from readability_classifier.models.semantic_extractor import SemanticExtractor
+from readability_classifier.models.structural_extractor import StructuralExtractor
+from readability_classifier.models.visual_extractor import VisualExtractor
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_MODEL_BATCH_SIZE = 8  # Small - avoid CUDA out of memory errors on local machine
@@ -46,153 +50,6 @@ class ReadabilityDataset(Dataset):
         :return: A list containing the data samples.
         """
         return self.data
-
-
-class VisualExtractor(nn.Module):
-    """
-    A visual feature extractor for code readability classification. The model consists
-    of multiple alternating 2D convolution and max-pooling layers plus a flatten layer.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initialize the model.
-        """
-        super().__init__()
-
-        # Alternating 2D convolution and max-pooling layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
-        self.pool1 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
-        self.pool2 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 1))
-        self.pool3 = nn.MaxPool2d(kernel_size=(2, 1))
-
-        # Flatten layer
-        self.flatten = nn.Flatten()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the model.
-        :param x: The input tensor.
-        :return: The output tensor.
-        """
-        # Apply convolutional and pooling layers
-        x = self.pool1(nn.functional.relu(self.conv1(x)))
-        x = self.pool2(nn.functional.relu(self.conv2(x)))
-        x = self.pool3(nn.functional.relu(self.conv3(x)))
-
-        # Flatten the output of the conv layers
-        x = self.flatten(x)
-
-        return x
-
-
-# TODO: Remove num_classes parameter
-class SemanticExtractor(nn.Module):
-    """
-    A structural feature extractor for code readability classification.
-    The model consists of a Bert embedding layer, two convolutional layers,
-    two max-pooling layers, two fully connected layers and a dropout layer.
-    """
-
-    def __init__(self, num_classes: int) -> None:
-        """
-        Initialize the model.
-        """
-        super().__init__()
-        self.num_classes = num_classes
-
-        # Bert embedding
-        self.bert = BertModel.from_pretrained("bert-base-uncased")
-
-        # Convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
-
-        # Max-pooling layers
-        self.pool = nn.MaxPool2d(kernel_size=(2, 1))
-
-        # Fully connected layers
-        self.fc1 = nn.Linear(8064, 128)  # 8 * 8064 = shape of x
-        self.fc2 = nn.Linear(128, num_classes)
-
-        # Dropout layer to reduce overfitting
-        self.dropout = nn.Dropout(0.5)
-
-    def forward(
-        self,
-        input_ids: torch.Tensor,
-        token_type_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Forward pass of the model.
-        :param input_ids:   Tensor of input_ids for the BERT model.
-        :param token_type_ids: Tensor of token_type_ids for the BERT model.
-        :param attention_mask: Tensor of attention_mask for the BERT model.
-        :return: The output of the model.
-        """
-        # Bert embedding
-        x = self.bert(
-            input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask
-        )
-
-        # Convert the output of the Bert embedding to fitting shape for conv layers
-        x = x[0].unsqueeze(1)
-
-        # Apply convolutional and pooling layers
-        x = self.pool(nn.functional.relu(self.conv1(x)))
-        x = self.pool(nn.functional.relu(self.conv2(x)))
-
-        # Flatten the output of the conv layers
-        x = x.view(x.size(0), -1)
-
-        # Apply fully connected layers with dropout
-        x = self.dropout(nn.functional.relu(self.fc1(x)))
-        x = self.fc2(x)
-
-        return x
-
-
-class StructuralExtractor(nn.Module):
-    """
-    A structural feature extractor for code readability classification. The model
-    consists of alternating 2D convolution and max-pooling layers plus a flatten layer.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initialize the model.
-        """
-        super().__init__()
-
-        # Alternating 2D convolution and max-pooling layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 768))
-        self.pool1 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
-        self.pool2 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 1))
-        self.pool3 = nn.MaxPool2d(kernel_size=(2, 1))
-
-        # Flatten layer
-        self.flatten = nn.Flatten()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the model.
-        :param x: The input tensor.
-        :return: The output tensor.
-        """
-        # Apply convolutional and pooling layers
-        x = self.pool1(nn.functional.relu(self.conv1(x)))
-        x = self.pool2(nn.functional.relu(self.conv2(x)))
-        x = self.pool3(nn.functional.relu(self.conv3(x)))
-
-        # Flatten the output of the conv layers
-        x = self.flatten(x)
-
-        return x
 
 
 class ReadabilityClassifier(nn.Module):

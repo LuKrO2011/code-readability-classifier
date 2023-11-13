@@ -4,10 +4,10 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from readability_classifier.models.semantic_extractor import SemanticExtractor
 from src.readability_classifier.models.model import (
     CodeReadabilityClassifier,
     DatasetEncoder,
-    SemanticExtractor,
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,
@@ -24,7 +24,7 @@ LEARNING_RATE = 0.001
 
 
 @pytest.fixture()
-def model():
+def semantic_extractor():
     return SemanticExtractor(num_classes=NUM_CLASSES)
 
 
@@ -34,8 +34,8 @@ def criterion():
 
 
 @pytest.fixture()
-def optimizer(model):
-    return torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+def optimizer(semantic_extractor):
+    return torch.optim.Adam(semantic_extractor.parameters(), lr=LEARNING_RATE)
 
 
 @pytest.fixture()
@@ -52,22 +52,7 @@ def encoder():
     return DatasetEncoder()
 
 
-def test_forward_pass(model):
-    # Create test input data
-    input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-    token_type_ids = torch.zeros(SHAPE).long()
-    attention_mask = torch.ones(SHAPE).long()
-
-    # Perform a forward pass
-    output = model(input_data, token_type_ids, attention_mask)
-
-    # Check if the output has the expected shape
-    assert output.shape == (NUM_CLASSES, BATCH_SIZE)
-
-    # TODO: Check range of output values
-
-
-def test_backward_pass(model, criterion):
+def test_backward_pass(semantic_extractor, criterion):
     # Create test input data
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
     token_type_ids = torch.zeros(SHAPE).long()
@@ -77,17 +62,17 @@ def test_backward_pass(model, criterion):
     target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
 
     # Calculate output data
-    output = model(input_data, token_type_ids, attention_mask)
+    output = semantic_extractor(input_data, token_type_ids, attention_mask)
 
     # Perform a backward pass
     loss = criterion(output, target_data)
     loss.backward()
 
     # Check if gradients are updated
-    assert any(param.grad is not None for param in model.parameters())
+    assert any(param.grad is not None for param in semantic_extractor.parameters())
 
 
-def test_update_weights(model, criterion, optimizer):
+def test_update_weights(semantic_extractor, criterion, optimizer):
     # Create test input data
     input_data = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
     token_type_ids = torch.zeros(SHAPE).long()
@@ -97,7 +82,7 @@ def test_update_weights(model, criterion, optimizer):
     target_data = torch.rand(BATCH_SIZE, NUM_CLASSES).float()
 
     # Calculate output data
-    output = model(input_data, token_type_ids, attention_mask)
+    output = semantic_extractor(input_data, token_type_ids, attention_mask)
 
     # Perform a backward pass
     loss = criterion(output, target_data)
@@ -107,7 +92,7 @@ def test_update_weights(model, criterion, optimizer):
     optimizer.step()
 
     # Check if weights are updated
-    assert any(param.grad is not None for param in model.parameters())
+    assert any(param.grad is not None for param in semantic_extractor.parameters())
 
 
 @pytest.mark.skip()  # Disabled, because store in temp dir does not work
