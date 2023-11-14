@@ -1,14 +1,67 @@
-import numpy as np
+from tempfile import TemporaryDirectory
 
+import numpy as np
+import pytest
+
+from readability_classifier.models.encoders.dataset_utils import (
+    load_raw_dataset,
+    store_encoded_dataset,
+)
 from readability_classifier.models.encoders.matrix_encoder import (
+    MatrixEncoder,
     java_to_structural_representation,
 )
-from readability_classifier.utils.utils import (
+from src.readability_classifier.utils.utils import (
     read_java_code_from_file,
     read_matrix_from_file,
     save_matrix_to_file,
 )
 from tests.readability_classifier.utils.utils import DirTest
+
+
+@pytest.fixture()
+def matrix_encoder():
+    return MatrixEncoder()
+
+
+def test_encode_matrix_dataset(matrix_encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode raw data
+    encoded_data = matrix_encoder.encode_dataset(raw_data)
+
+    # Store encoded data
+    store_encoded_dataset(encoded_data, temp_dir.name)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
+
+
+def test_encode_matrix_text(matrix_encoder):
+    code = """
+    // A method for counting
+    public void getNumber(){
+        int count = 0;
+        while(count < 10){
+            count++;
+        }
+    }
+    """
+
+    # Encode the code
+    encoded_code = matrix_encoder.encode_text(code)
+
+    # Check if encoded code is not empty
+    assert len(encoded_code) > 0
 
 
 class TestStructural(DirTest):
