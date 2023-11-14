@@ -16,14 +16,29 @@ class StructuralExtractor(nn.Module):
         super().__init__()
 
         # Alternating 2D convolution and max-pooling layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(2, 1))
-        self.pool1 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(2, 1))
-        self.pool2 = nn.MaxPool2d(kernel_size=(2, 1))
-        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 1))
-        self.pool3 = nn.MaxPool2d(kernel_size=(3, 1))
 
-        # Flatten layer
+        # In paper: kernel_size=2
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+
+        # Same as in paper
+        self.relu = nn.ReLU()
+
+        # In paper: stride not specified
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # In paper: kernel_size=2
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+
+        # In paper: stride not specified
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Same as in paper
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
+
+        # In paper: stride not specified
+        self.pool3 = nn.MaxPool2d(kernel_size=3, stride=3)
+
+        # Same as in paper
         self.flatten = nn.Flatten()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -33,9 +48,14 @@ class StructuralExtractor(nn.Module):
         :return: The output tensor.
         """
         # Apply convolutional and pooling layers
-        x = self.pool1(nn.functional.relu(self.conv1(x)))
-        x = self.pool2(nn.functional.relu(self.conv2(x)))
-        x = self.pool3(nn.functional.relu(self.conv3(x)))
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.pool2(x)
+        x = self.conv3(x)
+        x = self.relu(x)
 
         # Flatten the output of the conv layers
         x = self.flatten(x)

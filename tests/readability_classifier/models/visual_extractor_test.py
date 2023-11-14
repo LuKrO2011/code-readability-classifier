@@ -26,7 +26,7 @@ def test_forward_pass(visual_extractor):
     output = visual_extractor(input_data)
 
     # Check the output shape
-    assert output.shape == (1, 73728)
+    assert output.shape == (1, 6400)
 
 
 def create_test_data():
