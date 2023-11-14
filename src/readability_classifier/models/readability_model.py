@@ -1,7 +1,10 @@
 import torch
 from torch import nn as nn
 
-from src.readability_classifier.models.semantic_extractor import SemanticExtractor
+from src.readability_classifier.models.semantic_extractor import (
+    BertConfig,
+    SemanticExtractor,
+)
 from src.readability_classifier.models.structural_extractor import StructuralExtractor
 from src.readability_classifier.models.visual_extractor import VisualExtractor
 
@@ -30,49 +33,60 @@ class ReadabilityModel(nn.Module):
         super().__init__()
 
         # Feature extractors
-        self.visual_extractor = VisualExtractor()
-        self.semantic_extractor = SemanticExtractor(1)
         self.structural_extractor = StructuralExtractor()
+        self.bert_config = BertConfig()
+        self.semantic_extractor = SemanticExtractor(self.bert_config)
+        self.visual_extractor = VisualExtractor()
 
-        # Own layers
-        self.fc1 = nn.Linear(8064, 128)
+        # TODO: Get from feature extractors?
+        # Specify input size
+        self.structure_flatten_size = 48384
+        self.texture_gru_size = 94 * 64
+        self.image_flatten_size = 6400
+        self.concatenated_size = (
+            self.structure_flatten_size
+            + self.texture_gru_size
+            + self.image_flatten_size
+        )
+
+        # Define own layers
+        self.dense1 = nn.Linear(self.concatenated_size, 64)
+        self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 1)
+        self.dense2 = nn.Linear(64, 16)
+        self.random_detail = nn.Linear(16, 1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(
         self,
-        image: torch.Tensor,
-        input_ids: torch.Tensor,
-        token_type_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
         character_matrix: torch.Tensor,
+        token_input: torch.Tensor,
+        segment_input: torch.Tensor,
+        image: torch.Tensor,
     ) -> torch.Tensor:
         """
         Forward pass of the model.
         :param image: The image tensor.
-        :param input_ids:   Tensor of input_ids for the BERT model.
-        :param token_type_ids: Tensor of token_type_ids for the BERT model.
-        :param attention_mask: Tensor of attention_mask for the BERT model.
+        :param token_input: The token input tensor.
+        :param segment_input: The segment input tensor.
         :param character_matrix: The character matrix tensor.
         :return: The output of the model.
         """
         # Feature extractors
-        visual_features = self.visual_extractor(image)
-        semantic_features = self.semantic_extractor(
-            input_ids, token_type_ids, attention_mask
-        )
         structural_features = self.structural_extractor(character_matrix)
+        semantic_features = self.semantic_extractor(token_input, segment_input)
+        visual_features = self.visual_extractor(image)
 
-        # Concatenate the features
-        features = torch.cat(
-            (visual_features, semantic_features, structural_features), dim=1
+        # Concatenate the inputs
+        concatenated = torch.cat(
+            (structural_features, semantic_features, visual_features), dim=-1
         )
 
-        # Apply own layers
-        x = nn.functional.relu(self.fc1(features))
+        # Pass through dense layers
+        x = self.dense1(concatenated)
+        x = self.relu(x)
         x = self.dropout(x)
-        x = nn.functional.relu(self.fc2(x))
-        x = self.fc3(x)
-
-        return x
+        x = self.dense2(x)
+        x = self.relu(x)
+        x = self.random_detail(x)
+        return self.sigmoid(x)

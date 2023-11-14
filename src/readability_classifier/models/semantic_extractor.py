@@ -114,6 +114,11 @@ class SemanticExtractor(nn.Module):
         x = self.relu(self.conv2(x))
         # TODO: adjust dimensions for LSTM
         x = x.permute(0, 2, 1)
+
         x, _ = self.bidirectional_lstm(x)
+
+        # Flatten the tensor after LSTM
+        batch_size, seq_length, channels = x.size()
+        x = x.contiguous().view(batch_size, -1)  # Flatten the tensor
 
         return x

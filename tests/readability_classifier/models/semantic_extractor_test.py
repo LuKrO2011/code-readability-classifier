@@ -26,23 +26,18 @@ def semantic_extractor(bert_config):
 
 def test_forward_pass(semantic_extractor):
     # Create test input data
-    token_input, segment_input, _ = create_test_data()
+    token_input, segment_input = create_test_data()
 
     # Perform a forward pass
     output = semantic_extractor(token_input, segment_input)
 
     # Check if the output has the expected shape
-    assert output.shape == (1, 94, 64)
+    assert output.shape == (1, 94 * 64)
 
     # TODO: Check range of output values
 
 
 def create_test_data():
-    # Create test input data
     token_input = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
     segment_input = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-
-    # Create target data
-    target_data = torch.rand(BATCH_SIZE, 1).float()
-
-    return token_input, segment_input, target_data
+    return token_input, segment_input

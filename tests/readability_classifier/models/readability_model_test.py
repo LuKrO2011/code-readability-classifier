@@ -20,20 +20,15 @@ def readability_model():
 def test_forward_pass(readability_model):
     # Create test input data
     (
-        visual_input_data,
-        input_data,
-        token_type_ids,
-        attention_mask,
         structural_input_data,
+        token_input,
+        segment_input,
+        visual_input_data,
     ) = create_test_data()
 
     # Run the forward pass
     output = readability_model(
-        visual_input_data,
-        input_data,
-        token_type_ids,
-        attention_mask,
-        structural_input_data,
+        structural_input_data, token_input, segment_input, visual_input_data
     )
 
     # Check the output shape
@@ -41,15 +36,13 @@ def test_forward_pass(readability_model):
 
 
 def create_test_data():
-    # Create test input data
-    input_data, token_type_ids, attention_mask, _ = create_semantic_test_data()
-    structural_input_data, _ = create_structural_test_data()
-    visual_input_data, _ = create_visual_test_data()
+    structural_input_data = create_structural_test_data()
+    token_input, segment_input = create_semantic_test_data()
+    visual_input_data = create_visual_test_data()
 
     return (
-        visual_input_data,
-        input_data,
-        token_type_ids,
-        attention_mask,
         structural_input_data,
+        token_input,
+        segment_input,
+        visual_input_data,
     )

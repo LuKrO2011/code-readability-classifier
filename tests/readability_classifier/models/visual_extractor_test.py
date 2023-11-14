@@ -20,7 +20,7 @@ def visual_extractor():
 
 def test_forward_pass(visual_extractor):
     # Create test input data
-    input_data, _ = create_test_data()
+    input_data = create_test_data()
 
     # Run the forward pass
     output = visual_extractor(input_data)
@@ -30,10 +30,4 @@ def test_forward_pass(visual_extractor):
 
 
 def create_test_data():
-    # Create test input data
-    input_data = torch.randint(RGB_MIN, RGB_MAX, SHAPE).float()
-
-    # Create target data
-    target_data = torch.rand(BATCH_SIZE, 1).float()
-
-    return input_data, target_data
+    return torch.randint(RGB_MIN, RGB_MAX, SHAPE).float()
