@@ -6,7 +6,7 @@ class StructuralExtractor(nn.Module):
     """
     A structural feature extractor for code readability classification. The model
     consists of alternating 2D convolution and max-pooling layers plus a flatten layer.
-    The input is a tensor of size (1, 350, 50) and the output is a vector of size 128.
+    The input is a tensor of size (1, 305, 50) and the output is a vector of size 41472.
     """
 
     def __init__(self) -> None:

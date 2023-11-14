@@ -16,7 +16,7 @@ class ReadabilityModel(nn.Module):
     own layers.
     The input consists of an image, a bert encoded code snippet and a
     character matrix. The image is of size (3, 128, 128), the bert encoded code snippet
-    is of size (1, 512) and the character matrix is of size (350, 50). The output is a
+    is of size 512 and the character matrix is of size (305, 50). The output is a
     single value representing the readability of the code snippet.
 
     The own layers consist of:

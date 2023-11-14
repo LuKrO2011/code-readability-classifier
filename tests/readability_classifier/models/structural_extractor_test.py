@@ -6,10 +6,9 @@ from src.readability_classifier.models.structural_extractor import StructuralExt
 MIN = 1
 MAX = 9999
 WIDTH = 50
-HEIGHT = 350
+HEIGHT = 305
 BATCH_SIZE = 1
-CHANNELS = 1
-SHAPE = (BATCH_SIZE, CHANNELS, HEIGHT, WIDTH)
+SHAPE = (BATCH_SIZE, HEIGHT, WIDTH)
 
 
 @pytest.fixture()
@@ -25,7 +24,7 @@ def test_forward_pass(structural_extractor):
     output = structural_extractor(input_data)
 
     # Check the output shape
-    assert output.shape == (1, 48384)
+    assert output.shape == (1, 41472)
 
 
 def create_test_data():

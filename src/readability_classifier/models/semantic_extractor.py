@@ -70,6 +70,7 @@ class SemanticExtractor(nn.Module):
     The model consists of a Bert embedding layer, a convolutional layer, a max pooling
     layer, another convolutional layer and a BiLSTM layer. Relu is used as the
     activation function.
+    The input is a tensor of size (1, 512) and the output is a vector of size 10560.
     """
 
     def __init__(self, config: BertConfig) -> None:

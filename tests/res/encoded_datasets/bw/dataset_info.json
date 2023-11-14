@@ -2,6 +2,16 @@
   "citation": "",
   "description": "",
   "features": {
+    "matrix": {
+      "feature": {
+        "feature": {
+          "dtype": "float32",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      },
+      "_type": "Sequence"
+    },
     "input_ids": {
       "feature": {
         "dtype": "int32",
@@ -16,10 +26,16 @@
       },
       "_type": "Sequence"
     },
-    "attention_mask": {
+    "image": {
       "feature": {
-        "dtype": "int8",
-        "_type": "Value"
+        "feature": {
+          "feature": {
+            "dtype": "float32",
+            "_type": "Value"
+          },
+          "_type": "Sequence"
+        },
+        "_type": "Sequence"
       },
       "_type": "Sequence"
     },

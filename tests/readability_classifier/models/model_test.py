@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from readability_classifier.utils.utils import bytes_to_image, tensor_to_bytes
 from src.readability_classifier.models.model import (
     BertEncoder,
     CodeReadabilityClassifier,
@@ -179,12 +178,12 @@ def test_encode_visual_dataset(visual_encoder):
     # Check if encoded data is not empty
     assert len(encoded_data) > 0
 
-    # Show the third image
-    bytes_to_image(tensor_to_bytes(encoded_data[0]["image"]), "code.png")
-    from PIL import Image
-
-    img = Image.open("code.png")
-    img.show()
+    # # Show the first image
+    # bytes_to_image(tensor_to_bytes(encoded_data[0]["image"]), "code.png")
+    # from PIL import Image
+    #
+    # img = Image.open("code.png")
+    # img.show()
 
 
 def test_encode_visual_text(visual_encoder):
