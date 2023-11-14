@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import os
 import re
 from tempfile import TemporaryDirectory
@@ -33,6 +34,9 @@ class VisualEncoder(EncoderInterface):
         # Convert the list of dictionaries to a list of code snippet strings
         code_snippets = [sample["code_snippet"] for sample in unencoded_dataset]
 
+        # Log the number of code snippets to encode
+        logging.info(f"Image: Number of code snippets to encode: {len(code_snippets)}")
+
         # Encode the code snippets
         encoded_code_snippets = dataset_to_image_tensors(code_snippets)
 
@@ -44,6 +48,9 @@ class VisualEncoder(EncoderInterface):
                 }
             )
 
+        # Log the number of samples in the encoded dataset
+        logging.info(f"Image: Encoding done. Number of samples: {len(encoded_dataset)}")
+
         return ReadabilityDataset(encoded_dataset)
 
     def encode_text(self, text: str) -> dict:
@@ -52,7 +59,15 @@ class VisualEncoder(EncoderInterface):
         :param text: The text to encode.
         :return: The encoded text as an image (in bytes).
         """
-        return {"image": code_to_image_tensor(text)}
+        # Encode the code snippet
+        image = code_to_image_tensor(text)
+
+        # Log successful encoding
+        logging.info("Image: Encoding done.")
+
+        return {
+            "image": image,
+        }
 
 
 DEFAULT_OUT = "code.png"

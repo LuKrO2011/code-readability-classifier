@@ -1,3 +1,5 @@
+import logging
+
 import torch
 
 from readability_classifier.models.encoders.bert_encoder import BertEncoder
@@ -34,6 +36,9 @@ class DatasetEncoder(EncoderInterface):
         bert = self.bert_encoder.encode_text(code_text)
         image = self.visual_encoder.encode_text(code_text)
 
+        # Log successful encoding
+        logging.info("All: Encoding done.")
+
         return {
             "matrix": matrix["matrix"],
             "input_ids": bert["input_ids"],
@@ -65,5 +70,8 @@ class DatasetEncoder(EncoderInterface):
                     ),
                 }
             )
+
+        # Log the number of samples in the encoded dataset
+        logging.info(f"All: Encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)

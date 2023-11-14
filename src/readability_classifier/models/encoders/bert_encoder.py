@@ -39,7 +39,7 @@ class BertEncoder(EncoderInterface):
         ]
 
         # Log the number of batches to encode
-        logging.info(f"Number of batches to encode: {len(batches)}")
+        logging.info(f"Bert: Number of batches to encode: {len(batches)}")
 
         # Encode the batches
         encoded_batches = []
@@ -51,7 +51,7 @@ class BertEncoder(EncoderInterface):
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
 
         # Log the number of samples in the encoded dataset
-        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
+        logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)
 
@@ -72,8 +72,8 @@ class BertEncoder(EncoderInterface):
             return_tensors="pt",
         )
 
-        # Log that the text was encoded
-        logging.info("Text encoded.")
+        # Log successful encoding
+        logging.info("Bert: Text encoded.")
 
         return {
             "input_ids": encoding["input_ids"],

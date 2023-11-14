@@ -22,6 +22,11 @@ class MatrixEncoder(EncoderInterface):
         """
         encoded_dataset = []
 
+        # Log the number of code snippets to encode
+        logging.info(
+            f"Matrix: Number of code snippets to encode: {len(unencoded_dataset)}"
+        )
+
         # Encode the code snippets
         for sample in unencoded_dataset:
             encoded_dataset.append(
@@ -35,7 +40,9 @@ class MatrixEncoder(EncoderInterface):
             )
 
         # Log the number of samples in the encoded dataset
-        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
+        logging.info(
+            f"Matrix: Encoding done. Number of samples: {len(encoded_dataset)}"
+        )
 
         return ReadabilityDataset(encoded_dataset)
 
@@ -45,11 +52,13 @@ class MatrixEncoder(EncoderInterface):
         :param text: The text to encode.
         :return: The encoded text as a matrix.
         """
-        return {
-            "matrix": torch.tensor(
-                java_to_structural_representation(text), dtype=torch.float32
-            )
-        }
+        # Encode the code snippet
+        matrix = java_to_structural_representation(text)
+
+        # Log successful encoding
+        logging.info("Matrix: Encoding done.")
+
+        return {"matrix": torch.tensor(matrix, dtype=torch.float32)}
 
 
 def java_to_structural_representation(
