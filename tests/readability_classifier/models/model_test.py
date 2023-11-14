@@ -7,6 +7,7 @@ import torch
 from src.readability_classifier.models.model import (
     BertEncoder,
     CodeReadabilityClassifier,
+    DatasetEncoder,
     MatrixEncoder,
     VisualEncoder,
     load_encoded_dataset,
@@ -62,6 +63,11 @@ def visual_encoder():
 @pytest.fixture()
 def matrix_encoder():
     return MatrixEncoder()
+
+
+@pytest.fixture()
+def encoder():
+    return DatasetEncoder()
 
 
 def test_backward_pass(readability_model, criterion):
@@ -242,6 +248,47 @@ def test_encode_matrix_text(matrix_encoder):
 
     # Encode the code
     encoded_code = matrix_encoder.encode_text(code)
+
+    # Check if encoded code is not empty
+    assert len(encoded_code) > 0
+
+
+@pytest.mark.skip()  # Disabled, because it takes too long
+def test_encode_dataset(encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode raw data
+    encoded_data = encoder.encode_dataset(raw_data)
+
+    # Store encoded data
+    store_encoded_dataset(encoded_data, temp_dir.name)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
+
+
+def test_encode_text(encoder):
+    code = """
+    // A method for counting
+    public void getNumber(){
+        int count = 0;
+        while(count < 10){
+            count++;
+        }
+    }
+    """
+
+    # Encode the code
+    encoded_code = encoder.encode_text(code)
 
     # Check if encoded code is not empty
     assert len(encoded_code) > 0

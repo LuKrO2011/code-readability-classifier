@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -160,14 +159,13 @@ class MatrixEncoder:
 
         return ReadabilityDataset(encoded_dataset)
 
-    # TODO: Fix return type
-    def encode_text(self, text: str) -> np.ndarray:
+    def encode_text(self, text: str) -> dict:
         """
         Encodes the given text as a matrix.
         :param text: The text to encode.
         :return: The encoded text as a matrix (in bytes).
         """
-        return java_to_structural_representation(text)
+        return {"matrix": torch.tensor(java_to_structural_representation(text))}
 
 
 class VisualEncoder:
@@ -198,14 +196,13 @@ class VisualEncoder:
 
         return ReadabilityDataset(encoded_dataset)
 
-    # TODO: Fix return type
-    def encode_text(self, text: str) -> bytes:
+    def encode_text(self, text: str) -> dict:
         """
         Encodes the given text as an image.
         :param text: The text to encode.
         :return: The encoded text as an image (in bytes).
         """
-        return code_to_bytes(text)
+        return {"image": code_to_bytes(text)}
 
 
 class BertEncoder:
@@ -314,6 +311,67 @@ class BertEncoder:
             )
 
         return encoded_batch
+
+
+class DatasetEncoder:
+    """
+    A class for encoding the code of the dataset as matrix, bert and image.
+    Uses the MatrixEncoder, BertEncoder and VisualEncoder for encoding.
+    """
+
+    def __init__(self):
+        """
+        Initializes the DatasetEncoder.
+        """
+        self.matrix_encoder = MatrixEncoder()
+        self.bert_encoder = BertEncoder()
+        self.visual_encoder = VisualEncoder()
+
+    def encode_text(self, code_text: str) -> ReadabilityDataset:
+        """
+        Encodes the given code snippet as a matrix, bert and image.
+        :param code_text: The code snippet to encode.
+        :return: The encoded code snippet.
+        """
+        matrix = self.matrix_encoder.encode_text(code_text)
+        bert = self.bert_encoder.encode_text(code_text)
+        image = self.visual_encoder.encode_text(code_text)
+
+        return ReadabilityDataset(
+            [
+                {
+                    "matrix": matrix["matrix"],
+                    "input_ids": bert["input_ids"],
+                    "token_type_ids": bert["token_type_ids"],
+                    "image": image["image"],
+                }
+            ]
+        )
+
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
+        """
+        Encodes the given dataset as matrices, bert and images.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
+        matrix_dataset = self.matrix_encoder.encode_dataset(unencoded_dataset)
+        bert_dataset = self.bert_encoder.encode_dataset(unencoded_dataset)
+        image_dataset = self.visual_encoder.encode_dataset(unencoded_dataset)
+
+        # Combine the datasets
+        encoded_dataset = []
+        for i in range(len(matrix_dataset)):
+            encoded_dataset.append(
+                {
+                    "matrix": matrix_dataset[i]["matrix"],
+                    "input_ids": bert_dataset[i]["input_ids"],
+                    "token_type_ids": bert_dataset[i]["token_type_ids"],
+                    "image": image_dataset[i]["image"],
+                    "score": torch.tensor(unencoded_dataset[i]["score"]),
+                }
+            )
+
+        return ReadabilityDataset(encoded_dataset)
 
 
 class CodeReadabilityClassifier:
