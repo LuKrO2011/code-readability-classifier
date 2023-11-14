@@ -44,11 +44,16 @@ class BertEmbedding(nn.Module):
 
     def forward(self, inputs):
         input_ids, token_type_ids = inputs
-        position_ids = torch.arange(input_ids.shape[1], dtype=torch.long).unsqueeze(0)
+        batch_size, sequence_length = input_ids.size()
+
+        # Generate position_ids within the defined range using modulo operation
+        position_ids = torch.arange(sequence_length, dtype=torch.long).unsqueeze(0)
+        position_ids = position_ids % self.position_embedding.num_embeddings
+
         if token_type_ids is None:
             token_type_ids = torch.full_like(input_ids, 0)
 
-        position_embeddings = self.position_embedding(position_ids)
+        position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
         token_type_embeddings = self.token_type_embedding(token_type_ids)
         token_embeddings = self.token_embedding(input_ids)
 

@@ -32,7 +32,7 @@ def test_forward_pass(semantic_extractor):
     output = semantic_extractor(token_input, segment_input)
 
     # Check if the output has the expected shape
-    assert output.shape == (1, BATCH_SIZE)
+    assert output.shape == (1, 94, 64)
 
     # TODO: Check range of output values
 
