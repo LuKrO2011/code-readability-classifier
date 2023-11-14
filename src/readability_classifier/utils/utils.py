@@ -2,6 +2,10 @@ import os
 import shutil
 from pathlib import Path
 
+import numpy as np
+import torch
+from torch import Tensor
+
 
 def read_content_of_file(file: Path, encoding: str = "utf-8") -> str:
     """
@@ -88,3 +92,20 @@ def copy_files(from_dir: str, to_dir: str) -> None:
         to_file = os.path.join(to_dir, file)
         if os.path.isfile(from_file):
             shutil.copy2(from_file, to_file)
+
+
+def bytes_to_tensor(bytes_data: bytes) -> Tensor:
+    """
+    Converts bytes to a tensor.
+    :param bytes_data: The bytes to convert.
+    :return: The tensor.
+    """
+    # Convert bytes to a NumPy array
+    numpy_array = np.frombuffer(bytes_data, dtype=np.uint8)
+
+    # TODO: Check if this is correct
+    # Reshape the NumPy array
+    numpy_array = numpy_array.reshape(3, 128, 128)
+
+    # Convert NumPy array to a PyTorch tensor
+    return torch.from_numpy(numpy_array)

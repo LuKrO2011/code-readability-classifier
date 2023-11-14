@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizer
 
 from readability_classifier.utils.strucutral import java_to_structural_representation
-from readability_classifier.utils.visual import code_to_bytes
+from readability_classifier.utils.utils import bytes_to_tensor
+from readability_classifier.utils.visual import code_to_bytes, dataset_to_bytes
 from src.readability_classifier.models.readability_model import ReadabilityModel
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
@@ -173,7 +174,6 @@ class VisualEncoder:
     A class for encoding the code of the dataset as images.
     """
 
-    # TODO: Make more efficient by encoding in batches
     def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
         """
         Encodes the given dataset as images.
@@ -182,17 +182,19 @@ class VisualEncoder:
         """
         encoded_dataset = []
 
+        # Convert the list of dictionaries to a list of code snippet strings
+        code_snippets = [sample["code_snippet"] for sample in unencoded_dataset]
+
         # Encode the code snippets
-        for sample in unencoded_dataset:
+        encoded_code_snippets = dataset_to_bytes(code_snippets)
+
+        # Convert the list of encoded code snippets to a ReadabilityDataset
+        for i in range(len(encoded_code_snippets)):
             encoded_dataset.append(
                 {
-                    "image": code_to_bytes(sample["code_snippet"]),
-                    "score": torch.tensor(sample["score"]),
+                    "image": bytes_to_tensor(encoded_code_snippets[i]),
                 }
             )
-
-        # Log the number of samples in the encoded dataset
-        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)
 

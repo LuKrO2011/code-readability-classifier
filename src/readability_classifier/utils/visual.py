@@ -145,11 +145,6 @@ def code_to_bytes(
         if not os.path.isdir(out_dir):
             os.makedirs(out_dir)
 
-    # Generate a code file from the text
-    code_file = os.path.join(out_dir, DEFAULT_IN)
-    with open(code_file, "w") as file:
-        file.write(text)
-
     # Convert the code to an image
     image_file = os.path.join(out_dir, DEFAULT_OUT)
     code_to_image(text, output=image_file, css=css, width=width, height=height)
@@ -163,6 +158,53 @@ def code_to_bytes(
         temp_dir.cleanup()
 
     return image_as_bytes
+
+
+def dataset_to_bytes(
+    snippets: list[str],
+    save_dir: str = None,
+    width: int = 128,
+    height: int = 128,
+    css: str = DEFAULT_CSS,
+) -> list[bytes]:
+    """
+    Convert the given list with java code snippets to visualisations/images.
+    :param snippets: The list with java code snippets
+    :param save_dir: The directory where the image should be stored.
+    If None, a temporary directory is created.
+    :param width: The width of the image
+    :param height: The height of the image
+    :param css: The css to use for styling the code
+    :return: The images as bytes
+    """
+    temp_dir = None
+    if save_dir is None:
+        # Create a temporary directory
+        temp_dir = TemporaryDirectory()
+        save_dir = temp_dir.name
+    else:
+        # Create the save directory, if it does not exist
+        if not os.path.isdir(save_dir):
+            os.makedirs(save_dir)
+
+    # Create the visualisations
+    for idx, snippet in enumerate(snippets):
+        name = os.path.join(save_dir, f"{idx}.png")
+        code_to_image(snippet, output=name, css=css, width=width, height=height)
+
+    # Read the images as bytes
+    images_as_bytes = []
+    for idx, _ in enumerate(snippets):
+        image_file = os.path.join(save_dir, f"{idx}.png")
+        with open(image_file, "rb") as file:
+            image_as_bytes = file.read()
+            images_as_bytes.append(image_as_bytes)
+
+    # Delete the temporary directory
+    if temp_dir is not None:
+        temp_dir.cleanup()
+
+    return images_as_bytes
 
 
 # Sample Java code
