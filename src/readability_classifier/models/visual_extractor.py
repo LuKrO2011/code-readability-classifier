@@ -3,7 +3,6 @@ from torch import nn as nn
 
 
 # TODO: What if without padding or stride specified?
-#
 class VisualExtractor(nn.Module):
     """
     Also known as ImageExtractor. A visual feature extractor for code readability

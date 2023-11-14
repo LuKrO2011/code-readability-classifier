@@ -6,12 +6,15 @@ import torch.optim as optim
 from datasets import Dataset as HFDataset
 from datasets import load_from_disk
 from sklearn.model_selection import train_test_split
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizer
 
 from readability_classifier.utils.strucutral import java_to_structural_representation
-from readability_classifier.utils.utils import bytes_to_tensor
-from readability_classifier.utils.visual import code_to_bytes, dataset_to_bytes
+from readability_classifier.utils.visual import (
+    code_to_image_tensor,
+    dataset_to_image_tensors,
+)
 from src.readability_classifier.models.readability_model import ReadabilityModel
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
@@ -76,10 +79,13 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
 
     # Convert loaded data to torch.Tensors
     for sample in dataset_list:
-        sample["input_ids"] = torch.tensor(sample["input_ids"])
-        sample["token_type_ids"] = torch.tensor(sample["token_type_ids"])
-        sample["attention_mask"] = torch.tensor(sample["attention_mask"])
-        sample["score"] = torch.tensor(sample["score"])
+        sample["matrix"] = torch.tensor(sample["matrix"], dtype=torch.float32)
+        sample["input_ids"] = torch.tensor(sample["input_ids"], dtype=torch.long)
+        sample["token_type_ids"] = torch.tensor(
+            sample["token_type_ids"], dtype=torch.long
+        )
+        sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
+        sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 
     # Log the number of samples in the dataset
     logging.info(f"Loaded {len(dataset_list)} samples from {data_dir}")
@@ -149,9 +155,10 @@ class MatrixEncoder:
             encoded_dataset.append(
                 {
                     "matrix": torch.tensor(
-                        java_to_structural_representation(sample["code_snippet"])
+                        java_to_structural_representation(sample["code_snippet"]),
+                        dtype=torch.float32,
                     ),
-                    "score": torch.tensor(sample["score"]),
+                    "score": torch.tensor(sample["score"], dtype=torch.float32),
                 }
             )
 
@@ -166,7 +173,11 @@ class MatrixEncoder:
         :param text: The text to encode.
         :return: The encoded text as a matrix (in bytes).
         """
-        return {"matrix": torch.tensor(java_to_structural_representation(text))}
+        return {
+            "matrix": torch.tensor(
+                java_to_structural_representation(text), dtype=torch.float32
+            )
+        }
 
 
 class VisualEncoder:
@@ -186,13 +197,13 @@ class VisualEncoder:
         code_snippets = [sample["code_snippet"] for sample in unencoded_dataset]
 
         # Encode the code snippets
-        encoded_code_snippets = dataset_to_bytes(code_snippets)
+        encoded_code_snippets = dataset_to_image_tensors(code_snippets)
 
         # Convert the list of encoded code snippets to a ReadabilityDataset
         for i in range(len(encoded_code_snippets)):
             encoded_dataset.append(
                 {
-                    "image": bytes_to_tensor(encoded_code_snippets[i]),
+                    "image": encoded_code_snippets[i],
                 }
             )
 
@@ -204,7 +215,7 @@ class VisualEncoder:
         :param text: The text to encode.
         :return: The encoded text as an image (in bytes).
         """
-        return {"image": bytes_to_tensor(code_to_bytes(text))}
+        return {"image": code_to_image_tensor(text)}
 
 
 class BertEncoder:
@@ -308,7 +319,6 @@ class BertEncoder:
                     "input_ids": input_ids[i],
                     "token_type_ids": token_type_ids[i],
                     "attention_mask": attention_mask[i],
-                    "score": torch.tensor(batch[i]["score"]),
                 }
             )
 
@@ -329,7 +339,7 @@ class DatasetEncoder:
         self.bert_encoder = BertEncoder()
         self.visual_encoder = VisualEncoder()
 
-    def encode_text(self, code_text: str) -> ReadabilityDataset:
+    def encode_text(self, code_text: str) -> dict[str, torch.Tensor]:
         """
         Encodes the given code snippet as a matrix, bert and image.
         :param code_text: The code snippet to encode.
@@ -339,16 +349,12 @@ class DatasetEncoder:
         bert = self.bert_encoder.encode_text(code_text)
         image = self.visual_encoder.encode_text(code_text)
 
-        return ReadabilityDataset(
-            [
-                {
-                    "matrix": matrix["matrix"],
-                    "input_ids": bert["input_ids"],
-                    "token_type_ids": bert["token_type_ids"],
-                    "image": image["image"],
-                }
-            ]
-        )
+        return {
+            "matrix": matrix["matrix"],
+            "input_ids": bert["input_ids"],
+            "token_type_ids": bert["token_type_ids"],
+            "image": image["image"],
+        }
 
     def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
         """
@@ -369,7 +375,9 @@ class DatasetEncoder:
                     "input_ids": bert_dataset[i]["input_ids"],
                     "token_type_ids": bert_dataset[i]["token_type_ids"],
                     "image": image_dataset[i]["image"],
-                    "score": torch.tensor(unencoded_dataset[i]["score"]),
+                    "score": torch.tensor(
+                        unencoded_dataset[i]["score"], dtype=torch.float32
+                    ),
                 }
             )
 
@@ -423,21 +431,23 @@ class CodeReadabilityClassifier:
 
     def _train_iteration(
         self,
-        x_batch: torch.Tensor,
-        token_type_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
-        y_batch: torch.Tensor,
+        matrix: Tensor,
+        input_ids: Tensor,
+        token_type_ids: Tensor,
+        image: Tensor,
+        y_batch: Tensor,
     ) -> float:
         """
         Performs a single training iteration.
-        :param x_batch: The input_ids of the batch.
-        :param token_type_ids: The token_type_ids of the batch. Same as segment_ids.
-        :param attention_mask: The attention_mask of the batch.
-         :param y_batch: The scores of the batch.
+        :param matrix: The matrix of the batch.
+        :param input_ids: The input ids of the batch.
+        :param token_type_ids: The token type ids of the batch.
+        :param image: The image of the batch.
+        :param y_batch: The scores of the batch.
         :return: The loss of the batch.
         """
         self.optimizer.zero_grad()
-        outputs = self.model(x_batch, token_type_ids, attention_mask)
+        outputs = self.model(matrix, input_ids, token_type_ids, image)
         loss = self.criterion(outputs, y_batch)
         loss.backward()
         self.optimizer.step()
@@ -457,19 +467,19 @@ class CodeReadabilityClassifier:
 
             # Iterate over the training dataset in mini-batches
             for batch in self.train_loader:
+                matrix = batch["matrix"].to(self.device)
                 input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(
-                    self.device
-                )  # Same as segment_ids
-                attention_mask = batch["attention_mask"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(self.device)
+                image = batch["image"].to(self.device)
                 score = (
                     batch["score"].unsqueeze(1).to(self.device)
                 )  # Add dimension for matching batch size
 
                 loss = self._train_iteration(
-                    x_batch=input_ids,
+                    matrix=matrix,
+                    input_ids=input_ids,
                     token_type_ids=token_type_ids,
-                    attention_mask=attention_mask,
+                    image=image,
                     y_batch=score,
                 )
                 running_loss += loss
@@ -496,17 +506,14 @@ class CodeReadabilityClassifier:
 
             # Iterate through the test loader to evaluate the model
             for batch in self.test_loader:
+                matrix = batch["matrix"].to(self.device)
                 input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(
-                    self.device
-                )  # Same as segment_ids
-                attention_mask = batch["attention_mask"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(self.device)
+                image = batch["image"].to(self.device)
                 score = batch["score"].to(self.device)
 
                 y_batch.append(score)
-                predictions.append(
-                    self.model(input_ids, token_type_ids, attention_mask)
-                )
+                predictions.append(self.model(matrix, input_ids, token_type_ids, image))
 
             # Concatenate the lists of tensors to create a single tensor
             y_batch = torch.cat(y_batch, dim=0)
@@ -545,16 +552,18 @@ class CodeReadabilityClassifier:
         self.model.eval()
 
         # Encode the code snippet
-        encoder = BertEncoder()
+        encoder = DatasetEncoder()
         encoded_text = encoder.encode_text(code_snippet)
+        matrix = encoded_text["matrix"]
         input_ids = encoded_text["input_ids"]
-        token_type_ids = encoded_text["token_type_ids"]  # Same as segment_ids
-        attention_mask = encoded_text["attention_mask"]
+        token_type_ids = encoded_text["token_type_ids"]
+        image = encoded_text["image"]
 
         # Predict the readability
         with torch.no_grad():
+            matrix = matrix.to(self.device)
             input_ids = input_ids.to(self.device)
             token_type_ids = token_type_ids.to(self.device)
-            attention_mask = attention_mask.to(self.device)
-            prediction = self.model(input_ids, token_type_ids, attention_mask)
+            image = image.to(self.device)
+            prediction = self.model(matrix, input_ids, token_type_ids, image)
             return prediction.item()

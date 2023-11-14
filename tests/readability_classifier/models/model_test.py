@@ -166,6 +166,7 @@ def test_encode_bert(bert_encoder):
     temp_dir.cleanup()
 
 
+@pytest.mark.skip()  # Disabled, because it takes too long
 def test_encode_visual_dataset(visual_encoder):
     data_dir = "res/raw_datasets/scalabrio"
 

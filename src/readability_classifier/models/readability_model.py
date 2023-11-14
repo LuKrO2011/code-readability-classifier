@@ -40,13 +40,13 @@ class ReadabilityModel(nn.Module):
 
         # TODO: Get from feature extractors?
         # Specify input size
-        self.structure_flatten_size = 48384
-        self.texture_gru_size = 94 * 64
-        self.image_flatten_size = 6400
+        self.structural_features_size = 41472
+        self.semantic_features_size = 10560
+        self.visual_features_size = 6400
         self.concatenated_size = (
-            self.structure_flatten_size
-            + self.texture_gru_size
-            + self.image_flatten_size
+            self.structural_features_size
+            + self.semantic_features_size
+            + self.visual_features_size
         )
 
         # Define own layers

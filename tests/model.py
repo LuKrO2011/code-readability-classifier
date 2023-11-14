@@ -1,7 +1,10 @@
 import os
 import unittest
 
-from readability_classifier.models.model import BertEncoder, CodeReadabilityClassifier
+from readability_classifier.models.model import (
+    CodeReadabilityClassifier,
+    DatasetEncoder,
+)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")
@@ -27,7 +30,7 @@ class TestModel(unittest.TestCase):
         csv = os.path.join(DATA_DIR, "scores.csv")
 
         # Load the data
-        data_loader = BertEncoder()
+        data_loader = DatasetEncoder()
         train_loader, test_loader = data_loader.encode_dataset(csv, snippets_dir)
 
         # Train and evaluate the model

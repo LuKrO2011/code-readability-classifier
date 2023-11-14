@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from PIL import Image
 from torch import Tensor
 
 
@@ -94,35 +95,25 @@ def copy_files(from_dir: str, to_dir: str) -> None:
             shutil.copy2(from_file, to_file)
 
 
-def bytes_to_tensor(bytes_data: bytes) -> Tensor:
+# TODO: Remove blur (!= 0 or 255) from image
+def open_image_as_tensor(image_path: str) -> Tensor:
     """
-    Converts bytes to a tensor.
-    :param bytes_data: The bytes to convert.
-    :return: The tensor.
+    Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
+    to float32. The shape of the tensor is (3, height, width).
+    :param image_path: The path to the image
+    :return: The image as a tensor
     """
-    # Convert bytes to a NumPy array
-    numpy_array = np.frombuffer(bytes_data, dtype=np.uint8)
+    # Open the image using PIL
+    img = Image.open(image_path)
 
-    # TODO: Check if this is correct
-    # Reshape the NumPy array
-    # numpy_array = numpy_array.reshape(3, 128, 128)
+    # Convert PIL image to NumPy array
+    img_array = np.array(img)
 
-    # Convert NumPy array to a PyTorch tensor
-    return torch.from_numpy(numpy_array)
+    # Remove the alpha channel
+    img_array = img_array[:, :, :3]
 
+    # Transpose the array to get the shape (3, height, width)
+    img_array = np.transpose(img_array, (2, 0, 1))
 
-def tensor_to_bytes(tensor: Tensor) -> bytes:
-    """
-    Converts a tensor to bytes.
-    :param tensor: The tensor to convert.
-    :return: The bytes.
-    """
-    # Convert PyTorch tensor to a NumPy array
-    numpy_array = tensor.numpy()
-
-    # TODO: Check if this is correct
-    # Reshape the NumPy array
-    # numpy_array = numpy_array.reshape(3, 128, 128)
-
-    # Convert NumPy array to bytes
-    return numpy_array.tobytes()
+    # Convert NumPy array to tensor
+    return torch.tensor(img_array, dtype=torch.float32)

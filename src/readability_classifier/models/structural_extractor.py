@@ -48,6 +48,7 @@ class StructuralExtractor(nn.Module):
         :return: The output tensor.
         """
         # Apply convolutional and pooling layers
+        x = x.unsqueeze(1)
         x = self.conv1(x)
         x = self.relu(x)
         x = self.pool1(x)

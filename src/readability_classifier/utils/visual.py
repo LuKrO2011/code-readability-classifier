@@ -8,6 +8,9 @@ from PIL import Image
 from pygments import highlight
 from pygments.formatters.html import HtmlFormatter
 from pygments.lexers import JavaLexer
+from torch import Tensor
+
+from readability_classifier.utils.utils import open_image_as_tensor
 
 DEFAULT_OUT = "code.png"
 DEFAULT_IN = "code.java"
@@ -119,22 +122,22 @@ def code_to_image(
     img.save(output)
 
 
-def code_to_bytes(
+def code_to_image_tensor(
     text: str,
     out_dir: str = None,
     width: int = 128,
     height: int = 128,
     css: str = DEFAULT_CSS,
-) -> bytes:
+) -> Tensor:
     """
-    Convert the given Java code to a visualisation/image.
+    Convert the given Java code to a visualisation/image and load it as a tensor.
     :param text: The code to visualize
     :param out_dir: The directory where the image should be stored. If None, a temporary
         directory is created.
     :param width: The width of the image
     :param height: The height of the image
     :param css: The css to use for styling the code
-    :return: The image as image_as_bytes
+    :return: The image of the code as a tensor
     """
     temp_dir = None
     if out_dir is None:
@@ -150,15 +153,14 @@ def code_to_bytes(
     image_file = os.path.join(out_dir, DEFAULT_OUT)
     code_to_image(text, output=image_file, css=css, width=width, height=height)
 
-    # Return the image as bytes
-    with open(image_file, "rb") as file:
-        image_as_bytes = file.read()
+    # Return the image as tensor 128x128x3 (RGB)
+    image_as_tensor = open_image_as_tensor(image_file)
 
     # Delete the temporary directory
     if temp_dir is not None:
         temp_dir.cleanup()
 
-    return image_as_bytes
+    return image_as_tensor
 
 
 def _process_code_to_image(
@@ -178,16 +180,17 @@ def _process_code_to_image(
     return idx, filename
 
 
-def dataset_to_bytes(
+def dataset_to_image_tensors(
     snippets: list[str],
     save_dir: str = None,
     width: int = 128,
     height: int = 128,
     css: str = DEFAULT_CSS,
     parallel: bool = True,
-) -> list[bytes]:
+) -> list[Tensor]:
     """
-    Convert the given list with java code snippets to visualisations/images.
+    Convert the given list with java code snippets to visualisations/images and load
+    them as tensors.
     :param snippets: The list with java code snippets
     :param save_dir: The directory where the image should be stored.
     If None, a temporary directory is created.
@@ -195,7 +198,7 @@ def dataset_to_bytes(
     :param height: The height of the image
     :param css: The css to use for styling the code
     :param parallel: Whether to use parallel processing
-    :return: The images as bytes
+    :return: The images of the code snippets as tensors
     """
     temp_dir = None
     if save_dir is None:
@@ -217,30 +220,31 @@ def dataset_to_bytes(
                 for idx, snippet in enumerate(snippets)
             }
 
+            # TODO: Remove the following code?
             images = [None] * len(snippets)
 
             for future in concurrent.futures.as_completed(futures):
                 idx, img_path = future.result()
                 images[idx] = img_path
+            # TODO: Remove the above code?
     else:
         # Create the visualisations
         for idx, snippet in enumerate(snippets):
             name = os.path.join(save_dir, f"{idx}.png")
             code_to_image(snippet, output=name, css=css, width=width, height=height)
 
-    # Read the images as bytes
-    images_as_bytes = []
-    for idx, _ in enumerate(snippets):
+    # Read the images
+    images_as_tensors = []
+    for idx in range(len(snippets)):
         image_file = os.path.join(save_dir, f"{idx}.png")
-        with open(image_file, "rb") as file:
-            image_as_bytes = file.read()
-            images_as_bytes.append(image_as_bytes)
+        image_as_tensor = open_image_as_tensor(image_file)
+        images_as_tensors.append(image_as_tensor)
 
     # Delete the temporary directory
     if temp_dir is not None:
         temp_dir.cleanup()
 
-    return images_as_bytes
+    return images_as_tensors
 
 
 # Sample Java code
