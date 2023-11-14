@@ -4,13 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from src.readability_classifier.models.model import (
-    CodeReadabilityClassifier,
-    DatasetEncoder,
-    load_encoded_dataset,
-    load_raw_dataset,
-    store_encoded_dataset,
-)
+from src.readability_classifier.models.model import CodeReadabilityClassifier
 from src.readability_classifier.models.readability_model import ReadabilityModel
 from tests.readability_classifier.models.readability_model_test import create_test_data
 
@@ -45,11 +39,6 @@ def classifier():
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
     )
-
-
-@pytest.fixture()
-def encoder():
-    return DatasetEncoder()
 
 
 def test_backward_pass(readability_model, criterion):
@@ -123,35 +112,3 @@ def test_load_store_model(classifier):
 
     # Clean up temporary directories
     temp_dir.cleanup()
-
-
-def test_encode(encoder):
-    data_dir = "res/raw_datasets/scalabrio"
-
-    # Create temporary directory
-    temp_dir = TemporaryDirectory()
-
-    # Load raw data
-    raw_data = load_raw_dataset(data_dir)
-
-    # Encode raw data
-    encoded_data = encoder.encode_dataset(raw_data)
-
-    # Store encoded data
-    store_encoded_dataset(encoded_data, temp_dir.name)
-
-    # Check if encoded data is not empty
-    assert len(encoded_data) > 0
-
-    # Clean up temporary directories
-    temp_dir.cleanup()
-
-
-def test_load_encoded_dataset():
-    data_dir = "res/encoded_datasets/bw"
-
-    # Load encoded data
-    encoded_data = load_encoded_dataset(data_dir)
-
-    # Check if encoded data is not empty
-    assert len(encoded_data) > 0
