@@ -5,8 +5,10 @@ import pytest
 import torch
 
 from src.readability_classifier.models.model import (
+    BertEncoder,
     CodeReadabilityClassifier,
-    DatasetEncoder,
+    MatrixEncoder,
+    VisualEncoder,
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,
@@ -48,8 +50,18 @@ def classifier():
 
 
 @pytest.fixture()
-def encoder():
-    return DatasetEncoder()
+def bert_encoder():
+    return BertEncoder()
+
+
+@pytest.fixture()
+def visual_encoder():
+    return VisualEncoder()
+
+
+@pytest.fixture()
+def matrix_encoder():
+    return MatrixEncoder()
 
 
 def test_backward_pass(readability_model, criterion):
@@ -125,7 +137,7 @@ def test_load_store_model(classifier):
     temp_dir.cleanup()
 
 
-def test_encode(encoder):
+def test_encode_bert(bert_encoder):
     data_dir = "res/raw_datasets/scalabrio"
 
     # Create temporary directory
@@ -135,7 +147,7 @@ def test_encode(encoder):
     raw_data = load_raw_dataset(data_dir)
 
     # Encode raw data
-    encoded_data = encoder.encode_dataset(raw_data)
+    encoded_data = bert_encoder.encode_dataset(raw_data)
 
     # Store encoded data
     store_encoded_dataset(encoded_data, temp_dir.name)
@@ -145,6 +157,94 @@ def test_encode(encoder):
 
     # Clean up temporary directories
     temp_dir.cleanup()
+
+
+@pytest.mark.skip()  # Disabled, because it takes too long
+def test_encode_visual_dataset(visual_encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode raw data
+    encoded_data = visual_encoder.encode_dataset(raw_data)
+
+    # Store encoded data
+    store_encoded_dataset(encoded_data, temp_dir.name)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
+
+
+def test_encode_visual_text(visual_encoder):
+    # Sample Java code
+    code = """
+    // A method for counting
+    public void getNumber(){
+        int count = 0;
+        while(count < 10){
+            count++;
+        }
+    }
+    """
+
+    # Encode the code
+    encoded_code = visual_encoder.encode_text(code)
+
+    # Check if encoded code is not empty
+    assert len(encoded_code) > 0
+
+    # Show the image
+    # bytes_to_image(encoded_code, "code.png")
+    # from PIL import Image
+    # img = Image.open("code.png")
+    # img.show()
+
+
+def test_encode_matrix_dataset(matrix_encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Create temporary directory
+    temp_dir = TemporaryDirectory()
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode raw data
+    encoded_data = matrix_encoder.encode_dataset(raw_data)
+
+    # Store encoded data
+    store_encoded_dataset(encoded_data, temp_dir.name)
+
+    # Check if encoded data is not empty
+    assert len(encoded_data) > 0
+
+    # Clean up temporary directories
+    temp_dir.cleanup()
+
+
+def test_encode_matrix_text(matrix_encoder):
+    code = """
+    // A method for counting
+    public void getNumber(){
+        int count = 0;
+        while(count < 10){
+            count++;
+        }
+    }
+    """
+
+    # Encode the code
+    encoded_code = matrix_encoder.encode_text(code)
+
+    # Check if encoded code is not empty
+    assert len(encoded_code) > 0
 
 
 def test_load_encoded_dataset():

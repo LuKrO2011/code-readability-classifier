@@ -60,8 +60,8 @@ class ReadabilityModel(nn.Module):
     def forward(
         self,
         character_matrix: torch.Tensor,
-        token_input: torch.Tensor,
-        segment_input: torch.Tensor,
+        token_input: torch.Tensor,  # Same as input_ids
+        segment_input: torch.Tensor,  # Same as token_type_ids
         image: torch.Tensor,
     ) -> torch.Tensor:
         """

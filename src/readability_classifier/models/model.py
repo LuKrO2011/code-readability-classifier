@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,7 +10,9 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizer
 
-from src.readability_classifier.models.semantic_extractor import SemanticExtractor
+from readability_classifier.utils.strucutral import java_to_structural_representation
+from readability_classifier.utils.visual import code_to_bytes
+from src.readability_classifier.models.readability_model import ReadabilityModel
 
 DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
 DEFAULT_MODEL_BATCH_SIZE = 8  # Small - avoid CUDA out of memory errors on local machine
@@ -128,7 +131,84 @@ def encoded_data_to_dataloaders(
     return train_loader, test_loader
 
 
-class DatasetEncoder:
+class MatrixEncoder:
+    """
+    A class for encoding the code of the dataset as matrices.
+    """
+
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
+        """
+        Encodes the given dataset as matrices.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
+        encoded_dataset = []
+
+        # Encode the code snippets
+        for sample in unencoded_dataset:
+            encoded_dataset.append(
+                {
+                    "matrix": torch.tensor(
+                        java_to_structural_representation(sample["code_snippet"])
+                    ),
+                    "score": torch.tensor(sample["score"]),
+                }
+            )
+
+        # Log the number of samples in the encoded dataset
+        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
+
+        return ReadabilityDataset(encoded_dataset)
+
+    # TODO: Fix return type
+    def encode_text(self, text: str) -> np.ndarray:
+        """
+        Encodes the given text as a matrix.
+        :param text: The text to encode.
+        :return: The encoded text as a matrix (in bytes).
+        """
+        return java_to_structural_representation(text)
+
+
+class VisualEncoder:
+    """
+    A class for encoding the code of the dataset as images.
+    """
+
+    # TODO: Make more efficient by encoding in batches
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
+        """
+        Encodes the given dataset as images.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
+        encoded_dataset = []
+
+        # Encode the code snippets
+        for sample in unencoded_dataset:
+            encoded_dataset.append(
+                {
+                    "image": code_to_bytes(sample["code_snippet"]),
+                    "score": torch.tensor(sample["score"]),
+                }
+            )
+
+        # Log the number of samples in the encoded dataset
+        logging.info(f"Encoding done. Number of samples: {len(encoded_dataset)}")
+
+        return ReadabilityDataset(encoded_dataset)
+
+    # TODO: Fix return type
+    def encode_text(self, text: str) -> bytes:
+        """
+        Encodes the given text as an image.
+        :param text: The text to encode.
+        :return: The encoded text as an image (in bytes).
+        """
+        return code_to_bytes(text)
+
+
+class BertEncoder:
     """
     A class for encoding the code of the dataset with BERT.
     """
@@ -193,7 +273,7 @@ class DatasetEncoder:
 
         return {
             "input_ids": encoding["input_ids"],
-            "token_type_ids": encoding["token_type_ids"],
+            "token_type_ids": encoding["token_type_ids"],  # Same as segment_ids
             "attention_mask": encoding["attention_mask"],
         }
 
@@ -219,7 +299,7 @@ class DatasetEncoder:
 
         # Extract input ids and attention mask from batch_encoding
         input_ids = batch_encoding["input_ids"]
-        token_type_ids = batch_encoding["token_type_ids"]
+        token_type_ids = batch_encoding["token_type_ids"]  # Same as segment_ids
         attention_mask = batch_encoding["attention_mask"]
 
         # Create a dictionary for each sample in the batch
@@ -276,7 +356,7 @@ class CodeReadabilityClassifier:
         the optimizer.
         :return: None
         """
-        self.model = SemanticExtractor(1)  # Set number of classes to 1 for regression
+        self.model = ReadabilityModel()
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -291,7 +371,7 @@ class CodeReadabilityClassifier:
         """
         Performs a single training iteration.
         :param x_batch: The input_ids of the batch.
-        :param token_type_ids: The token_type_ids of the batch.
+        :param token_type_ids: The token_type_ids of the batch. Same as segment_ids.
         :param attention_mask: The attention_mask of the batch.
          :param y_batch: The scores of the batch.
         :return: The loss of the batch.
@@ -318,7 +398,9 @@ class CodeReadabilityClassifier:
             # Iterate over the training dataset in mini-batches
             for batch in self.train_loader:
                 input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(
+                    self.device
+                )  # Same as segment_ids
                 attention_mask = batch["attention_mask"].to(self.device)
                 score = (
                     batch["score"].unsqueeze(1).to(self.device)
@@ -355,7 +437,9 @@ class CodeReadabilityClassifier:
             # Iterate through the test loader to evaluate the model
             for batch in self.test_loader:
                 input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(self.device)
+                token_type_ids = batch["token_type_ids"].to(
+                    self.device
+                )  # Same as segment_ids
                 attention_mask = batch["attention_mask"].to(self.device)
                 score = batch["score"].to(self.device)
 
@@ -401,10 +485,10 @@ class CodeReadabilityClassifier:
         self.model.eval()
 
         # Encode the code snippet
-        encoder = DatasetEncoder()
+        encoder = BertEncoder()
         encoded_text = encoder.encode_text(code_snippet)
         input_ids = encoded_text["input_ids"]
-        token_type_ids = encoded_text["token_type_ids"]
+        token_type_ids = encoded_text["token_type_ids"]  # Same as segment_ids
         attention_mask = encoded_text["attention_mask"]
 
         # Predict the readability

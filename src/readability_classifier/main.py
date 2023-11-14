@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from readability_classifier.models.model import (
+    BertEncoder,
     CodeReadabilityClassifier,
-    DatasetEncoder,
     encoded_data_to_dataloaders,
     load_encoded_dataset,
     load_raw_dataset,
@@ -197,7 +197,7 @@ def _run_train(parsed_args) -> None:
 
     if not encoded:
         raw_data = load_raw_dataset(data_dir)
-        encoded_data = DatasetEncoder().encode_dataset(raw_data)
+        encoded_data = BertEncoder().encode_dataset(raw_data)
 
         if intermediate_dir:
             store_encoded_dataset(encoded_data, intermediate_dir)
