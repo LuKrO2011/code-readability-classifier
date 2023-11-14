@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from readability_classifier.utils.utils import bytes_to_image, tensor_to_bytes
 from src.readability_classifier.models.model import (
     BertEncoder,
     CodeReadabilityClassifier,
@@ -165,12 +166,8 @@ def test_encode_bert(bert_encoder):
     temp_dir.cleanup()
 
 
-# @pytest.mark.skip()  # Disabled, because it takes too long
 def test_encode_visual_dataset(visual_encoder):
     data_dir = "res/raw_datasets/scalabrio"
-
-    # Create temporary directory
-    temp_dir = TemporaryDirectory()
 
     # Load raw data
     raw_data = load_raw_dataset(data_dir)
@@ -178,14 +175,15 @@ def test_encode_visual_dataset(visual_encoder):
     # Encode raw data
     encoded_data = visual_encoder.encode_dataset(raw_data)
 
-    # Store encoded data
-    store_encoded_dataset(encoded_data, temp_dir.name)
-
     # Check if encoded data is not empty
     assert len(encoded_data) > 0
 
-    # Clean up temporary directories
-    temp_dir.cleanup()
+    # Show the third image
+    bytes_to_image(tensor_to_bytes(encoded_data[0]["image"]), "code.png")
+    from PIL import Image
+
+    img = Image.open("code.png")
+    img.show()
 
 
 def test_encode_visual_text(visual_encoder):

@@ -105,7 +105,24 @@ def bytes_to_tensor(bytes_data: bytes) -> Tensor:
 
     # TODO: Check if this is correct
     # Reshape the NumPy array
-    numpy_array = numpy_array.reshape(3, 128, 128)
+    # numpy_array = numpy_array.reshape(3, 128, 128)
 
     # Convert NumPy array to a PyTorch tensor
     return torch.from_numpy(numpy_array)
+
+
+def tensor_to_bytes(tensor: Tensor) -> bytes:
+    """
+    Converts a tensor to bytes.
+    :param tensor: The tensor to convert.
+    :return: The bytes.
+    """
+    # Convert PyTorch tensor to a NumPy array
+    numpy_array = tensor.numpy()
+
+    # TODO: Check if this is correct
+    # Reshape the NumPy array
+    # numpy_array = numpy_array.reshape(3, 128, 128)
+
+    # Convert NumPy array to bytes
+    return numpy_array.tobytes()

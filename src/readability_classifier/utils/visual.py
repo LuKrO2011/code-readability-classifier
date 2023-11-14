@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 import re
 from tempfile import TemporaryDirectory
@@ -160,12 +161,30 @@ def code_to_bytes(
     return image_as_bytes
 
 
+def _process_code_to_image(
+    snippet: str, idx: int, save_dir: str, css: str, width: int, height: int
+) -> tuple[int, str]:
+    """
+    Process a single code snippet to an image. Used for parallel processing.
+    :param snippet: The code snippet
+    :param idx: The index of the code snippet
+    :param save_dir: The directory where the image should be stored
+    :param css: The css to use for styling the code
+    :param width: The width of the image
+    :param height: The height of the image
+    """
+    filename = os.path.join(save_dir, f"{idx}.png")
+    code_to_image(snippet, output=filename, css=css, width=width, height=height)
+    return idx, filename
+
+
 def dataset_to_bytes(
     snippets: list[str],
     save_dir: str = None,
     width: int = 128,
     height: int = 128,
     css: str = DEFAULT_CSS,
+    parallel: bool = True,
 ) -> list[bytes]:
     """
     Convert the given list with java code snippets to visualisations/images.
@@ -175,6 +194,7 @@ def dataset_to_bytes(
     :param width: The width of the image
     :param height: The height of the image
     :param css: The css to use for styling the code
+    :param parallel: Whether to use parallel processing
     :return: The images as bytes
     """
     temp_dir = None
@@ -187,10 +207,26 @@ def dataset_to_bytes(
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
 
-    # Create the visualisations
-    for idx, snippet in enumerate(snippets):
-        name = os.path.join(save_dir, f"{idx}.png")
-        code_to_image(snippet, output=name, css=css, width=width, height=height)
+    if parallel:
+        # Create the visualisations
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(
+                    _process_code_to_image, snippet, idx, save_dir, css, width, height
+                ): idx
+                for idx, snippet in enumerate(snippets)
+            }
+
+            images = [None] * len(snippets)
+
+            for future in concurrent.futures.as_completed(futures):
+                idx, img_path = future.result()
+                images[idx] = img_path
+    else:
+        # Create the visualisations
+        for idx, snippet in enumerate(snippets):
+            name = os.path.join(save_dir, f"{idx}.png")
+            code_to_image(snippet, output=name, css=css, width=width, height=height)
 
     # Read the images as bytes
     images_as_bytes = []

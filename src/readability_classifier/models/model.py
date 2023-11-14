@@ -204,7 +204,7 @@ class VisualEncoder:
         :param text: The text to encode.
         :return: The encoded text as an image (in bytes).
         """
-        return {"image": code_to_bytes(text)}
+        return {"image": bytes_to_tensor(code_to_bytes(text))}
 
 
 class BertEncoder:
