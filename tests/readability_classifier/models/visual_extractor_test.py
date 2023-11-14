@@ -1,7 +1,9 @@
 import pytest
 import torch
 
-from src.readability_classifier.models.visual_extractor import VisualExtractor
+from src.readability_classifier.models.extractors.visual_extractor import (
+    VisualExtractor,
+)
 
 RGB_MIN = 0
 RGB_MAX = 255

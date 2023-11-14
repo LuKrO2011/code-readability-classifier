@@ -1,7 +1,9 @@
 import numpy as np
 
-from readability_classifier.utils.strucutral import (
+from readability_classifier.models.encoders.matrix_encoder import (
     java_to_structural_representation,
+)
+from readability_classifier.utils.utils import (
     read_java_code_from_file,
     read_matrix_from_file,
     save_matrix_to_file,

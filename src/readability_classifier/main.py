@@ -7,9 +7,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.models.model import (
-    CodeReadabilityClassifier,
-    DatasetEncoder,
+from readability_classifier.models.classifier import CodeReadabilityClassifier
+from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.models.encoders.dataset_utils import (
     encoded_data_to_dataloaders,
     load_encoded_dataset,
     load_raw_dataset,

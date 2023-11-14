@@ -1,8 +1,8 @@
 import os
 from tempfile import TemporaryDirectory
 
+from readability_classifier.models.encoders.image_encoder import code_to_image
 from src.readability_classifier.utils.utils import load_code
-from src.readability_classifier.utils.visual import code_to_image
 
 RES_DIR = os.path.join(os.path.dirname(__file__), "../../res/")
 CODE_DIR = RES_DIR + "code_snippets/"

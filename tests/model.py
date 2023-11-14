@@ -1,10 +1,8 @@
 import os
 import unittest
 
-from readability_classifier.models.model import (
-    CodeReadabilityClassifier,
-    DatasetEncoder,
-)
+from readability_classifier.models.classifier import CodeReadabilityClassifier
+from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")

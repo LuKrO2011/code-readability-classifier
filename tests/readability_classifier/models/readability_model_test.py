@@ -1,6 +1,6 @@
 import pytest
 
-from src.readability_classifier.models.readability_model import ReadabilityModel
+from src.readability_classifier.models.model import ReadabilityModel
 from tests.readability_classifier.models.semantic_extractor_test import (
     create_test_data as create_semantic_test_data,
 )

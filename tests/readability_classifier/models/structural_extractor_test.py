@@ -1,7 +1,9 @@
 import pytest
 import torch
 
-from src.readability_classifier.models.structural_extractor import StructuralExtractor
+from readability_classifier.models.extractors.structural_extractor import (
+    StructuralExtractor,
+)
 
 MIN = 1
 MAX = 9999

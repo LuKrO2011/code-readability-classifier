@@ -6,15 +6,58 @@ from tempfile import TemporaryDirectory
 import imgkit
 from PIL import Image
 from pygments import highlight
-from pygments.formatters.html import HtmlFormatter
+from pygments.formatters import HtmlFormatter
 from pygments.lexers import JavaLexer
 from torch import Tensor
 
-from readability_classifier.utils.utils import open_image_as_tensor
+from readability_classifier.models.encoders.dataset_utils import (
+    EncoderInterface,
+    ReadabilityDataset,
+)
+from src.readability_classifier.utils.utils import open_image_as_tensor
+
+
+class VisualEncoder(EncoderInterface):
+    """
+    A class for encoding the code of the dataset as images.
+    """
+
+    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
+        """
+        Encodes the given dataset as images.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
+        encoded_dataset = []
+
+        # Convert the list of dictionaries to a list of code snippet strings
+        code_snippets = [sample["code_snippet"] for sample in unencoded_dataset]
+
+        # Encode the code snippets
+        encoded_code_snippets = dataset_to_image_tensors(code_snippets)
+
+        # Convert the list of encoded code snippets to a ReadabilityDataset
+        for i in range(len(encoded_code_snippets)):
+            encoded_dataset.append(
+                {
+                    "image": encoded_code_snippets[i],
+                }
+            )
+
+        return ReadabilityDataset(encoded_dataset)
+
+    def encode_text(self, text: str) -> dict:
+        """
+        Encodes the given text as an image.
+        :param text: The text to encode.
+        :return: The encoded text as an image (in bytes).
+        """
+        return {"image": code_to_image_tensor(text)}
+
 
 DEFAULT_OUT = "code.png"
 DEFAULT_IN = "code.java"
-DEFAULT_CSS = os.path.join(os.path.dirname(__file__), "../../res/css/towards.css")
+DEFAULT_CSS = os.path.join(os.path.dirname(__file__), "../../../res/css/towards.css")
 HEX_REGEX = r"#[0-9a-fA-F]{6}"
 
 
@@ -245,28 +288,3 @@ def dataset_to_image_tensors(
         temp_dir.cleanup()
 
     return images_as_tensors
-
-
-# Sample Java code
-code = """
-// A method for counting
-public void getNumber(){
-    int count = 0;
-    while(count < 10){
-        count++;
-    }
-}
-"""
-output_name = "code.png"
-
-
-def main() -> None:
-    code_to_image(code, output_name)
-
-    # Show the image
-    img = Image.open(output_name)
-    img.show()
-
-
-if __name__ == "__main__":
-    main()

@@ -2,7 +2,7 @@ import pytest
 import torch
 
 # TODO: Use transformers library instead of local copy
-from src.readability_classifier.models.semantic_extractor import (
+from readability_classifier.models.extractors.semantic_extractor import (
     BertConfig,
     SemanticExtractor,
 )

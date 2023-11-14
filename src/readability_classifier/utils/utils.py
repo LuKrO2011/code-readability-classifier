@@ -117,3 +117,46 @@ def open_image_as_tensor(image_path: str) -> Tensor:
 
     # Convert NumPy array to tensor
     return torch.tensor(img_array, dtype=torch.float32)
+
+
+def read_java_code_from_file(file_path: str) -> str:
+    """
+    Reads Java code from a file.
+    :param file_path: Path to the file.
+    :return: Java code.
+    """
+    with open(file_path) as file:
+        return file.read()
+
+
+def read_matrix_from_file(file_path: str) -> np.ndarray:
+    """
+    Reads a matrix from a file.
+    :param file_path: Path to the file.
+    :return: Matrix.
+    """
+    # Read the matrix from the file
+    data = []
+    with open(file_path) as file:
+        for line in file:
+            values = line.strip().split(",")
+            values = [int(val) for val in values if val.strip()]
+            if values:
+                data.append(values)
+
+    # Create a NumPy array from the data
+    return np.array(data)
+
+
+def save_matrix_to_file(matrix: np.ndarray, file_path: str):
+    """
+    Saves a matrix to a file.
+    :param matrix: Matrix.
+    :param file_path: Path to the file.
+    """
+    # Save the matrix to the file
+    with open(file_path, "w") as file:
+        for row in matrix:
+            row = [str(val) for val in row]
+            line = ",".join(row)
+            file.write(line + "\n")

@@ -4,17 +4,17 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from src.readability_classifier.models.model import (
-    BertEncoder,
-    CodeReadabilityClassifier,
-    DatasetEncoder,
-    MatrixEncoder,
-    VisualEncoder,
+from readability_classifier.models.encoders.bert_encoder import BertEncoder
+from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.models.encoders.dataset_utils import (
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,
 )
-from src.readability_classifier.models.readability_model import ReadabilityModel
+from readability_classifier.models.encoders.image_encoder import VisualEncoder
+from readability_classifier.models.encoders.matrix_encoder import MatrixEncoder
+from src.readability_classifier.models.classifier import CodeReadabilityClassifier
+from src.readability_classifier.models.model import ReadabilityModel
 from tests.readability_classifier.models.readability_model_test import create_test_data
 
 EMBEDDED_MIN = 1
