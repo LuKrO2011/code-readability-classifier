@@ -5,9 +5,9 @@ from torch import nn as nn
 # TODO: What if without padding or stride specified?
 class VisualExtractor(nn.Module):
     """
-    Also known as ImageExtractor. A visual feature extractor for code readability
-    classification. The model consists of multiple alternating 2D convolution and
-    max-pooling layers plus a flatten layer.
+    A visual extractor model. Also known as ImageExtractor.
+    The model consists of multiple alternating 2D convolution and max-pooling layers
+    plus a flatten layer.
     The input is an image of size (3, 128, 128) and the output is a vector of size 6400.
     """
 

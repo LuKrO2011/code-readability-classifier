@@ -10,11 +10,14 @@ from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
 
 
 class ReadabilityDataset(Dataset):
+    """
+    A class for storing the data in a dataset. The content of the dataset is a list of
+    dictionaries containing encoded code snippet variants and/or their scores.
+    """
+
     def __init__(self, data: list[dict[str, torch.Tensor]]):
         """
         Initialize the dataset with a dictionary containing data samples.
-        Each data sample is a dict containing the input_ids, attention_mask and the
-        score for the sample.
         :param data: A list of dictionaries containing the data samples.
         """
         self.data = data
@@ -28,10 +31,9 @@ class ReadabilityDataset(Dataset):
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         """
         Return a sample from the dataset by its index. The sample is a dictionary
-        containing the input_ids, attention_mask and the score for the sample.
+        containing encoded code snippet variants and/or their scores.
         :param idx: The index of the sample.
-        :return: A dictionary containing the input_ids, attention_mask and the score
-        for the sample.
+        :return: The dictionary containing the sample.
         """
         return self.data[idx]
 
@@ -78,8 +80,8 @@ def load_raw_dataset(data_dir: str) -> list[dict]:
 
 def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
     """
-    Loads the BERT encoded data from a dataset in the given directory as a
-    ReadabilityDataset.
+    Loads the encoded data (with DatasetEncoder) from a dataset in the given directory
+    as a ReadabilityDataset.
     :param data_dir: The path to the directory containing the data.
     :return: A ReadabilityDataset.
     """

@@ -11,8 +11,9 @@ from readability_classifier.models.encoders.matrix_encoder import MatrixEncoder
 
 class DatasetEncoder(EncoderInterface):
     """
-    A class for encoding the code of the dataset as matrix, bert and image.
+    A class for encoding code snippets as matrix, with bert and as image.
     Uses the MatrixEncoder, BertEncoder and VisualEncoder for encoding.
+    The output is used by the model.
     """
 
     def __init__(self):

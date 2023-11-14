@@ -13,10 +13,14 @@ from src.readability_classifier.models.model import ReadabilityModel
 
 class CodeReadabilityClassifier:
     """
-    A code readability classifier based on a CNN model. The model is trained on code
-    snippets and their corresponding scores. The code snippets are tokenized and
-    encoded using the BERT tokenizer. The model is trained on the encoded code
-    snippets and their scores.
+    A code readability classifier based on a CNN model. The model can be used to predict
+    the readability of a code snippet.
+    The model is trained on code snippets and their corresponding scores.
+    The model uses the following features:
+    - Structural features (ASCII matrix)
+    - Semantic features (Bert embedding)
+    - Visual features (Image of the code, where words are replaced by color bars
+    depending on their token type)
     """
 
     def __init__(

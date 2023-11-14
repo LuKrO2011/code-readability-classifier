@@ -19,7 +19,7 @@ from src.readability_classifier.utils.utils import open_image_as_tensor
 
 class VisualEncoder(EncoderInterface):
     """
-    A class for encoding the code of the dataset as images.
+    A class for encoding code snippets as images.
     """
 
     def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
@@ -114,7 +114,7 @@ def _remove_blur(
     return img
 
 
-def code_to_image(
+def _code_to_image(
     code: str,
     output: str = DEFAULT_OUT,
     css: str = DEFAULT_CSS,
@@ -194,7 +194,7 @@ def code_to_image_tensor(
 
     # Convert the code to an image
     image_file = os.path.join(out_dir, DEFAULT_OUT)
-    code_to_image(text, output=image_file, css=css, width=width, height=height)
+    _code_to_image(text, output=image_file, css=css, width=width, height=height)
 
     # Return the image as tensor 128x128x3 (RGB)
     image_as_tensor = open_image_as_tensor(image_file)
@@ -219,7 +219,7 @@ def _process_code_to_image(
     :param height: The height of the image
     """
     filename = os.path.join(save_dir, f"{idx}.png")
-    code_to_image(snippet, output=filename, css=css, width=width, height=height)
+    _code_to_image(snippet, output=filename, css=css, width=width, height=height)
     return idx, filename
 
 
@@ -274,7 +274,7 @@ def dataset_to_image_tensors(
         # Create the visualisations
         for idx, snippet in enumerate(snippets):
             name = os.path.join(save_dir, f"{idx}.png")
-            code_to_image(snippet, output=name, css=css, width=width, height=height)
+            _code_to_image(snippet, output=name, css=css, width=width, height=height)
 
     # Read the images
     images_as_tensors = []

@@ -13,7 +13,8 @@ DEFAULT_ENCODE_BATCH_SIZE = 512
 
 class BertEncoder(EncoderInterface):
     """
-    A class for encoding the code of the dataset with BERT.
+    A class for encoding code snippets with BERT.
+    The output is used by the SemanticExtractor.
     """
 
     def __init__(self, token_length: int = DEFAULT_TOKEN_LENGTH):

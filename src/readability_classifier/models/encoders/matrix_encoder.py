@@ -11,7 +11,7 @@ from readability_classifier.models.encoders.dataset_utils import (
 
 class MatrixEncoder(EncoderInterface):
     """
-    A class for encoding the code of the dataset as matrices.
+    A class for encoding code snippets as character matrices (ASCII values).
     """
 
     def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
@@ -43,7 +43,7 @@ class MatrixEncoder(EncoderInterface):
         """
         Encodes the given text as a matrix.
         :param text: The text to encode.
-        :return: The encoded text as a matrix (in bytes).
+        :return: The encoded text as a matrix.
         """
         return {
             "matrix": torch.tensor(

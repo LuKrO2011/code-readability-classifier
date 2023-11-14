@@ -13,14 +13,14 @@ from readability_classifier.models.extractors.visual_extractor import VisualExtr
 
 class ReadabilityModel(nn.Module):
     """
-    A code readability classifier based on a CNN model.
+    A code readability model.
     The model consists of a visual, a semantic and a structural feature extractor plus
     own layers.
-    The input consists of an image, a bert encoded code snippet and a
-    character matrix. The image is of size (3, 128, 128), the bert encoded code snippet
-    is of size 512 and the character matrix is of size (305, 50). The output is a
-    single value representing the readability of the code snippet.
-
+    The input consists of a character matrix, a bert encoding and an image of the code.
+    In the image, words are replaced by color bars depending on their token type.
+    The character matrix is of size (305, 50), the bert encoded code snippet is of size
+    512 and the image is of size (3, 128, 128). The output is a single value
+    representing the readability of the code snippet.
     The own layers consist of:
     1. Fully connected layer
     2. Dropout layer

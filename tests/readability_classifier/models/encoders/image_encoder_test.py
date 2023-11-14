@@ -6,7 +6,7 @@ import pytest
 from readability_classifier.models.encoders.dataset_utils import load_raw_dataset
 from readability_classifier.models.encoders.image_encoder import (
     VisualEncoder,
-    code_to_image,
+    _code_to_image,
 )
 from readability_classifier.utils.utils import load_code
 
@@ -78,7 +78,7 @@ def test_code_to_image():
     code = load_code(CODE_DIR + filename)
 
     # Convert the code to an image
-    code_to_image(code, output=output_file)
+    _code_to_image(code, output=output_file)
 
     # Check if the image was created successfully
     assert os.path.exists(output_file)
@@ -104,7 +104,7 @@ def test_code_to_image_towards():
     code = load_code(CODE_DIR + filename)
 
     # Convert the code to an image
-    code_to_image(code, output=output_file)
+    _code_to_image(code, output=output_file)
 
     # Check if the image was created successfully
     assert os.path.exists(output_file)

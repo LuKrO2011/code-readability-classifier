@@ -3,6 +3,10 @@ from torch import nn as nn
 
 
 class BertConfig:
+    """
+    Configuration class to store the configuration of a `BertEmbedding`.
+    """
+
     def __init__(self, **kwargs):
         self.vocab_size = kwargs.get("vocab_size", 30000)
         self.type_vocab_size = kwargs.get("type_vocab_size", 300)
@@ -18,7 +22,11 @@ class BertConfig:
 
 
 class BertEmbedding(nn.Module):
-    def __init__(self, config):
+    """
+    A Bert embedding layer.
+    """
+
+    def __init__(self, config: BertConfig) -> None:
         super().__init__()
         self.vocab_size = config.vocab_size
         self.hidden_size = config.hidden_size
@@ -39,10 +47,16 @@ class BertEmbedding(nn.Module):
         )
         nn.init.normal_(self.token_type_embedding.weight.data, mean=0.0, std=0.02)
 
+        # Layer normalization
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_rate)
 
-    def forward(self, inputs):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the model.
+        :param inputs: The input tensor.
+        :return: The output of the model.
+        """
         input_ids, token_type_ids = inputs
         batch_size, sequence_length = input_ids.size()
 
@@ -50,13 +64,16 @@ class BertEmbedding(nn.Module):
         position_ids = torch.arange(sequence_length, dtype=torch.long).unsqueeze(0)
         position_ids = position_ids % self.position_embedding.num_embeddings
 
+        # Expand the input ids to the same size as position ids
         if token_type_ids is None:
             token_type_ids = torch.full_like(input_ids, 0)
 
+        # Embeddings
         position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
         token_type_embeddings = self.token_type_embedding(token_type_ids)
         token_embeddings = self.token_embedding(input_ids)
 
+        # Sum all embeddings
         embeddings = token_embeddings + token_type_embeddings + position_embeddings
         embeddings = self.layer_norm(embeddings)
         embeddings = self.dropout(embeddings)
@@ -65,8 +82,7 @@ class BertEmbedding(nn.Module):
 
 class SemanticExtractor(nn.Module):
     """
-    Also known as TextureExtractor.
-    A structural feature extractor for code readability classification.
+    A semantic extractor model. Also known as BertExtractor.
     The model consists of a Bert embedding layer, a convolutional layer, a max pooling
     layer, another convolutional layer and a BiLSTM layer. Relu is used as the
     activation function.
