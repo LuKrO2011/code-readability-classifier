@@ -1,5 +1,9 @@
+from pathlib import Path
+
 import torch
 from torch import nn as nn
+
+from readability_classifier.models.base_model import BaseModel
 
 
 class BertConfig:
@@ -7,21 +11,15 @@ class BertConfig:
     Configuration class to store the configuration of a `BertEmbedding`.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: dict[str, ...]):
         self.vocab_size = kwargs.get("vocab_size", 30000)
         self.type_vocab_size = kwargs.get("type_vocab_size", 300)
         self.hidden_size = kwargs.get("hidden_size", 768)
-        self.num_hidden_layers = kwargs.get("num_hidden_layers", 12)
-        self.num_attention_heads = kwargs.get("num_attention_heads", 12)
-        self.intermediate_size = kwargs.get("intermediate_size", 3072)
-        self.hidden_activation = kwargs.get("hidden_activation", "gelu")
         self.hidden_dropout_rate = kwargs.get("hidden_dropout_rate", 0.1)
-        self.attention_dropout_rate = kwargs.get("attention_dropout_rate", 0.1)
         self.max_position_embeddings = kwargs.get("max_position_embeddings", 200)
-        self.max_sequence_length = kwargs.get("max_sequence_length", 200)
 
 
-class BertEmbedding(nn.Module):
+class BertEmbedding(BaseModel):
     """
     A Bert embedding layer.
     """
@@ -79,8 +77,28 @@ class BertEmbedding(nn.Module):
         embeddings = self.dropout(embeddings)
         return embeddings
 
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(BertConfig(**params))
 
-class SemanticExtractor(nn.Module):
+
+class SemanticExtractorConfig:
+    """
+    Configuration class to store the configuration of a `SemanticExtractor`.
+    """
+
+    def __init__(self, **kwargs: dict[str, ...]):
+        # Must be same as hidden_size in BertConfig
+        self.input_size = kwargs.get("input_size", 768)
+
+
+class SemanticExtractor(BaseModel):
     """
     A semantic extractor model. Also known as BertExtractor.
     The model consists of a Bert embedding layer, a convolutional layer, a max pooling
@@ -89,17 +107,17 @@ class SemanticExtractor(nn.Module):
     The input is a tensor of size (1, 512) and the output is a vector of size 10560.
     """
 
-    def __init__(self, config: BertConfig) -> None:
+    def __init__(self, config: SemanticExtractorConfig) -> None:
         """
         Initialize the model.
         """
         super().__init__()
 
-        self.bert_embedding = BertEmbedding(config)
+        self.bert_embedding = BertEmbedding.build_from_config()
 
         # In paper: kernel size not specified
         self.conv1 = nn.Conv1d(
-            in_channels=config.hidden_size, out_channels=32, kernel_size=5
+            in_channels=config.input_size, out_channels=32, kernel_size=5
         )
 
         # Same as in paper
@@ -139,3 +157,13 @@ class SemanticExtractor(nn.Module):
         x = x.contiguous().view(batch_size, -1)  # Flatten the tensor
 
         return x
+
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(SemanticExtractorConfig(**params))

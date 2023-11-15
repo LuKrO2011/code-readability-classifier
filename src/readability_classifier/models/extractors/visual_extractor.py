@@ -1,9 +1,25 @@
+from pathlib import Path
+
 import torch
 from torch import nn as nn
 
+from readability_classifier.models.base_model import BaseModel
+
+
+class VisualExtractorConfig:
+    """
+    The config for the VisualExtractor.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Initialize the config.
+        """
+        pass
+
 
 # TODO: What if without padding or stride specified?
-class VisualExtractor(nn.Module):
+class VisualExtractor(BaseModel):
     """
     A visual extractor model. Also known as ImageExtractor.
     The model consists of multiple alternating 2D convolution and max-pooling layers
@@ -11,7 +27,7 @@ class VisualExtractor(nn.Module):
     The input is an image of size (3, 128, 128) and the output is a vector of size 6400.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: VisualExtractorConfig) -> None:
         """
         Initialize the model.
         """
@@ -63,3 +79,13 @@ class VisualExtractor(nn.Module):
         x = self.flatten(x)
 
         return x
+
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(VisualExtractorConfig(**params))

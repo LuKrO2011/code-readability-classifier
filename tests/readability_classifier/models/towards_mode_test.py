@@ -1,6 +1,6 @@
 import pytest
 
-from src.readability_classifier.models.model import ReadabilityModel
+from src.readability_classifier.models.towards_model import TowardsModel
 from tests.readability_classifier.models.extractors.semantic_extractor_test import (
     create_test_data as create_semantic_test_data,
 )
@@ -14,7 +14,7 @@ from tests.readability_classifier.models.extractors.visual_extractor_test import
 
 @pytest.fixture()
 def readability_model():
-    return ReadabilityModel()
+    return TowardsModel.build_from_config()
 
 
 def test_forward_pass(readability_model):

@@ -5,8 +5,8 @@ import pytest
 import torch
 
 from src.readability_classifier.models.classifier import CodeReadabilityClassifier
-from src.readability_classifier.models.model import ReadabilityModel
-from tests.readability_classifier.models.model_test import create_test_data
+from src.readability_classifier.models.towards_model import TowardsModel
+from tests.readability_classifier.models.towards_mode_test import create_test_data
 
 #
 # BATCH_SIZE = 1
@@ -51,7 +51,7 @@ LEARNING_RATE = 0.001
 
 @pytest.fixture()
 def readability_model():
-    return ReadabilityModel()
+    return TowardsModel.build_from_config()
 
 
 @pytest.fixture()

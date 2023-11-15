@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import torch
 from torch import nn as nn
 
+from readability_classifier.models.base_model import BaseModel
 from readability_classifier.models.extractors.semantic_extractor import (
-    BertConfig,
     SemanticExtractor,
 )
 from readability_classifier.models.extractors.structural_extractor import (
@@ -11,7 +13,21 @@ from readability_classifier.models.extractors.structural_extractor import (
 from readability_classifier.models.extractors.visual_extractor import VisualExtractor
 
 
-class ReadabilityModel(nn.Module):
+class TowardsModelConfig:
+    """
+    The config for the TowardsModel.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Initialize the config.
+        """
+        self.input_length = kwargs.get("input_length", 58432)
+        self.output_length = kwargs.get("output_length", 1)
+        self.dropout = kwargs.get("dropout", 0.5)
+
+
+class TowardsModel(BaseModel):
     """
     A code readability model.
     The model consists of a visual, a semantic and a structural feature extractor plus
@@ -28,35 +44,24 @@ class ReadabilityModel(nn.Module):
     4. Fully connected layer
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: TowardsModelConfig) -> None:
         """
         Initialize the model.
+        :param config: The config for the model.
         """
         super().__init__()
 
         # Feature extractors
-        self.structural_extractor = StructuralExtractor()
-        self.bert_config = BertConfig()
-        self.semantic_extractor = SemanticExtractor(self.bert_config)
-        self.visual_extractor = VisualExtractor()
-
-        # TODO: Get from feature extractors?
-        # Specify input size
-        self.structural_features_size = 41472
-        self.semantic_features_size = 10560
-        self.visual_features_size = 6400
-        self.concatenated_size = (
-            self.structural_features_size
-            + self.semantic_features_size
-            + self.visual_features_size
-        )
+        self.structural_extractor = StructuralExtractor.build_from_config()
+        self.semantic_extractor = SemanticExtractor.build_from_config()
+        self.visual_extractor = VisualExtractor.build_from_config()
 
         # Define own layers
-        self.dense1 = nn.Linear(self.concatenated_size, 64)
+        self.dense1 = nn.Linear(config.input_length, 64)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(config.dropout)
         self.dense2 = nn.Linear(64, 16)
-        self.random_detail = nn.Linear(16, 1)
+        self.random_detail = nn.Linear(16, config.output_length)
         self.sigmoid = nn.Sigmoid()
 
     def forward(
@@ -92,3 +97,13 @@ class ReadabilityModel(nn.Module):
         x = self.relu(x)
         x = self.random_detail(x)
         return self.sigmoid(x)
+
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(TowardsModelConfig(**params))

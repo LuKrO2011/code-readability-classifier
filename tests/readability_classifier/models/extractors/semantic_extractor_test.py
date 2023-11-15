@@ -3,7 +3,6 @@ import torch
 
 # TODO: Use transformers library instead of local copy
 from readability_classifier.models.extractors.semantic_extractor import (
-    BertConfig,
     SemanticExtractor,
 )
 
@@ -15,13 +14,8 @@ SHAPE = (BATCH_SIZE, TOKEN_LENGTH)
 
 
 @pytest.fixture()
-def bert_config():
-    return BertConfig()
-
-
-@pytest.fixture()
-def semantic_extractor(bert_config):
-    return SemanticExtractor(bert_config)
+def semantic_extractor():
+    return SemanticExtractor.build_from_config()
 
 
 def test_forward_pass(semantic_extractor):

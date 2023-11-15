@@ -17,7 +17,7 @@ SHAPE = (BATCH_SIZE, CHANNELS, IMG_WIDTH, IMG_HEIGHT)
 
 @pytest.fixture()
 def visual_extractor():
-    return VisualExtractor()
+    return VisualExtractor.build_from_config()
 
 
 def test_forward_pass(visual_extractor):

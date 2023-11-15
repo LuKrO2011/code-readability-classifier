@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -8,7 +10,13 @@ from torch.utils.data import DataLoader
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
-from src.readability_classifier.models.model import ReadabilityModel
+from src.readability_classifier.models.towards_model import TowardsModel
+
+CURR_DIR = Path(os.path.dirname(os.path.relpath(__file__)))
+RES_DIR = CURR_DIR / Path("../../res/")
+MODELS_CONFIG_DIR = RES_DIR / Path("models/")
+MODEL_CONFIG_NAME = "towardsmodel.yaml"
+MODEL_CONFIG_PATH = MODELS_CONFIG_DIR / Path(MODEL_CONFIG_NAME)
 
 
 class CodeReadabilityClassifier:
@@ -55,7 +63,7 @@ class CodeReadabilityClassifier:
         the optimizer.
         :return: None
         """
-        self.model = ReadabilityModel()
+        self.model = TowardsModel.build_from_config()
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)

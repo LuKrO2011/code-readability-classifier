@@ -15,7 +15,7 @@ SHAPE = (BATCH_SIZE, HEIGHT, WIDTH)
 
 @pytest.fixture()
 def structural_extractor():
-    return StructuralExtractor()
+    return StructuralExtractor.build_from_config()
 
 
 def test_forward_pass(structural_extractor):

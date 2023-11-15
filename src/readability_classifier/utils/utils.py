@@ -1,11 +1,15 @@
+import logging
 import os
 import shutil
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
+import yaml
 from PIL import Image
 from torch import Tensor
+from yaml import SafeLoader
 
 
 def read_content_of_file(file: Path, encoding: str = "utf-8") -> str:
@@ -160,3 +164,30 @@ def save_matrix_to_file(matrix: np.ndarray, file_path: str):
             row = [str(val) for val in row]
             line = ",".join(row)
             file.write(line + "\n")
+
+
+def load_yaml_file(path: Path) -> dict[str, Any]:
+    """
+    Loads a yaml file to a dict.
+    :param path: The path to the yaml file.
+    :return: Returns the loaded yaml as dict.
+    """
+    # Read file
+    try:
+        raw_str = read_content_of_file(path)
+    except FileNotFoundError:
+        logging.warning(f"Yaml file {path} not found.")
+        return {}
+
+    # Parse yaml
+    try:
+        dic = yaml.load(raw_str, Loader=SafeLoader)
+    except yaml.YAMLError as e:
+        logging.warning(f"Yaml file {path} could not be parsed.")
+        logging.warning(e)
+        return {}
+
+    # Return dict
+    if dic is None:
+        return {}
+    return dic

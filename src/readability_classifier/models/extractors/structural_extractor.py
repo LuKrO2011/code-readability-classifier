@@ -1,8 +1,24 @@
+from pathlib import Path
+
 import torch
 from torch import nn as nn
 
+from readability_classifier.models.base_model import BaseModel
 
-class StructuralExtractor(nn.Module):
+
+class StructuralExtractorConfig:
+    """
+    The config for the StructuralExtractor.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Initialize the config.
+        """
+        pass
+
+
+class StructuralExtractor(BaseModel):
     """
     A structural extractor model. Also known as MatrixExtractor.
     The model consists of alternating 2D convolution and max-pooling layers plus a
@@ -10,7 +26,7 @@ class StructuralExtractor(nn.Module):
     The input is a tensor of size (1, 305, 50) and the output is a vector of size 41472.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: StructuralExtractorConfig) -> None:
         """
         Initialize the model.
         """
@@ -63,3 +79,13 @@ class StructuralExtractor(nn.Module):
         x = self.flatten(x)
 
         return x
+
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(StructuralExtractorConfig(**params))
