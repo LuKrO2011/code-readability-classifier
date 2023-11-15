@@ -45,7 +45,7 @@ class TowardsClassifier(BaseClassifier):
         :param learning_rate: The learning rate.
         """
         model = TowardsModel.build_from_config()
-        criterion = nn.MSELoss()
+        criterion = nn.BCELoss()
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 
         super().__init__(
