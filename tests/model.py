@@ -33,8 +33,8 @@ class TestModel(unittest.TestCase):
 
         # Train and evaluate the model
         classifier = CodeReadabilityClassifier(train_loader, test_loader)
-        classifier.train()
-        classifier.evaluate()
+        classifier.fit()
+        classifier._eval_epoch()
 
         # Store the model
         classifier.store("model.pt")

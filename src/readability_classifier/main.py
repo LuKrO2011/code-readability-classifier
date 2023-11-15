@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser
-from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -19,6 +18,8 @@ from readability_classifier.models.encoders.dataset_utils import (
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
 DEFAULT_MODEL_FILE = "model"
+CURR_DIR = os.path.dirname(os.path.realpath(__file__))
+DEFAULT_SAVE_DIR = os.path.join(CURR_DIR, "../../models")
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
@@ -107,6 +108,7 @@ def _set_up_arg_parser() -> ArgumentParser:
         type=Path,
         help="Path to the folder where the model should be stored. If not specified, "
         "the model is not stored.",
+        default=DEFAULT_SAVE_DIR,
     )
     train_parser.add_argument(
         "--intermediate",
@@ -118,17 +120,9 @@ def _set_up_arg_parser() -> ArgumentParser:
     train_parser.add_argument(
         "--evaluate",
         required=False,
-        default=True,
+        default=False,
         action="store_false",
         help="Whether the model should be evaluated after training.",
-    )
-    train_parser.add_argument(
-        "--token-length",
-        "-l",
-        required=False,
-        type=int,
-        default=512,
-        help="The token length of the snippets (cutting/padding applied).",
     )
     train_parser.add_argument(
         "--batch-size",
@@ -190,11 +184,15 @@ def _run_train(parsed_args) -> None:
     store_dir = parsed_args.save
     intermediate_dir = parsed_args.intermediate
     evaluate = parsed_args.evaluate
-    token_length = parsed_args.token_length
     batch_size = parsed_args.batch_size
     num_epochs = parsed_args.epochs
     learning_rate = parsed_args.learning_rate
 
+    # Create the store directory if it does not exist
+    if not os.path.isdir(store_dir):
+        os.makedirs(store_dir)
+
+    # Load the dataset
     if not encoded:
         raw_data = load_raw_dataset(data_dir)
         encoded_data = DatasetEncoder().encode_dataset(raw_data)
@@ -204,30 +202,24 @@ def _run_train(parsed_args) -> None:
     else:
         encoded_data = load_encoded_dataset(data_dir)
 
+    # Create the dataloaders
     train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
 
     # Train the model
     classifier = CodeReadabilityClassifier(
-        train_loader,
-        test_loader,
+        train_loader=train_loader,
+        test_loader=test_loader,
+        validation_loader=None,  # TODO: Add validation loader
+        store_dir=store_dir,
         batch_size=batch_size,
         num_epochs=num_epochs,
         learning_rate=learning_rate,
     )
-    classifier.train()
+    classifier.fit()
 
     # Evaluate the model
     if evaluate:
         classifier.evaluate()
-
-    # Get the model store name
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    store_name = f"{DEFAULT_MODEL_FILE}-{token_length}-{batch_size}-{current_time}.pt"
-    if store_dir:
-        store_name = os.path.join(store_dir, store_name)
-
-    # Store the model
-    classifier.store(store_name)
 
 
 def _run_predict(parsed_args):
@@ -239,7 +231,6 @@ def _run_predict(parsed_args):
     # Get the parsed arguments
     model_path = parsed_args.model
     snippet_path = parsed_args.input
-    # token_length = parsed_args.token_length
 
     # Load the model
     classifier = CodeReadabilityClassifier()

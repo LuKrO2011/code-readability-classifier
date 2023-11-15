@@ -191,3 +191,14 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
     if dic is None:
         return {}
     return dic
+
+
+def save_content_to_file(content: str, file: Path) -> None:
+    """
+    Saves the given content to the specified file.
+    :param file: The given file.
+    :param content: The given content.
+    :return: None
+    """
+    with open(file, "w", encoding="utf-8") as file_stream:
+        file_stream.write(content)
