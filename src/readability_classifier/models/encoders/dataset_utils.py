@@ -94,10 +94,10 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
             sample["matrix"], dtype=torch.float32
         )  # Why not int?
         sample["input_ids"] = torch.tensor(
-            sample["input_ids"], dtype=torch.float32
+            sample["input_ids"], dtype=torch.long  # Why not int? Why long?
         )  # Why not int?
         sample["token_type_ids"] = torch.tensor(
-            sample["token_type_ids"], dtype=torch.float32  # Why not int?
+            sample["token_type_ids"], dtype=torch.long  # Why not int? Why long?
         )
         sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
