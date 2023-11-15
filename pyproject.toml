@@ -18,6 +18,7 @@ torchvision = [{ url = "https://download.pytorch.org/whl/cu118/torchvision-0.15.
   { url = "https://download.pytorch.org/whl/cu118/torchvision-0.15.2%2Bcu118-cp311-cp311-linux_x86_64.whl", markers = "platform_system == 'Linux'" }]
 datasets = "^2.14.5"
 pygments = "^2.16.1"
+imgkit = "^1.2.3"
 
 
 [tool.poetry.group.dev.dependencies]

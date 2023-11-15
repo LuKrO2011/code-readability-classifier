@@ -689,6 +689,20 @@ files = [
 ]
 
 [[package]]
+name = "imgkit"
+version = "1.2.3"
+description = "Wkhtmltopdf python wrapper to convert html to image using the webkit rendering engine and qt"
+optional = false
+python-versions = "*"
+files = [
+    {file = "imgkit-1.2.3-py3-none-any.whl", hash = "sha256:cba8e3f67da6e0a5c87345a8b41605337851f9b9b75719500fa6810ecff84791"},
+    {file = "imgkit-1.2.3.tar.gz", hash = "sha256:c9ade93d0281277c898b983c959f11f0cc1cb4a5fed144560dfa4d273fb50cd8"},
+]
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -2658,4 +2672,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11"
-content-hash = "3303746e0c2ba4a96f64d3ec218538b647ea297a3f8315a9b2d97d94d0636c35"
+content-hash = "221f0b5c6fa39b08a92b425b8df8a8436e16749666ec49268f8f55d6717b5cbf"

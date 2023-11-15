@@ -293,6 +293,9 @@ huggingface-hub==0.18.0 ; python_version >= "3.11" and python_version < "3.12" \
 idna==3.4 ; python_version >= "3.11" and python_version < "3.12" \
     --hash=sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4 \
     --hash=sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2
+imgkit==1.2.3 ; python_version >= "3.11" and python_version < "3.12" \
+    --hash=sha256:c9ade93d0281277c898b983c959f11f0cc1cb4a5fed144560dfa4d273fb50cd8 \
+    --hash=sha256:cba8e3f67da6e0a5c87345a8b41605337851f9b9b75719500fa6810ecff84791
 jinja2==3.1.2 ; python_version >= "3.11" and python_version < "3.12" and (platform_system == "Windows" or platform_system == "Linux") \
     --hash=sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852 \
     --hash=sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61
@@ -597,6 +600,9 @@ pyarrow==13.0.0 ; python_version >= "3.11" and python_version < "3.12" \
     --hash=sha256:ee7490f0f3f16a6c38f8c680949551053c8194e68de5046e6c288e396dccee80 \
     --hash=sha256:f8ce69f7bf01de2e2764e14df45b8404fc6f1a5ed9871e8e08a12169f87b7a26 \
     --hash=sha256:fda7857e35993673fcda603c07d43889fca60a5b254052a462653f8656c64f44
+pygments==2.16.1 ; python_version >= "3.11" and python_version < "3.12" \
+    --hash=sha256:13fc09fa63bc8d8671a6d247e1eb303c4b343eaee81d861f3404db2935653692 \
+    --hash=sha256:1daff0494820c69bc8941e407aa20f577374ee88364ee10a98fdbe0aece96e29
 python-dateutil==2.8.2 ; python_version >= "3.11" and python_version < "3.12" \
     --hash=sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86 \
     --hash=sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9
