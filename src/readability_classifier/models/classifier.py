@@ -37,8 +37,8 @@ class CodeReadabilityClassifier:
         validation_loader: DataLoader = None,
         store_dir: Path = None,
         batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
-        num_epochs: int = 10,
-        learning_rate: float = 0.001,
+        num_epochs: int = 20,
+        learning_rate: float = 0.0015,
     ):
         """
         Initializes the classifier.
@@ -70,7 +70,7 @@ class CodeReadabilityClassifier:
         self.model = TowardsModel.build_from_config()
         self.model.to(self.device)
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.learning_rate)
 
     def _fit_batch(
         self,
@@ -152,13 +152,7 @@ class CodeReadabilityClassifier:
         self.model.train()
         train_loss = 0.0
         for batch in self.train_loader:
-            matrix = batch["matrix"].to(self.device)
-            input_ids = batch["input_ids"].to(self.device)
-            token_type_ids = batch["token_type_ids"].to(self.device)
-            image = batch["image"].to(self.device)
-            score = (
-                batch["score"].unsqueeze(1).to(self.device)
-            )  # Add dimension for matching batch size
+            matrix, input_ids, token_type_ids, image, score = self._extract(batch)
 
             loss = self._fit_batch(
                 matrix=matrix,
@@ -181,11 +175,7 @@ class CodeReadabilityClassifier:
         with torch.no_grad():
             # Iterate through the test loader to evaluate the model
             for batch in self.test_loader:
-                matrix = batch["matrix"].to(self.device)
-                input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(self.device)
-                image = batch["image"].to(self.device)
-                score = batch["score"].to(self.device)
+                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
 
                 loss = self._eval_batch(
                     matrix=matrix,
@@ -198,6 +188,14 @@ class CodeReadabilityClassifier:
                 valid_loss += loss
 
         return valid_loss / len(self.test_loader)
+
+    def _extract(self, batch):
+        matrix = batch["matrix"].to(self.device)
+        input_ids = batch["input_ids"].to(self.device)
+        token_type_ids = batch["token_type_ids"].to(self.device)
+        image = batch["image"].to(self.device)
+        score = batch["score"].unsqueeze(1).to(self.device)
+        return matrix, input_ids, token_type_ids, image, score
 
     def _eval_batch(
         self,
@@ -234,11 +232,7 @@ class CodeReadabilityClassifier:
 
             # Iterate through the test loader to evaluate the model
             for batch in self.validation_loader:
-                matrix = batch["matrix"].to(self.device)
-                input_ids = batch["input_ids"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(self.device)
-                image = batch["image"].to(self.device)
-                score = batch["score"].to(self.device)
+                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
 
                 y_batch.append(score)
                 predictions.append(self.model(matrix, input_ids, token_type_ids, image))

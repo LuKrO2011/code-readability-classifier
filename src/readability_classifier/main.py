@@ -137,7 +137,7 @@ def _set_up_arg_parser() -> ArgumentParser:
         "-e",
         required=False,
         type=int,
-        default=10,
+        default=20,
         help="The number of epochs for training.",
     )
     train_parser.add_argument(
@@ -145,7 +145,7 @@ def _set_up_arg_parser() -> ArgumentParser:
         "-r",
         required=False,
         type=float,
-        default=0.0001,
+        default=0.0015,
         help="The learning rate for training.",
     )
 
