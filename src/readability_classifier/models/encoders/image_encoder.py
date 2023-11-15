@@ -5,6 +5,8 @@ import re
 from tempfile import TemporaryDirectory
 
 import imgkit
+import numpy as np
+import torch
 from PIL import Image
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -15,7 +17,6 @@ from readability_classifier.models.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )
-from src.readability_classifier.utils.utils import open_image_as_tensor
 
 
 class VisualEncoder(EncoderInterface):
@@ -212,7 +213,7 @@ def code_to_image_tensor(
     _code_to_image(text, output=image_file, css=css, width=width, height=height)
 
     # Return the image as tensor 128x128x3 (RGB)
-    image_as_tensor = open_image_as_tensor(image_file)
+    image_as_tensor = _open_image_as_tensor(image_file)
 
     # Delete the temporary directory
     if temp_dir is not None:
@@ -223,7 +224,7 @@ def code_to_image_tensor(
 
 def _process_code_to_image(
     snippet: str, idx: int, save_dir: str, css: str, width: int, height: int
-) -> tuple[int, str]:
+) -> None:
     """
     Process a single code snippet to an image. Used for parallel processing.
     :param snippet: The code snippet
@@ -232,10 +233,10 @@ def _process_code_to_image(
     :param css: The css to use for styling the code
     :param width: The width of the image
     :param height: The height of the image
+    :return: None
     """
     filename = os.path.join(save_dir, f"{idx}.png")
     _code_to_image(snippet, output=filename, css=css, width=width, height=height)
-    return idx, filename
 
 
 def dataset_to_image_tensors(
@@ -274,17 +275,12 @@ def dataset_to_image_tensors(
             futures = {
                 executor.submit(
                     _process_code_to_image, snippet, idx, save_dir, css, width, height
-                ): idx
+                )
                 for idx, snippet in enumerate(snippets)
             }
 
-            # TODO: Remove the following code?
-            images = [None] * len(snippets)
-
             for future in concurrent.futures.as_completed(futures):
-                idx, img_path = future.result()
-                images[idx] = img_path
-            # TODO: Remove the above code?
+                future.result()
     else:
         # Create the visualisations
         for idx, snippet in enumerate(snippets):
@@ -295,7 +291,7 @@ def dataset_to_image_tensors(
     images_as_tensors = []
     for idx in range(len(snippets)):
         image_file = os.path.join(save_dir, f"{idx}.png")
-        image_as_tensor = open_image_as_tensor(image_file)
+        image_as_tensor = _open_image_as_tensor(image_file)
         images_as_tensors.append(image_as_tensor)
 
     # Delete the temporary directory
@@ -303,3 +299,27 @@ def dataset_to_image_tensors(
         temp_dir.cleanup()
 
     return images_as_tensors
+
+
+# TODO: Remove blur (!= 0 or 255) from image
+def _open_image_as_tensor(image_path: str) -> Tensor:
+    """
+    Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
+    to float32. The shape of the tensor is (3, height, width).
+    :param image_path: The path to the image
+    :return: The image as a tensor
+    """
+    # Open the image using PIL
+    img = Image.open(image_path)
+
+    # Convert PIL image to NumPy array
+    img_array = np.array(img)
+
+    # Remove the alpha channel
+    img_array = img_array[:, :, :3]
+
+    # Transpose the array to get the shape (3, height, width)
+    img_array = np.transpose(img_array, (2, 0, 1)) / 255
+
+    # Convert NumPy array to tensor
+    return torch.tensor(img_array, dtype=torch.float32)

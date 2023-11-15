@@ -33,9 +33,8 @@ class MatrixEncoder(EncoderInterface):
                 {
                     "matrix": torch.tensor(
                         java_to_structural_representation(sample["code_snippet"]),
-                        dtype=torch.float32,
+                        dtype=torch.float32,  # Why not int?
                     ),
-                    "score": torch.tensor(sample["score"], dtype=torch.float32),
                 }
             )
 
@@ -58,7 +57,7 @@ class MatrixEncoder(EncoderInterface):
         # Log successful encoding
         logging.info("Matrix: Encoding done.")
 
-        return {"matrix": torch.tensor(matrix, dtype=torch.float32)}
+        return {"matrix": torch.tensor(matrix, dtype=torch.float32)}  # Why not int?
 
 
 def java_to_structural_representation(

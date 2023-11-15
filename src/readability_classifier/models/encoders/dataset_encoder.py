@@ -66,7 +66,7 @@ class DatasetEncoder(EncoderInterface):
                     "token_type_ids": bert_dataset[i]["token_type_ids"],
                     "image": image_dataset[i]["image"],
                     "score": torch.tensor(
-                        unencoded_dataset[i]["score"], dtype=torch.float32
+                        unencoded_dataset[i]["score"] / 5, dtype=torch.float32
                     ),
                 }
             )

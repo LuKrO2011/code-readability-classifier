@@ -5,10 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import torch
 import yaml
-from PIL import Image
-from torch import Tensor
 from yaml import SafeLoader
 
 
@@ -97,30 +94,6 @@ def copy_files(from_dir: str, to_dir: str) -> None:
         to_file = os.path.join(to_dir, file)
         if os.path.isfile(from_file):
             shutil.copy2(from_file, to_file)
-
-
-# TODO: Remove blur (!= 0 or 255) from image
-def open_image_as_tensor(image_path: str) -> Tensor:
-    """
-    Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
-    to float32. The shape of the tensor is (3, height, width).
-    :param image_path: The path to the image
-    :return: The image as a tensor
-    """
-    # Open the image using PIL
-    img = Image.open(image_path)
-
-    # Convert PIL image to NumPy array
-    img_array = np.array(img)
-
-    # Remove the alpha channel
-    img_array = img_array[:, :, :3]
-
-    # Transpose the array to get the shape (3, height, width)
-    img_array = np.transpose(img_array, (2, 0, 1))
-
-    # Convert NumPy array to tensor
-    return torch.tensor(img_array, dtype=torch.float32)
 
 
 def read_java_code_from_file(file_path: str) -> str:

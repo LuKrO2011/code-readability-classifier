@@ -46,7 +46,7 @@ def test_load_store_model(classifier):
 TOKEN_LENGTH = 512
 BATCH_SIZE = 1
 NUM_EPOCHS = 1
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0015
 
 
 @pytest.fixture()
