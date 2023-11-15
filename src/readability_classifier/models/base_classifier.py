@@ -104,14 +104,15 @@ class BaseClassifier(ABC):
 
         logging.info("Training done.")
 
-    def _fit_batch(self, inp: ModelInput, y_batch: Tensor) -> float:
+    def _fit_batch(self, x_batch: ModelInput, y_batch: Tensor) -> float:
         """
         Performs a single training iteration.
-        :param inp: The input of the model as batch.
+        :param x_batch: The input of the model as batch.
+        :param y_batch: The scores of the batch.
         :return: The loss of the batch.
         """
         self.optimizer.zero_grad()
-        outputs = self.model(inp)
+        outputs = self.model(x_batch)
         loss = self.criterion(outputs, y_batch)
         loss.backward()
         self.optimizer.step()
@@ -125,12 +126,12 @@ class BaseClassifier(ABC):
         self.model.train()
         train_loss = 0.0
         for batch in self.train_loader:
-            inp = self._batch_to_input(batch)
-            score = self._batch_to_score(batch)
+            x = self._batch_to_input(batch)
+            y = self._batch_to_score(batch)
 
             loss = self._fit_batch(
-                inp=inp,
-                y_batch=score,
+                x_batch=x,
+                y_batch=y,
             )
             train_loss += loss
         return train_loss / len(self.train_loader)
@@ -146,12 +147,12 @@ class BaseClassifier(ABC):
         with torch.no_grad():
             # Iterate through the test loader to evaluate the model
             for batch in self.test_loader:
-                inp = self._batch_to_input(batch)
-                score = self._batch_to_score(batch)
+                x = self._batch_to_input(batch)
+                y = self._batch_to_score(batch)
 
                 loss = self._eval_batch(
-                    inp=inp,
-                    y_batch=score,
+                    x_batch=x,
+                    y_batch=y,
                 )
 
                 valid_loss += loss
@@ -160,16 +161,16 @@ class BaseClassifier(ABC):
 
     def _eval_batch(
         self,
-        inp: ModelInput,
+        x_batch: ModelInput,
         y_batch: Tensor,
     ) -> float:
         """
         Evaluates a single batch of the test loader.
-        :param inp: The input of the model as batch.
+        :param x_batch: The input of the model as batch.
         :param y_batch: The scores of the batch.
         :return: The loss of the batch.
         """
-        outputs = self.model(inp)
+        outputs = self.model(x_batch)
         loss = self.criterion(outputs, y_batch)
         return loss.item()
 
@@ -210,8 +211,6 @@ class BaseClassifier(ABC):
         :param batch: The batch to convert.
         :return: The scores.
         """
-        # return batch["score"].unsqueeze(1).to(self.device)
-        # return batch["score"].unsqueeze(1)
         return self._to_device(batch["score"].unsqueeze(1))
 
     def store(self, path: str = None, epoch: int = None) -> None:
@@ -271,26 +270,27 @@ class BaseClassifier(ABC):
         :return: The MSE of the model on the validation data.
         """
         if self.validation_loader is None:
-            raise ValueError("No test data provided.")
+            raise ValueError("No validation data provided.")
 
         self.model.eval()
         with torch.no_grad():
-            y_batch = []  # True scores
-            predictions = []  # List to store model predictions
+            y_actual = []  # True scores
+            y_predicted = []  # List to store model predictions
 
             # Iterate through the test loader to evaluate the model
             for batch in self.validation_loader:
-                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
+                x = self._batch_to_input(batch)
+                y = self._batch_to_score(batch)
 
-                y_batch.append(score)
-                predictions.append(self.model(matrix, input_ids, token_type_ids, image))
+                y_actual.append(y)
+                y_predicted.append(self.model(x))
 
         # Concatenate the lists of tensors to create a single tensor
-        y_batch = torch.cat(y_batch, dim=0)
-        predictions = torch.cat(predictions, dim=0)
+        y_actual = torch.cat(y_actual, dim=0)
+        y_predicted = torch.cat(y_predicted, dim=0)
 
         # Compute Mean Squared Error (MSE) using PyTorch
-        mse = torch.mean((y_batch - predictions) ** 2).item()
+        mse = torch.mean((y_actual - y_predicted) ** 2).item()
 
         # Log the MSE
         logging.info(f"MSE: {mse}")
