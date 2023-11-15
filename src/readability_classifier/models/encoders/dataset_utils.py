@@ -134,7 +134,7 @@ def encoded_data_to_dataloaders(
     """
     # Split data into training and test data
     train_data, test_data = train_test_split(
-        encoded_data, test_size=0.2, random_state=42
+        encoded_data, test_size=0.1, random_state=42
     )
 
     # Convert the split data to a ReadabilityDataset

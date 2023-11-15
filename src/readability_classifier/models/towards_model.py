@@ -23,7 +23,7 @@ class TowardsModelConfig:
         """
         Initialize the config.
         """
-        self.input_length = kwargs.get("input_length", 58432)
+        self.input_length = kwargs.get("input_length", 26176)
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
