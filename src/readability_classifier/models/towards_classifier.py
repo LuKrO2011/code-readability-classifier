@@ -1,14 +1,15 @@
-import logging
 from pathlib import Path
 
-import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch import Tensor
 from torch.utils.data import DataLoader
 
 from readability_classifier.models.base_classifier import BaseClassifier
-from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, TowardsInput
+from readability_classifier.utils.config import (
+    DEFAULT_MODEL_BATCH_SIZE,
+    ModelInput,
+    TowardsInput,
+)
 from src.readability_classifier.models.towards_model import TowardsModel
 
 
@@ -60,86 +61,15 @@ class TowardsClassifier(BaseClassifier):
             learning_rate=learning_rate,
         )
 
-    def _fit_batch(self, inp: TowardsInput, y_batch: Tensor) -> float:
+    def _batch_to_input(self, batch: dict) -> ModelInput:
         """
-        Performs a single training iteration.
-        :param inp: The input of the model as batch.
-        :return: The loss of the batch.
+        Converts a batch to a model input and sends it to the device.
+        :param batch: The batch to convert.
+        :return: The model input.
         """
-        self.optimizer.zero_grad()
-        outputs = self.model(inp)
-        loss = self.criterion(outputs, y_batch)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item()
-
-    def _fit_epoch(self) -> float:
-        """
-        Trains a single epoch.
-        :return: The train loss of the epoch.
-        """
-        self.model.train()
-        train_loss = 0.0
-        for batch in self.train_loader:
-            matrix, input_ids, token_type_ids, image, score = self._extract(batch)
-
-            loss = self._fit_batch(
-                inp=TowardsInput(matrix, input_ids, token_type_ids, image),
-                y_batch=score,
-            )
-            train_loss += loss
-        return train_loss / len(self.train_loader)
-
-    def _eval_epoch(self) -> float:
-        """
-        Evaluates the model on the test data.
-        :return: The validation loss.
-        """
-        self.model.eval()
-        valid_loss = 0.0
-
-        with torch.no_grad():
-            # Iterate through the test loader to evaluate the model
-            for batch in self.test_loader:
-                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
-
-                loss = self._eval_batch(
-                    inp=TowardsInput(matrix, input_ids, token_type_ids, image),
-                    y_batch=score,
-                )
-
-                valid_loss += loss
-
-        return valid_loss / len(self.test_loader)
-
-    def evaluate(self) -> None:
-        """
-        Evaluates the model on the validation data.
-        :return: The MSE of the model on the validation data.
-        """
-        if self.validation_loader is None:
-            raise ValueError("No test data provided.")
-
-        self.model.eval()
-        with torch.no_grad():
-            y_batch = []  # True scores
-            predictions = []  # List to store model predictions
-
-            # Iterate through the test loader to evaluate the model
-            for batch in self.validation_loader:
-                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
-
-                y_batch.append(score)
-                predictions.append(self.model(matrix, input_ids, token_type_ids, image))
-
-        # Concatenate the lists of tensors to create a single tensor
-        y_batch = torch.cat(y_batch, dim=0)
-        predictions = torch.cat(predictions, dim=0)
-
-        # Compute Mean Squared Error (MSE) using PyTorch
-        mse = torch.mean((y_batch - predictions) ** 2).item()
-
-        # Log the MSE
-        logging.info(f"MSE: {mse}")
-
-        return mse
+        matrix, input_ids, token_type_ids, image, _ = self._extract(batch)
+        matrix = self._to_device(matrix)
+        input_ids = self._to_device(input_ids)
+        token_type_ids = self._to_device(token_type_ids)
+        image = self._to_device(image)
+        return TowardsInput(matrix, input_ids, token_type_ids, image)

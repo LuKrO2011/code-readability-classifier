@@ -51,9 +51,9 @@ class BaseClassifier(ABC):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Move model to device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
     def fit(self):
@@ -117,21 +117,46 @@ class BaseClassifier(ABC):
         self.optimizer.step()
         return loss.item()
 
-    @abstractmethod
     def _fit_epoch(self) -> float:
         """
         Trains a single epoch.
         :return: The train loss of the epoch.
         """
-        pass
+        self.model.train()
+        train_loss = 0.0
+        for batch in self.train_loader:
+            inp = self._batch_to_input(batch)
+            score = self._batch_to_score(batch)
 
-    @abstractmethod
+            loss = self._fit_batch(
+                inp=inp,
+                y_batch=score,
+            )
+            train_loss += loss
+        return train_loss / len(self.train_loader)
+
     def _eval_epoch(self) -> float:
         """
         Evaluates the model on the test data.
         :return: The validation loss.
         """
-        pass
+        self.model.eval()
+        valid_loss = 0.0
+
+        with torch.no_grad():
+            # Iterate through the test loader to evaluate the model
+            for batch in self.test_loader:
+                inp = self._batch_to_input(batch)
+                score = self._batch_to_score(batch)
+
+                loss = self._eval_batch(
+                    inp=inp,
+                    y_batch=score,
+                )
+
+                valid_loss += loss
+
+        return valid_loss / len(self.test_loader)
 
     def _eval_batch(
         self,
@@ -148,21 +173,45 @@ class BaseClassifier(ABC):
         loss = self.criterion(outputs, y_batch)
         return loss.item()
 
-    @abstractmethod
-    def evaluate(self) -> None:
+    def _extract(self, batch: dict) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
-        Evaluates the model on the validation data.
-        :return: The MSE of the model on the validation data.
+        Extracts all data from the batch.
+        :param batch: The batch to extract the data from.
+        :return: The extracted data.
+        """
+        matrix = batch["matrix"]
+        input_ids = batch["input_ids"]
+        token_type_ids = batch["token_type_ids"]
+        image = batch["image"]
+        score = batch["score"].unsqueeze(1)
+        return matrix, input_ids, token_type_ids, image, score
+
+    @abstractmethod
+    def _batch_to_input(self, batch: dict) -> ModelInput:
+        """
+        Converts a batch to a model input and sends it to the device.
+        :param batch: The batch to convert.
+        :return: The model input.
         """
         pass
 
-    def _extract(self, batch):
-        matrix = batch["matrix"].to(self.device)
-        input_ids = batch["input_ids"].to(self.device)
-        token_type_ids = batch["token_type_ids"].to(self.device)
-        image = batch["image"].to(self.device)
-        score = batch["score"].unsqueeze(1).to(self.device)
-        return matrix, input_ids, token_type_ids, image, score
+    def _to_device(self, tensor: Tensor) -> Tensor:
+        """
+        Sends the tensor to the device.
+        :param tensor: The tensor to send to the device.
+        :return: The tensor on the device.
+        """
+        return tensor.to(self.device)
+
+    def _batch_to_score(self, batch: dict) -> Tensor:
+        """
+        Converts a batch to the model output (=scores) and sends them to the device.
+        :param batch: The batch to convert.
+        :return: The scores.
+        """
+        # return batch["score"].unsqueeze(1).to(self.device)
+        # return batch["score"].unsqueeze(1)
+        return self._to_device(batch["score"].unsqueeze(1))
 
     def store(self, path: str = None, epoch: int = None) -> None:
         """
@@ -214,6 +263,38 @@ class BaseClassifier(ABC):
             image = image.to(self.device)
             prediction = self.model(matrix, input_ids, token_type_ids, image)
             return prediction.item()
+
+    def evaluate(self) -> None:
+        """
+        Evaluates the model on the validation data.
+        :return: The MSE of the model on the validation data.
+        """
+        if self.validation_loader is None:
+            raise ValueError("No test data provided.")
+
+        self.model.eval()
+        with torch.no_grad():
+            y_batch = []  # True scores
+            predictions = []  # List to store model predictions
+
+            # Iterate through the test loader to evaluate the model
+            for batch in self.validation_loader:
+                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
+
+                y_batch.append(score)
+                predictions.append(self.model(matrix, input_ids, token_type_ids, image))
+
+        # Concatenate the lists of tensors to create a single tensor
+        y_batch = torch.cat(y_batch, dim=0)
+        predictions = torch.cat(predictions, dim=0)
+
+        # Compute Mean Squared Error (MSE) using PyTorch
+        mse = torch.mean((y_batch - predictions) ** 2).item()
+
+        # Log the MSE
+        logging.info(f"MSE: {mse}")
+
+        return mse
 
 
 @dataclass(frozen=True, eq=True)
