@@ -6,7 +6,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.models.classifier import CodeReadabilityClassifier
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.models.encoders.dataset_utils import (
     encoded_data_to_dataloaders,
@@ -14,6 +13,7 @@ from readability_classifier.models.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from readability_classifier.models.towards_classifier import TowardsClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
@@ -206,7 +206,7 @@ def _run_train(parsed_args) -> None:
     train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
 
     # Train the model
-    classifier = CodeReadabilityClassifier(
+    classifier = TowardsClassifier(
         train_loader=train_loader,
         test_loader=test_loader,
         validation_loader=None,  # TODO: Add validation loader
@@ -233,7 +233,7 @@ def _run_predict(parsed_args):
     snippet_path = parsed_args.input
 
     # Load the model
-    classifier = CodeReadabilityClassifier()
+    classifier = TowardsClassifier()
     classifier.load(model_path)
 
     # Predict the readability of the snippet

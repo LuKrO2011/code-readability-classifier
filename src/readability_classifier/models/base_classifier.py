@@ -1,37 +1,27 @@
 import json
 import logging
 import math
+from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from time import time
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch import Tensor
+from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
+from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, ModelInput
 from readability_classifier.utils.utils import save_content_to_file
-from src.readability_classifier.models.towards_model import TowardsModel
 
 
-class CodeReadabilityClassifier:
-    """
-    A code readability classifier based on a CNN model. The model can be used to predict
-    the readability of a code snippet.
-    The model is trained on code snippets and their corresponding scores.
-    The model uses the following features:
-    - Structural features (ASCII matrix)
-    - Semantic features (Bert embedding)
-    - Visual features (Image of the code, where words are replaced by color bars
-    depending on their token type)
-    """
-
+class BaseClassifier(ABC):
     def __init__(
         self,
+        model: nn.Module = None,
+        criterion: nn.Module = None,
+        optimizer: torch.optim.Optimizer = None,
         train_loader: DataLoader = None,
         test_loader: DataLoader = None,
         validation_loader: DataLoader = None,
@@ -42,6 +32,8 @@ class CodeReadabilityClassifier:
     ):
         """
         Initializes the classifier.
+        :param model: The model.
+        :param criterion: The loss function.
         :param train_loader: The data loader for the training data.
         :param test_loader: The data loader for the test data.
         :param validation_loader: The data loader for the validation data.
@@ -49,6 +41,9 @@ class CodeReadabilityClassifier:
         :param num_epochs: The number of epochs.
         :param learning_rate: The learning rate.
         """
+        self.model = model
+        self.criterion = criterion
+        self.optimizer = optimizer
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.validation_loader = validation_loader
@@ -58,43 +53,8 @@ class CodeReadabilityClassifier:
         self.learning_rate = learning_rate
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Set up the model on initialization
-        self._setup_model()
-
-    def _setup_model(self):
-        """
-        Sets up the model. This includes initializing the model, the loss function and
-        the optimizer.
-        :return: None
-        """
-        self.model = TowardsModel.build_from_config()
+        # Move model to device
         self.model.to(self.device)
-        self.criterion = nn.MSELoss()
-        self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.learning_rate)
-
-    def _fit_batch(
-        self,
-        matrix: Tensor,
-        input_ids: Tensor,
-        token_type_ids: Tensor,
-        image: Tensor,
-        y_batch: Tensor,
-    ) -> float:
-        """
-        Performs a single training iteration.
-        :param matrix: The matrix of the batch.
-        :param input_ids: The input ids of the batch.
-        :param token_type_ids: The token type ids of the batch.
-        :param image: The image of the batch.
-        :param y_batch: The scores of the batch.
-        :return: The loss of the batch.
-        """
-        self.optimizer.zero_grad()
-        outputs = self.model(matrix, input_ids, token_type_ids, image)
-        loss = self.criterion(outputs, y_batch)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item()
 
     def fit(self):
         """
@@ -144,50 +104,57 @@ class CodeReadabilityClassifier:
 
         logging.info("Training done.")
 
+    def _fit_batch(self, inp: ModelInput, y_batch: Tensor) -> float:
+        """
+        Performs a single training iteration.
+        :param inp: The input of the model as batch.
+        :return: The loss of the batch.
+        """
+        self.optimizer.zero_grad()
+        outputs = self.model(inp)
+        loss = self.criterion(outputs, y_batch)
+        loss.backward()
+        self.optimizer.step()
+        return loss.item()
+
+    @abstractmethod
     def _fit_epoch(self) -> float:
         """
         Trains a single epoch.
         :return: The train loss of the epoch.
         """
-        self.model.train()
-        train_loss = 0.0
-        for batch in self.train_loader:
-            matrix, input_ids, token_type_ids, image, score = self._extract(batch)
+        pass
 
-            loss = self._fit_batch(
-                matrix=matrix,
-                input_ids=input_ids,
-                token_type_ids=token_type_ids,
-                image=image,
-                y_batch=score,
-            )
-            train_loss += loss
-        return train_loss / len(self.train_loader)
-
+    @abstractmethod
     def _eval_epoch(self) -> float:
         """
         Evaluates the model on the test data.
         :return: The validation loss.
         """
-        self.model.eval()
-        valid_loss = 0.0
+        pass
 
-        with torch.no_grad():
-            # Iterate through the test loader to evaluate the model
-            for batch in self.test_loader:
-                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
+    def _eval_batch(
+        self,
+        inp: ModelInput,
+        y_batch: Tensor,
+    ) -> float:
+        """
+        Evaluates a single batch of the test loader.
+        :param inp: The input of the model as batch.
+        :param y_batch: The scores of the batch.
+        :return: The loss of the batch.
+        """
+        outputs = self.model(inp)
+        loss = self.criterion(outputs, y_batch)
+        return loss.item()
 
-                loss = self._eval_batch(
-                    matrix=matrix,
-                    input_ids=input_ids,
-                    token_type_ids=token_type_ids,
-                    image=image,
-                    y_batch=score,
-                )
-
-                valid_loss += loss
-
-        return valid_loss / len(self.test_loader)
+    @abstractmethod
+    def evaluate(self) -> None:
+        """
+        Evaluates the model on the validation data.
+        :return: The MSE of the model on the validation data.
+        """
+        pass
 
     def _extract(self, batch):
         matrix = batch["matrix"].to(self.device)
@@ -196,58 +163,6 @@ class CodeReadabilityClassifier:
         image = batch["image"].to(self.device)
         score = batch["score"].unsqueeze(1).to(self.device)
         return matrix, input_ids, token_type_ids, image, score
-
-    def _eval_batch(
-        self,
-        matrix: Tensor,
-        input_ids: Tensor,
-        token_type_ids: Tensor,
-        image: Tensor,
-        y_batch: Tensor,
-    ) -> float:
-        """
-        Evaluates a single batch of the test loader.
-        :param input_ids: The input ids of the batch.
-        :param token_type_ids: The token type ids of the batch.
-        :param image: The image of the batch.
-        :param y_batch: The scores of the batch.
-        :return: The loss of the batch.
-        """
-        outputs = self.model(matrix, input_ids, token_type_ids, image)
-        loss = self.criterion(outputs, y_batch)
-        return loss.item()
-
-    def evaluate(self) -> None:
-        """
-        Evaluates the model on the validation data.
-        :return: The MSE of the model on the validation data.
-        """
-        if self.validation_loader is None:
-            raise ValueError("No test data provided.")
-
-        self.model.eval()
-        with torch.no_grad():
-            y_batch = []  # True scores
-            predictions = []  # List to store model predictions
-
-            # Iterate through the test loader to evaluate the model
-            for batch in self.validation_loader:
-                matrix, input_ids, token_type_ids, image, score = self._extract(batch)
-
-                y_batch.append(score)
-                predictions.append(self.model(matrix, input_ids, token_type_ids, image))
-
-        # Concatenate the lists of tensors to create a single tensor
-        y_batch = torch.cat(y_batch, dim=0)
-        predictions = torch.cat(predictions, dim=0)
-
-        # Compute Mean Squared Error (MSE) using PyTorch
-        mse = torch.mean((y_batch - predictions) ** 2).item()
-
-        # Log the MSE
-        logging.info(f"MSE: {mse}")
-
-        return mse
 
     def store(self, path: str = None, epoch: int = None) -> None:
         """

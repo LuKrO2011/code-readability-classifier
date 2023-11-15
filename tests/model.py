@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from readability_classifier.models.classifier import CodeReadabilityClassifier
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.models.towards_classifier import TowardsClassifier
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")
@@ -32,7 +32,7 @@ class TestModel(unittest.TestCase):
         train_loader, test_loader = data_loader.encode_dataset(csv, snippets_dir)
 
         # Train and evaluate the model
-        classifier = CodeReadabilityClassifier(train_loader, test_loader)
+        classifier = TowardsClassifier(train_loader, test_loader)
         classifier.fit()
         classifier._eval_epoch()
 
@@ -47,7 +47,7 @@ class TestModel(unittest.TestCase):
         :return: None
         """
         # Load the model
-        classifier = CodeReadabilityClassifier()
+        classifier = TowardsClassifier()
         classifier.load(MODEL_PATH)
 
         # Predict the readability of a snippet

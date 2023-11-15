@@ -38,7 +38,7 @@ class StructuralExtractor(BaseModel):
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
 
         # Same as in paper
-        self.relu = nn.ReLU()
+        self.relu1 = nn.ReLU()
 
         # In paper: stride not specified
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -50,10 +50,16 @@ class StructuralExtractor(BaseModel):
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # Same as in paper
+        self.relu2 = nn.ReLU()
+
+        # Same as in paper
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
 
         # In paper: stride not specified
         self.pool3 = nn.MaxPool2d(kernel_size=3, stride=3)
+
+        # Same as in paper
+        self.relu3 = nn.ReLU()
 
         # Same as in paper
         self.flatten = nn.Flatten()
@@ -67,13 +73,13 @@ class StructuralExtractor(BaseModel):
         # Apply convolutional and pooling layers
         x = x.unsqueeze(1)
         x = self.conv1(x)
-        x = self.relu(x)
+        x = self.relu1(x)
         x = self.pool1(x)
         x = self.conv2(x)
-        x = self.relu(x)
+        x = self.relu2(x)
         x = self.pool2(x)
         x = self.conv3(x)
-        x = self.relu(x)
+        x = self.relu3(x)
 
         # Flatten the output of the conv layers
         x = self.flatten(x)

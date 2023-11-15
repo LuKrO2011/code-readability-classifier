@@ -11,6 +11,7 @@ from readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
 from readability_classifier.models.extractors.visual_extractor import VisualExtractor
+from readability_classifier.utils.config import TowardsInput
 
 
 class TowardsModelConfig:
@@ -64,25 +65,16 @@ class TowardsModel(BaseModel):
         self.random_detail = nn.Linear(16, config.output_length)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(
-        self,
-        character_matrix: torch.Tensor,
-        token_input: torch.Tensor,  # Same as input_ids
-        segment_input: torch.Tensor,  # Same as token_type_ids
-        image: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, inp: TowardsInput) -> torch.Tensor:
         """
         Forward pass of the model.
-        :param image: The image tensor.
-        :param token_input: The token input tensor.
-        :param segment_input: The segment input tensor.
-        :param character_matrix: The character matrix tensor.
+        :param inp: The input of the model.
         :return: The output of the model.
         """
         # Feature extractors
-        structural_features = self.structural_extractor(character_matrix)
-        semantic_features = self.semantic_extractor(token_input, segment_input)
-        visual_features = self.visual_extractor(image)
+        structural_features = self.structural_extractor(inp.character_matrix)
+        semantic_features = self.semantic_extractor(inp.token_input, inp.segment_input)
+        visual_features = self.visual_extractor(inp.image)
 
         # Concatenate the inputs
         concatenated = torch.cat(
