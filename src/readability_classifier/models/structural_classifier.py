@@ -40,15 +40,14 @@ class StructuralClassifier(BaseClassifier):
         :param num_epochs: The number of epochs.
         :param learning_rate: The learning rate.
         """
-        self.model = StructuralModel.build_from_config()
-        self.model.to(self.device)
-        self.criterion = nn.MSELoss()
-        self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.learning_rate)
+        model = StructuralModel.build_from_config()
+        criterion = nn.MSELoss()
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 
         super().__init__(
-            model=self.model,
-            criterion=self.criterion,
-            optimizer=self.optimizer,
+            model=model,
+            criterion=criterion,
+            optimizer=optimizer,
             train_loader=train_loader,
             test_loader=test_loader,
             validation_loader=validation_loader,

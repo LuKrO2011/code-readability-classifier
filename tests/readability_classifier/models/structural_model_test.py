@@ -1,8 +1,9 @@
 import pytest
 
 from readability_classifier.models.structural_model import StructuralModel
+from readability_classifier.utils.config import StructuralInput
 from tests.readability_classifier.models.extractors.structural_extractor_test import (
-    create_test_data,
+    create_test_data as create_structural_test_data,
 )
 
 
@@ -20,3 +21,7 @@ def test_forward_pass(structural_model):
 
     # Check the output shape
     assert output.shape == (1, 1)
+
+
+def create_test_data():
+    return StructuralInput(create_structural_test_data())

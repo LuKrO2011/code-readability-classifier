@@ -173,7 +173,8 @@ class BaseClassifier(ABC):
         loss = self.criterion(outputs, y_batch)
         return loss.item()
 
-    def _extract(self, batch: dict) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    @classmethod
+    def _extract(cls, batch: dict) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
         Extracts all data from the batch.
         :param batch: The batch to extract the data from.

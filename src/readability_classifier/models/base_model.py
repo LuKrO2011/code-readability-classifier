@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
+from readability_classifier.utils.config import ModelInput
 from readability_classifier.utils.utils import load_yaml_file
 
 CURR_DIR = Path(os.path.dirname(os.path.relpath(__file__)))
@@ -27,6 +28,15 @@ class BaseModel(nn.Module, ABC):
         Initializes the model.
         """
         super().__init__()
+
+    @abstractmethod
+    def forward(self, x: ModelInput) -> torch.Tensor:
+        """
+        Forward pass.
+        :param x: The input.
+        :return: The output.
+        """
+        pass
 
     @classmethod
     def load_from_config(cls, save: Path = DEFAULT_SAVE_PATH) -> "BaseModel":

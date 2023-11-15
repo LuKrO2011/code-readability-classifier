@@ -13,6 +13,7 @@ from readability_classifier.models.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from readability_classifier.models.structural_classifier import StructuralClassifier
 from readability_classifier.models.towards_classifier import TowardsClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -60,6 +61,12 @@ class TaskNotSupportedException(Exception):
     """
 
 
+class ModelNotSupportedException(Exception):
+    """
+    Exception is thrown whenever a model is not supported.
+    """
+
+
 class Tasks(Enum):
     """
     Enum for the different tasks of the readability classifier.
@@ -77,6 +84,22 @@ class Tasks(Enum):
         return self.value
 
 
+class Model(Enum):
+    """
+    Enum for the different models.
+    """
+
+    TOWARDS = "TOWARDS"
+    STRUCTURAL = "STRUCTURAL"
+
+    @classmethod
+    def _missing_(cls, value: object) -> Any:
+        raise ModelNotSupportedException(f"{value} is not a supported model.")
+
+    def __str__(self) -> str:
+        return self.value
+
+
 def _set_up_arg_parser() -> ArgumentParser:
     """
     Parses the arguments for the readability classifier.
@@ -87,6 +110,14 @@ def _set_up_arg_parser() -> ArgumentParser:
 
     # Parser for the training task
     train_parser = sub_parser.add_parser(str(Tasks.TRAIN))
+    train_parser.add_argument(
+        "--model",
+        "-m",
+        required=False,
+        type=Model,
+        help="The model to use.",
+        default=Model.TOWARDS,
+    )
     train_parser.add_argument(
         "--input",
         "-i",
@@ -179,6 +210,7 @@ def _run_train(parsed_args) -> None:
     :return: None
     """
     # Get the parsed arguments
+    model = parsed_args.model
     data_dir = parsed_args.input
     encoded = parsed_args.encoded
     store_dir = parsed_args.save
@@ -205,16 +237,31 @@ def _run_train(parsed_args) -> None:
     # Create the dataloaders
     train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
 
+    # Build the model
+    if model == Model.TOWARDS:
+        classifier = TowardsClassifier(
+            train_loader=train_loader,
+            test_loader=test_loader,
+            validation_loader=None,  # TODO: Add validation loader
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    elif model == Model.STRUCTURAL:
+        classifier = StructuralClassifier(
+            train_loader=train_loader,
+            test_loader=test_loader,
+            validation_loader=None,  # TODO: Add validation loader
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    else:
+        raise ModelNotSupportedException(f"{model} is not a supported model.")
+
     # Train the model
-    classifier = TowardsClassifier(
-        train_loader=train_loader,
-        test_loader=test_loader,
-        validation_loader=None,  # TODO: Add validation loader
-        store_dir=store_dir,
-        batch_size=batch_size,
-        num_epochs=num_epochs,
-        learning_rate=learning_rate,
-    )
     classifier.fit()
 
     # Evaluate the model

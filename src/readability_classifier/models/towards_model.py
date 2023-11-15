@@ -65,16 +65,16 @@ class TowardsModel(BaseModel):
         self.random_detail = nn.Linear(16, config.output_length)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, inp: TowardsInput) -> torch.Tensor:
+    def forward(self, x: TowardsInput) -> torch.Tensor:
         """
         Forward pass of the model.
-        :param inp: The input of the model.
+        :param x: The input of the model.
         :return: The output of the model.
         """
         # Feature extractors
-        structural_features = self.structural_extractor(inp.character_matrix)
-        semantic_features = self.semantic_extractor(inp.token_input, inp.segment_input)
-        visual_features = self.visual_extractor(inp.image)
+        structural_features = self.structural_extractor(x.character_matrix)
+        semantic_features = self.semantic_extractor(x.token_input, x.segment_input)
+        visual_features = self.visual_extractor(x.image)
 
         # Concatenate the inputs
         concatenated = torch.cat(

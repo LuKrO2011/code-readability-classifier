@@ -7,6 +7,7 @@ from readability_classifier.models.base_model import BaseModel
 from readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
+from readability_classifier.utils.config import StructuralInput
 
 
 class StructuralModelConfig:
@@ -59,17 +60,14 @@ class StructuralModel(BaseModel):
         self.dense3 = nn.Linear(16, 1)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(
-        self,
-        character_matrix: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, x: StructuralInput) -> torch.Tensor:
         """
         Forward pass of the model.
-        :param character_matrix: The character matrix tensor.
+        :param x: The input of the model containing the character matrix.
         :return: The output of the model.
         """
         # Feature extractors
-        structural_features = self.structural_extractor(character_matrix)
+        structural_features = self.structural_extractor(x.character_matrix)
 
         # Pass through dense layers
         x = self.dense1(structural_features)
