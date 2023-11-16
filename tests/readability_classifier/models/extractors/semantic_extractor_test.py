@@ -8,7 +8,7 @@ from readability_classifier.models.extractors.semantic_extractor import (
 
 EMBEDDED_MIN = 1
 EMBEDDED_MAX = 299
-TOKEN_LENGTH = 512
+TOKEN_LENGTH = 100
 BATCH_SIZE = 1
 SHAPE = (BATCH_SIZE, TOKEN_LENGTH)
 
@@ -26,7 +26,7 @@ def test_forward_pass(semantic_extractor):
     output = semantic_extractor(token_input, segment_input)
 
     # Check if the output has the expected shape
-    assert output.shape == (1, 10560)
+    assert output.shape == (1, 1792)
 
     # TODO: Check range of output values
 

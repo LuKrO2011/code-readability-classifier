@@ -19,7 +19,7 @@ class SemanticModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        self.input_length = kwargs.get("input_length", 10560)
+        self.input_length = kwargs.get("input_length", 1792)
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 

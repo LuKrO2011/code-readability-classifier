@@ -85,7 +85,7 @@ class BaseModel(nn.Module, ABC):
         :param config: The config for the model.
         """
         self.dense1 = nn.Linear(config.input_length, 64)
-        self.relu1 = nn.ReLU()
+        self.relu = nn.ReLU()
         self.dropout1 = nn.Dropout(config.dropout)
         self.dense2 = nn.Linear(64, 16)
         self.relu2 = nn.ReLU()
@@ -99,7 +99,7 @@ class BaseModel(nn.Module, ABC):
         :return: The output.
         """
         x = self.dense1(x)
-        x = self.relu1(x)
+        x = self.relu(x)
         x = self.dropout1(x)
         x = self.dense2(x)
         x = self.relu2(x)

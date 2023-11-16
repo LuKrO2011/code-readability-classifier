@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 from torch import nn as nn
-from transformers import BertConfig, BertModel
+from transformers import BertConfig
 
 from readability_classifier.models.base_model import BaseModel
 
@@ -52,9 +52,36 @@ class BertEmbedding(BaseModel):
         #             logging.warning(f"Skipping {name} due to size mismatch")
 
         # Option 2: Ignore mismatching weights
-        self.model = BertModel.from_pretrained(
-            "bert-base-cased", config=config, ignore_mismatched_sizes=True
+        # self.model = BertModel.from_pretrained(
+        #     "bert-base-cased", config=config, ignore_mismatched_sizes=True
+        # )
+
+        # Option 3: Towards paper
+        self.vocab_size = config.vocab_size
+        self.hidden_size = config.hidden_size
+
+        # Token embedding
+        self.token_embedding = nn.Embedding(self.vocab_size, self.hidden_size)
+
+        self.type_vocab_size = config.type_vocab_size
+
+        # Position embeddings
+        self.position_embedding = nn.Embedding(
+            config.max_position_embeddings, config.hidden_size
         )
+
+        # Token type embeddings
+        self.token_type_embedding = nn.Embedding(
+            config.type_vocab_size, config.hidden_size
+        )
+
+        self.layer_norm = nn.LayerNorm(config.hidden_size, eps=1e-12)
+        self.dropout = nn.Dropout(config.hidden_dropout_rate)
+
+        # Initialize embeddings
+        self.token_embedding.weight.data.normal_(mean=0.0, std=0.02)
+        self.position_embedding.weight.data.normal_(mean=0.0, std=0.02)
+        self.token_type_embedding.weight.data.normal_(mean=0.0, std=0.02)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -62,9 +89,33 @@ class BertEmbedding(BaseModel):
         :param inputs: The input tensor.
         :return: The output of the model.
         """
-        token_input, segment_input = inputs
-        outputs = self.model(token_input, segment_input)
-        return outputs.last_hidden_state
+        # token_input, segment_input = inputs
+        # Option 1 & 2:
+        # outputs = self.model(token_input, segment_input)
+        # return outputs.last_hidden_state
+
+        # Option 3:
+        input_ids, token_type_ids = inputs
+        batch_size, sequence_length = input_ids.size()
+
+        # Generate position_ids within the defined range using modulo operation
+        position_ids = torch.arange(sequence_length, dtype=torch.long).unsqueeze(0)
+        position_ids = position_ids % self.position_embedding.num_embeddings
+
+        # Expand the input ids to the same size as position ids
+        if token_type_ids is None:
+            token_type_ids = torch.full_like(input_ids, 0)
+
+        # Embeddings
+        position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
+        token_type_embeddings = self.token_type_embedding(token_type_ids)
+        token_embeddings = self.token_embedding(input_ids)
+
+        # Sum all embeddings
+        embeddings = token_embeddings + token_type_embeddings + position_embeddings
+        embeddings = self.layer_norm(embeddings)
+        embeddings = self.dropout(embeddings)
+        return embeddings
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
@@ -110,7 +161,7 @@ class SemanticExtractor(BaseModel):
         )
 
         # Same as in paper
-        self.relu1 = nn.ReLU()
+        self.relu = nn.ReLU()
 
         # Same as in paper
         self.maxpool1 = nn.MaxPool1d(kernel_size=3)
@@ -131,12 +182,20 @@ class SemanticExtractor(BaseModel):
         :return: The output of the model.
         """
         texture_embedded = self.bert_embedding([token_input, segment_input])
+
+        # Permute the tensor to fit the convolutional layer
         texture_embedded = texture_embedded.permute(0, 2, 1)
-        x = self.relu1(self.conv1(texture_embedded))
+
+        # Convolutional layers
+        x = self.conv1(texture_embedded)
+        x = self.relu(x)
         x = self.maxpool1(x)
-        x = self.relu1(self.conv2(x))
+        x = self.relu(self.conv2(x))
+
+        # Permute the tensor to fit the LSTM layer
         x = x.permute(0, 2, 1)
 
+        # LSTM layer
         x, _ = self.bidirectional_lstm(x)
 
         # Flatten the tensor after LSTM
