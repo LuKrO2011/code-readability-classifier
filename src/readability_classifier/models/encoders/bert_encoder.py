@@ -7,8 +7,8 @@ from readability_classifier.models.encoders.dataset_utils import (
     ReadabilityDataset,
 )
 
-DEFAULT_TOKEN_LENGTH = 512  # Maximum length of tokens for BERT
-DEFAULT_ENCODE_BATCH_SIZE = 512
+DEFAULT_TOKEN_LENGTH = 100  # Maximum length of tokens for BERT
+DEFAULT_ENCODE_BATCH_SIZE = 500
 
 
 class BertEncoder(EncoderInterface):
@@ -30,7 +30,7 @@ class BertEncoder(EncoderInterface):
         :return: The encoded dataset.
         """
         # Tokenize and encode the code snippets
-        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
         # Convert data to batches
         batches = [
@@ -61,7 +61,7 @@ class BertEncoder(EncoderInterface):
         :param text: The text to tokenize and encode.
         :return: A dictionary containing the encoded input_ids and attention_mask.
         """
-        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
         encoding = tokenizer.encode_plus(
             text,
             add_special_tokens=True,
