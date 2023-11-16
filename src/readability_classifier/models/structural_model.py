@@ -7,10 +7,10 @@ from readability_classifier.models.base_model import BaseModel
 from readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
-from readability_classifier.utils.config import StructuralInput
+from readability_classifier.utils.config import BaseModelConfig, StructuralInput
 
 
-class StructuralModelConfig:
+class StructuralModelConfig(BaseModelConfig):
     """
     The config for the StructuralModel.
     """
@@ -19,6 +19,7 @@ class StructuralModelConfig:
         """
         Initialize the config.
         """
+        super().__init__(**kwargs)
         self.input_length = kwargs.get("input_length", 9216)
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
@@ -31,14 +32,6 @@ class StructuralModel(BaseModel):
     The input consists of a character matrix. The character matrix is of size
     (305, 50). The output is a single value representing the readability of the code
     snippet.
-    The own layers consist of:
-    1. Dense layer
-    2. ReLU layer
-    3. Dropout layer
-    4. Dense layer
-    5. ReLU layer
-    6. Dense layer
-    7. Sigmoid layer
     """
 
     def __init__(self, config: StructuralModelConfig) -> None:
@@ -52,13 +45,7 @@ class StructuralModel(BaseModel):
         self.structural_extractor = StructuralExtractor.build_from_config()
 
         # Define own layers
-        self.dense1 = nn.Linear(config.input_length, 64)
-        self.relu1 = nn.ReLU()
-        self.dropout1 = nn.Dropout(config.dropout)
-        self.dense2 = nn.Linear(64, 16)
-        self.relu2 = nn.ReLU()
-        self.dense3 = nn.Linear(16, 1)
-        self.sigmoid = nn.Sigmoid()
+        self._build_classification_layers(config)
 
     def forward(self, x: StructuralInput) -> torch.Tensor:
         """
@@ -70,14 +57,7 @@ class StructuralModel(BaseModel):
         structural_features = self.structural_extractor(x.character_matrix)
 
         # Pass through dense layers
-        x = self.dense1(structural_features)
-        x = self.relu1(x)
-        x = self.dropout1(x)
-        x = self.dense2(x)
-        x = self.relu2(x)
-        x = self.dense3(x)
-        x = self.sigmoid(x)
-        return x
+        return self._forward_classification_layers(structural_features)
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

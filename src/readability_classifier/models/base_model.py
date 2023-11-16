@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from readability_classifier.utils.config import ModelInput
+from readability_classifier.utils.config import BaseModelConfig, ModelInput
 from readability_classifier.utils.utils import load_yaml_file
 
 CURR_DIR = Path(os.path.dirname(os.path.relpath(__file__)))
@@ -78,3 +78,30 @@ class BaseModel(nn.Module, ABC):
         :return: Returns the loaded model.
         """
         pass
+
+    def _build_classification_layers(self, config: BaseModelConfig) -> None:
+        """
+        Defines the own classification layers of the model.
+        :param config: The config for the model.
+        """
+        self.dense1 = nn.Linear(config.input_length, 64)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(config.dropout)
+        self.dense2 = nn.Linear(64, 16)
+        self.relu2 = nn.ReLU()
+        self.dense3 = nn.Linear(16, config.output_length)
+        self.sigmoid = nn.Sigmoid()
+
+    def _forward_classification_layers(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Pass the input through the classification layers.
+        :param x: The input.
+        :return: The output.
+        """
+        x = self.dense1(x)
+        x = self.relu1(x)
+        x = self.dropout1(x)
+        x = self.dense2(x)
+        x = self.relu2(x)
+        x = self.dense3(x)
+        return self.sigmoid(x)

@@ -1,0 +1,3 @@
+input_length: 10560
+output_length: 1
+dropout: 0.5

@@ -5,6 +5,22 @@ import torch
 DEFAULT_MODEL_BATCH_SIZE = 8  # Small - avoid CUDA out of memory errors on local machine
 
 
+@dataclass(frozen=False)
+class BaseModelConfig:
+    """
+    Abstract data class for the configuration of a model.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Initializes the configuration.
+        :param kwargs: The configuration parameters.
+        """
+        self.input_length = kwargs.get("input_length")
+        self.output_length = kwargs.get("output_length")
+        self.dropout = kwargs.get("dropout")
+
+
 @dataclass(frozen=True)
 class ModelInput:
     """
@@ -40,3 +56,13 @@ class VisualInput(ModelInput):
     """
 
     image: torch.Tensor
+
+
+@dataclass(frozen=True)
+class SemanticInput(ModelInput):
+    """
+    Data class for the input of the SemanticModel.
+    """
+
+    token_input: torch.Tensor
+    segment_input: torch.Tensor

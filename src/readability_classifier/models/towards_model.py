@@ -11,10 +11,10 @@ from readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
 from readability_classifier.models.extractors.visual_extractor import VisualExtractor
-from readability_classifier.utils.config import TowardsInput
+from readability_classifier.utils.config import BaseModelConfig, TowardsInput
 
 
-class TowardsModelConfig:
+class TowardsModelConfig(BaseModelConfig):
     """
     The config for the TowardsModel.
     """
@@ -23,6 +23,7 @@ class TowardsModelConfig:
         """
         Initialize the config.
         """
+        super().__init__(**kwargs)
         self.input_length = kwargs.get("input_length", 26176)
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
@@ -38,11 +39,6 @@ class TowardsModel(BaseModel):
     The character matrix is of size (305, 50), the bert encoded code snippet is of size
     512 and the image is of size (3, 128, 128). The output is a single value
     representing the readability of the code snippet.
-    The own layers consist of:
-    1. Fully connected layer
-    2. Dropout layer
-    3. Fully connected layer
-    4. Fully connected layer
     """
 
     def __init__(self, config: TowardsModelConfig) -> None:
@@ -58,12 +54,7 @@ class TowardsModel(BaseModel):
         self.visual_extractor = VisualExtractor.build_from_config()
 
         # Define own layers
-        self.dense1 = nn.Linear(config.input_length, 64)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(config.dropout)
-        self.dense2 = nn.Linear(64, 16)
-        self.random_detail = nn.Linear(16, config.output_length)
-        self.sigmoid = nn.Sigmoid()
+        self._build_classification_layers(config)
 
     def forward(self, x: TowardsInput) -> torch.Tensor:
         """
@@ -82,12 +73,7 @@ class TowardsModel(BaseModel):
         )
 
         # Pass through dense layers
-        x = self.dense1(concatenated)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.dense2(x)
-        x = self.relu(x)
-        x = self.random_detail(x)
+        x = self._forward_classification_layers(concatenated)
         return self.sigmoid(x)
 
     @classmethod
