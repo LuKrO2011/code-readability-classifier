@@ -1,4 +1,5 @@
 import logging
+import re
 
 from transformers import BertTokenizer
 
@@ -32,6 +33,10 @@ class BertEncoder(EncoderInterface):
         # Tokenize and encode the code snippets
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
+        # Split identifiers in code snippets
+        for sample in unencoded_dataset:
+            sample["code_snippet"] = _split_identifiers(sample["code_snippet"])
+
         # Convert data to batches
         batches = [
             unencoded_dataset[i : i + DEFAULT_ENCODE_BATCH_SIZE]
@@ -62,6 +67,7 @@ class BertEncoder(EncoderInterface):
         :return: A dictionary containing the encoded input_ids and attention_mask.
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+        text = _split_identifiers(text)
         encoding = tokenizer.encode_plus(
             text,
             add_special_tokens=True,
@@ -117,3 +123,22 @@ class BertEncoder(EncoderInterface):
             )
 
         return encoded_batch
+
+
+def _split_identifiers(
+    text: str, camel_case_regex=r"([a-z])([A-Z])", snake_case_regex=r"([a-z])(_)([a-z])"
+):
+    """
+    Splits the identifiers in the given text.
+    :param text: The text to split.
+    :param camel_case_regex: The regex for camel case identifiers.
+    :param snake_case_regex: The regex for snake case identifiers.
+    :return: The text with split identifiers.
+    """
+    # Split camel case identifiers
+    new_text = re.sub(camel_case_regex, r"\1 \2", text)
+
+    # Split snake case identifiers
+    new_text = re.sub(snake_case_regex, r"\1 \2 \3", new_text)
+
+    return new_text
