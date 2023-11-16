@@ -56,6 +56,10 @@ class DatasetEncoder(EncoderInterface):
         bert_dataset = self.bert_encoder.encode_dataset(unencoded_dataset)
         image_dataset = self.visual_encoder.encode_dataset(unencoded_dataset)
 
+        # Normalize the scores
+        scores = [sample["score"] for sample in unencoded_dataset]
+        normalized_scores = self._normalize_scores(scores)
+
         # Combine the datasets
         encoded_dataset = []
         for i in range(len(matrix_dataset)):
@@ -65,9 +69,7 @@ class DatasetEncoder(EncoderInterface):
                     "input_ids": bert_dataset[i]["input_ids"],
                     "token_type_ids": bert_dataset[i]["token_type_ids"],
                     "image": image_dataset[i]["image"],
-                    "score": torch.tensor(
-                        unencoded_dataset[i]["score"] / 5, dtype=torch.float32
-                    ),
+                    "score": torch.tensor(normalized_scores[i], dtype=torch.float32),
                 }
             )
 
@@ -75,3 +77,37 @@ class DatasetEncoder(EncoderInterface):
         logging.info(f"All: Encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)
+
+    @staticmethod
+    def _normalize_scores(
+        scores: list[float], z_score: bool = True, min_max: bool = True
+    ) -> list[float]:
+        """
+        Normalizes the scores of the dataset using z-score and/or min-max normalization.
+        :param scores: The scores to normalize.
+        :param z_score: Boolean indicating whether to apply z-score normalization.
+        :param min_max: Boolean indicating whether to apply min-max normalization.
+        :return: The normalized scores.
+        """
+        # Divide the scores by the likert max score 5
+        scores = [score / 5 for score in scores]
+
+        # Normalized scores to store intermediate results
+        normalized_scores = scores.copy()
+
+        # Apply z-score normalization if specified
+        if z_score:
+            mean = sum(scores) / len(scores)
+            std = (sum([(score - mean) ** 2 for score in scores]) / len(scores)) ** 0.5
+            normalized_scores = [(score - mean) / std for score in scores]
+
+        # Apply min-max normalization if specified
+        if min_max:
+            min_score = min(normalized_scores)
+            max_score = max(normalized_scores)
+            normalized_scores = [
+                (score - min_score) / (max_score - min_score)
+                for score in normalized_scores
+            ]
+
+        return normalized_scores
