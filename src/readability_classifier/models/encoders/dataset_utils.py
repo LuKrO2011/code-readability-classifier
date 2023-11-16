@@ -125,28 +125,36 @@ def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
 def encoded_data_to_dataloaders(
     encoded_data: ReadabilityDataset,
     batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
-) -> tuple[DataLoader, DataLoader]:
+) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
-    Converts the encoded data to a training and test data loader.
+    Converts the encoded data to training, validation, and test data loaders.
     :param encoded_data: The encoded data.
     :param batch_size: The batch size.
-    :return: A tuple containing the training and test data loader.
+    :return: A tuple containing the training, validation, and test data loaders.
     """
-    # Split data into training and test data
-    train_data, test_data = train_test_split(
+    # Split data into training/validation and test data
+    train_val_data, test_data = train_test_split(
         encoded_data, test_size=0.1, random_state=42
     )
 
-    # Convert the split data to a ReadabilityDataset
+    # Further split training/validation data into training and validation subsets
+    train_data, val_data = train_test_split(
+        train_val_data, test_size=0.1, random_state=42
+    )
+
+    # Convert the split data to ReadabilityDataset
     train_dataset = ReadabilityDataset(train_data)
+    val_dataset = ReadabilityDataset(val_data)
     test_dataset = ReadabilityDataset(test_data)
 
-    # Create data loaders
+    # Create data loaders for training, validation, and test sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # Log the number of samples in the training and test data
+    # Log the number of samples in the training, validation, and test data
     logging.info(f"Training data: {len(train_dataset)} samples")
+    logging.info(f"Validation data: {len(val_dataset)} samples")
     logging.info(f"Test data: {len(test_dataset)} samples")
 
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader

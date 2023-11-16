@@ -151,7 +151,7 @@ def _set_up_arg_parser() -> ArgumentParser:
     train_parser.add_argument(
         "--evaluate",
         required=False,
-        default=False,
+        default=True,
         action="store_false",
         help="Whether the model should be evaluated after training.",
     )
@@ -180,8 +180,38 @@ def _set_up_arg_parser() -> ArgumentParser:
         help="The learning rate for training.",
     )
 
-    # Parser for the evaluation task TODO: Implement
-    # evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
+    # Parser for the evaluation task
+    evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
+    evaluate_parser.add_argument(
+        "--load",
+        "-l",
+        required=True,
+        type=Path,
+        help="Path to the model to load for evaluation.",
+    )
+    evaluate_parser.add_argument(
+        "--input",
+        "-i",
+        required=True,
+        type=Path,
+        help="Path to the validation dataset.",
+    )
+    evaluate_parser.add_argument(
+        "--model",
+        "-m",
+        required=False,
+        type=Model,
+        help="The type of the model used.",
+        default=Model.TOWARDS,
+    )
+    evaluate_parser.add_argument(
+        "--batch-size",
+        "-b",
+        required=False,
+        type=int,
+        default=8,
+        help="The batch size for evaluation.",
+    )
 
     # Parser for the prediction task
     predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
@@ -235,14 +265,16 @@ def _run_train(parsed_args) -> None:
         encoded_data = load_encoded_dataset(data_dir)
 
     # Create the dataloaders
-    train_loader, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
+    train_loader, val_loader, test_loader = encoded_data_to_dataloaders(
+        encoded_data, batch_size
+    )
 
     # Build the model
     if model == Model.TOWARDS:
         classifier = TowardsClassifier(
             train_loader=train_loader,
+            val_loader=val_loader,
             test_loader=test_loader,
-            validation_loader=None,  # TODO: Add validation loader
             store_dir=store_dir,
             batch_size=batch_size,
             num_epochs=num_epochs,
@@ -251,8 +283,8 @@ def _run_train(parsed_args) -> None:
     elif model == Model.STRUCTURAL:
         classifier = StructuralClassifier(
             train_loader=train_loader,
+            val_loader=val_loader,
             test_loader=test_loader,
-            validation_loader=None,  # TODO: Add validation loader
             store_dir=store_dir,
             batch_size=batch_size,
             num_epochs=num_epochs,
@@ -291,10 +323,37 @@ def _run_predict(parsed_args):
 
 
 def _run_evaluate(parsed_args):
-    raise NotImplementedError(
-        "Separate evaluation is not implemented. "
-        "Please use the --evaluate flag when training."
-    )
+    """
+    Runs the evaluation of the readability classifier.
+    :param parsed_args: Parsed arguments.
+    :return: None
+    """
+    # Get the parsed arguments
+    model_path = parsed_args.load
+    data_dir = parsed_args.input
+    model = parsed_args.model
+    batch_size = parsed_args.batch_size
+
+    # Load the dataset
+    encoded_data = load_encoded_dataset(data_dir)
+
+    # TODO: Create method that only takes test set as input
+    _, _, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
+
+    # Load the model
+    if model == Model.TOWARDS:
+        classifier = TowardsClassifier(
+            model_path=model_path, test_loader=test_loader, batch_size=batch_size
+        )
+    elif model == Model.STRUCTURAL:
+        classifier = StructuralClassifier(
+            model_path=model_path, test_loader=test_loader, batch_size=batch_size
+        )
+    else:
+        raise ModelNotSupportedException(f"{model} is not a supported model.")
+
+    # Evaluate the model
+    classifier.evaluate()
 
 
 def main(args: list[str]) -> int:

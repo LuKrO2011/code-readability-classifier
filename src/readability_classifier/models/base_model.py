@@ -39,14 +39,14 @@ class BaseModel(nn.Module, ABC):
         pass
 
     @classmethod
-    def load_from_config(cls, save: Path = DEFAULT_SAVE_PATH) -> "BaseModel":
+    def load_from_checkpoint(cls, checkpoint_path: Path) -> "BaseModel":
         """
         Load the model from the given path.
-        :param save: The path to store the checkpoints.
+        :param checkpoint_path: The path to the checkpoint.
         :return: Returns the loaded model.
         """
-        model = cls.build_from_config(save.parent)
-        model.load_state_dict(torch.load(save))
+        model = cls.build_from_config()
+        model.load_state_dict(torch.load(checkpoint_path))
         return model
 
     @classmethod

@@ -32,9 +32,9 @@ class TestModel(unittest.TestCase):
         train_loader, test_loader = data_loader.encode_dataset(csv, snippets_dir)
 
         # Train and evaluate the model
-        classifier = TowardsClassifier(train_loader, test_loader)
+        classifier = TowardsClassifier(train_loader, test_loader=test_loader)
         classifier.fit()
-        classifier._eval_epoch()
+        classifier._val_epoch()
 
         # Store the model
         classifier.store("model.pt")

@@ -13,9 +13,7 @@ LEARNING_RATE = 0.0015
 @pytest.fixture()
 def classifier():
     return TowardsClassifier(
-        batch_size=BATCH_SIZE,
-        num_epochs=NUM_EPOCHS,
-        learning_rate=LEARNING_RATE,
+        batch_size=BATCH_SIZE, num_epochs=NUM_EPOCHS, learning_rate=LEARNING_RATE
     )
 
 

@@ -7,13 +7,44 @@ from datetime import datetime
 from pathlib import Path
 from time import time
 
+import numpy as np
 import torch
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    matthews_corrcoef,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, ModelInput
 from readability_classifier.utils.utils import save_content_to_file
+
+
+@dataclass(frozen=True, eq=True)
+class EvaluationStats:
+    """
+    Data class for evaluation stats. Contains accuracy, precision, recall, f1-score, auc
+    and mcc.
+    """
+
+    accuracy: float
+    precision: float
+    recall: float
+    f1: float
+    auc: float
+    mcc: float
+
+    def to_json(self) -> str:
+        """
+        Convert to json.
+        :return: Returns the json string.
+        """
+        return json.dumps(asdict(self))
 
 
 class BaseClassifier(ABC):
@@ -23,8 +54,8 @@ class BaseClassifier(ABC):
         criterion: nn.Module = None,
         optimizer: torch.optim.Optimizer = None,
         train_loader: DataLoader = None,
+        val_loader: DataLoader = None,
         test_loader: DataLoader = None,
-        validation_loader: DataLoader = None,
         store_dir: Path = None,
         batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
         num_epochs: int = 20,
@@ -35,8 +66,8 @@ class BaseClassifier(ABC):
         :param model: The model.
         :param criterion: The loss function.
         :param train_loader: The data loader for the training data.
+        :param val_loader: The data loader for the validation data.
         :param test_loader: The data loader for the test data.
-        :param validation_loader: The data loader for the validation data.
         :param batch_size: The batch size.
         :param num_epochs: The number of epochs.
         :param learning_rate: The learning rate.
@@ -46,7 +77,7 @@ class BaseClassifier(ABC):
         self.optimizer = optimizer
         self.train_loader = train_loader
         self.test_loader = test_loader
-        self.validation_loader = validation_loader
+        self.val_loader = val_loader
         self.store_dir = store_dir
         self.batch_size = batch_size
         self.num_epochs = num_epochs
@@ -64,18 +95,18 @@ class BaseClassifier(ABC):
         if self.train_loader is None:
             raise ValueError("No training data provided.")
 
-        if self.test_loader is None:
-            raise ValueError("No test data provided.")
+        if self.val_loader is None:
+            raise ValueError("No validation data provided.")
 
         train_stats = TrainStats(0, [])
-        best_test_loss = float("inf")
+        best_val_set = float("inf")
 
         for epoch in range(self.num_epochs):
             train_loss = self._fit_epoch()
-            test_loss = self._eval_epoch()
+            val_loss = self._val_epoch()
 
             # Update stats
-            epoch_stats = EpochStats(epoch + 1, train_loss, test_loss)
+            epoch_stats = EpochStats(epoch + 1, train_loss, val_loss)
             train_stats.epoch_stats.append(epoch_stats)
 
             # Log the loss
@@ -83,16 +114,16 @@ class BaseClassifier(ABC):
                 f"Epoch {epoch + 1:02}/{self.num_epochs:02}\n"
                 f"Train loss: {train_loss:.4f}\n"
                 f"Train PPL:  {math.exp(train_loss):7.4f}\n"
-                f"Test  loss: {test_loss:.4f}\n"
-                f"Test  PPL:  {math.exp(test_loss):7.4f}"
+                f"Val   loss: {val_loss:.4f}\n"
+                f"Val   PPL:  {math.exp(val_loss):7.4f}"
             )
 
             # Save the model
             self.store(epoch=epoch + 1)
 
             # Update best model
-            if test_loss < best_test_loss:
-                best_test_loss = test_loss
+            if val_loss < best_val_set:
+                best_val_set = val_loss
                 train_stats.best_epoch = epoch + 1
                 self.store(path=self.store_dir / Path("best_model.pt"))
 
@@ -136,30 +167,30 @@ class BaseClassifier(ABC):
             train_loss += loss
         return train_loss / len(self.train_loader)
 
-    def _eval_epoch(self) -> float:
+    def _val_epoch(self) -> float:
         """
         Evaluates the model on the test data.
         :return: The validation loss.
         """
         self.model.eval()
-        valid_loss = 0.0
+        val_loss = 0.0
 
         with torch.no_grad():
             # Iterate through the test loader to evaluate the model
-            for batch in self.test_loader:
+            for batch in self.val_loader:
                 x = self._batch_to_input(batch)
                 y = self._batch_to_score(batch)
 
-                loss = self._eval_batch(
+                loss = self._val_batch(
                     x_batch=x,
                     y_batch=y,
                 )
 
-                valid_loss += loss
+                val_loss += loss
 
-        return valid_loss / len(self.test_loader)
+        return val_loss / len(self.val_loader)
 
-    def _eval_batch(
+    def _val_batch(
         self,
         x_batch: ModelInput,
         y_batch: Tensor,
@@ -264,38 +295,63 @@ class BaseClassifier(ABC):
             prediction = self.model(matrix, input_ids, token_type_ids, image)
             return prediction.item()
 
-    def evaluate(self) -> None:
+    def evaluate(self) -> EvaluationStats:
         """
-        Evaluates the model on the validation data.
-        :return: The MSE of the model on the validation data.
+        Evaluates the model on the test data.
+        :return: The evaluation stats.
         """
-        if self.validation_loader is None:
-            raise ValueError("No validation data provided.")
+        if self.test_loader is None:
+            raise ValueError("No test data provided.")
 
         self.model.eval()
-        with torch.no_grad():
-            y_actual = []  # True scores
-            y_predicted = []  # List to store model predictions
+        y_true = []  # True scores
+        y_pred = []  # Predicted scores
 
-            # Iterate through the test loader to evaluate the model
-            for batch in self.validation_loader:
-                x = self._batch_to_input(batch)
-                y = self._batch_to_score(batch)
+        # Iterate through the test data loader to collect true and predicted labels
+        for batch in self.test_loader:
+            x = self._batch_to_input(batch)
+            y = self._batch_to_score(batch)
 
-                y_actual.append(y)
-                y_predicted.append(self.model(x))
+            y_true.append(y)
+            y_pred.append(self.model(x))
 
-        # Concatenate the lists of tensors to create a single tensor
-        y_actual = torch.cat(y_actual, dim=0)
-        y_predicted = torch.cat(y_predicted, dim=0)
+        # Move the labels to the CPU and concatenate the arrays
+        y_true = np.concatenate([np.array(y.cpu()).flatten() for y in y_true])
+        y_pred = np.concatenate([np.array(y.cpu().detach()).flatten() for y in y_pred])
 
-        # Compute Mean Squared Error (MSE) using PyTorch
-        mse = torch.mean((y_actual - y_predicted) ** 2).item()
+        # Convert the scores to binary labels. If the score is greater than the median
+        # of the y_true it is readable, otherwise it is not readable.
+        median = np.median(y_true)
+        y_true = np.where(y_true > median, 1, 0)
+        y_pred = np.where(y_pred > median, 1, 0)
 
-        # Log the MSE
-        logging.info(f"MSE: {mse}")
+        # Calculate evaluation metrics
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, average="weighted")
+        recall = recall_score(y_true, y_pred, average="weighted")
+        f1 = f1_score(y_true, y_pred, average="weighted")
+        auc = roc_auc_score(y_true, y_pred) if len(set(y_true)) > 1 else 0.0
+        mcc = matthews_corrcoef(y_true, y_pred)
 
-        return mse
+        # Log the evaluation stats
+        logging.info(
+            f"Accuracy: {accuracy:.4f}\n"
+            f"Precision: {precision:.4f}\n"
+            f"Recall: {recall:.4f}\n"
+            f"F1: {f1:.4f}\n"
+            f"AUC: {auc:.4f}\n"
+            f"MCC: {mcc:.4f}"
+        )
+
+        # Create EvaluationStats object
+        return EvaluationStats(
+            accuracy=accuracy,
+            precision=precision,
+            recall=recall,
+            f1=f1,
+            auc=auc,
+            mcc=mcc,
+        )
 
 
 @dataclass(frozen=True, eq=True)
