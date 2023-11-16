@@ -15,6 +15,7 @@ from readability_classifier.models.encoders.dataset_utils import (
 )
 from readability_classifier.models.structural_classifier import StructuralClassifier
 from readability_classifier.models.towards_classifier import TowardsClassifier
+from readability_classifier.models.visual_classifier import VisualClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
@@ -91,6 +92,7 @@ class Model(Enum):
 
     TOWARDS = "TOWARDS"
     STRUCTURAL = "STRUCTURAL"
+    VISUAL = "VISUAL"
 
     @classmethod
     def _missing_(cls, value: object) -> Any:
@@ -290,6 +292,16 @@ def _run_train(parsed_args) -> None:
             num_epochs=num_epochs,
             learning_rate=learning_rate,
         )
+    elif model == Model.VISUAL:
+        classifier = VisualClassifier(
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
     else:
         raise ModelNotSupportedException(f"{model} is not a supported model.")
 
@@ -347,6 +359,10 @@ def _run_evaluate(parsed_args):
         )
     elif model == Model.STRUCTURAL:
         classifier = StructuralClassifier(
+            model_path=model_path, test_loader=test_loader, batch_size=batch_size
+        )
+    elif model == Model.VISUAL:
+        classifier = VisualClassifier(
             model_path=model_path, test_loader=test_loader, batch_size=batch_size
         )
     else:

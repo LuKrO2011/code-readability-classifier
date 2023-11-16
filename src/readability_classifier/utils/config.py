@@ -31,3 +31,12 @@ class StructuralInput(ModelInput):
     """
 
     character_matrix: torch.Tensor
+
+
+@dataclass(frozen=True)
+class VisualInput(ModelInput):
+    """
+    Data class for the input of the VisualModel.
+    """
+
+    image: torch.Tensor
