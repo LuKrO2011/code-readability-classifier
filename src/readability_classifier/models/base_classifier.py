@@ -319,16 +319,16 @@ class BaseClassifier(ABC):
         y_true = np.concatenate([np.array(y.cpu()).flatten() for y in y_true])
         y_pred = np.concatenate([np.array(y.cpu().detach()).flatten() for y in y_pred])
 
-        # Convert the scores to binary labels with a threshold of 0
+        # Convert the scores to binary labels with a threshold of 0.5
         y_pred = np.where(y_pred >= 0.5, 1, 0)
         y_true = np.where(y_true >= 0.5, 1, 0)
 
         # Calculate evaluation metrics
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average="weighted")
-        recall = recall_score(y_true, y_pred, average="weighted")
-        f1 = f1_score(y_true, y_pred, average="weighted")
-        auc = roc_auc_score(y_true, y_pred) if len(set(y_true)) > 1 else 0.0
+        precision = precision_score(y_true, y_pred)
+        recall = recall_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+        auc = roc_auc_score(y_true, y_pred)
         mcc = matthews_corrcoef(y_true, y_pred)
 
         # Log the evaluation stats
