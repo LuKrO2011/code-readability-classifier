@@ -66,3 +66,13 @@ class SemanticInput(ModelInput):
 
     token_input: torch.Tensor
     segment_input: torch.Tensor
+
+
+@dataclass(frozen=True)
+class ViStModelInput(ModelInput):
+    """
+    Data class for the input of the ViStModel.
+    """
+
+    image: torch.Tensor
+    matrix: torch.Tensor

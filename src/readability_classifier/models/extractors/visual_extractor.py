@@ -35,16 +35,16 @@ class VisualExtractor(BaseModel):
 
         # Alternating 2D convolution and max-pooling layers
 
-        # In paper: kernel_size=2, padding not specified
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
+        # In code: kernel_size=3, in paper: padding not specified
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=2, padding=1)
         self.relu = nn.ReLU()
 
         # In paper: stride not specified
         self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        # In paper: kernel_size=2, padding not specified
+        # In code: kernel_size=3, in paper: padding not specified
         self.conv2 = nn.Conv2d(
-            in_channels=32, out_channels=32, kernel_size=3, padding=1
+            in_channels=32, out_channels=32, kernel_size=2, padding=1
         )
 
         # In paper: stride not specified

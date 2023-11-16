@@ -34,8 +34,8 @@ class StructuralExtractor(BaseModel):
 
         # Alternating 2D convolution and max-pooling layers
 
-        # In paper: kernel_size=2
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+        # In code: kernel_size=3
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2)
 
         # Same as in paper
         self.relu1 = nn.ReLU()
@@ -43,8 +43,8 @@ class StructuralExtractor(BaseModel):
         # In paper: stride not specified
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        # In paper: kernel_size=2
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+        # In code: kernel_size=3
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=2)
 
         # Same as in paper
         self.relu2 = nn.ReLU()

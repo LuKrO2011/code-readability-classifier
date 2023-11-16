@@ -73,8 +73,7 @@ class TowardsModel(BaseModel):
         )
 
         # Pass through dense layers
-        x = self._forward_classification_layers(concatenated)
-        return self.sigmoid(x)
+        return self._forward_classification_layers(concatenated)
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

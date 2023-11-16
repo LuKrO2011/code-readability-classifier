@@ -16,6 +16,7 @@ from readability_classifier.models.encoders.dataset_utils import (
 from readability_classifier.models.semantic_classifier import SemanticClassifier
 from readability_classifier.models.structural_classifier import StructuralClassifier
 from readability_classifier.models.towards_classifier import TowardsClassifier
+from readability_classifier.models.vi_st_classifier import ViStClassifier
 from readability_classifier.models.visual_classifier import VisualClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -95,6 +96,7 @@ class Model(Enum):
     STRUCTURAL = "STRUCTURAL"
     VISUAL = "VISUAL"
     SEMANTIC = "SEMANTIC"
+    VIST = "VIST"
 
     @classmethod
     def _missing_(cls, value: object) -> Any:
@@ -314,6 +316,16 @@ def _run_train(parsed_args) -> None:
             num_epochs=num_epochs,
             learning_rate=learning_rate,
         )
+    elif model == Model.VIST:
+        classifier = ViStClassifier(
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
     else:
         raise ModelNotSupportedException(f"{model} is not a supported model.")
 
@@ -379,6 +391,10 @@ def _run_evaluate(parsed_args):
         )
     elif model == Model.SEMANTIC:
         classifier = SemanticClassifier(
+            model_path=model_path, test_loader=test_loader, batch_size=batch_size
+        )
+    elif model == Model.VIST:
+        classifier = ViStClassifier(
             model_path=model_path, test_loader=test_loader, batch_size=batch_size
         )
     else:
