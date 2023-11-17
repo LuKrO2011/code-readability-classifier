@@ -99,6 +99,9 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
         sample["token_type_ids"] = torch.tensor(
             sample["token_type_ids"], dtype=torch.long  # Why not int? Why long?
         )
+        sample["attention_mask"] = torch.tensor(
+            sample["attention_mask"], dtype=torch.long  # Why not int? Why long?
+        )
         sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 

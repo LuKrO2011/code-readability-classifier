@@ -37,26 +37,6 @@ class BertEmbedding(BaseModel):
     def __init__(self, config: TowardsBertConfig) -> None:
         super().__init__()
         self.model_name = "bert-base-cased"
-
-        # Option 1: Copy weights from pretrained model
-        # self.pretrained_model = BertModel.from_pretrained(self.model_name)
-        # self.model = BertModel(config=config)
-        #
-        # # Copy the weights from the pretrained model
-        # for name, param in self.pretrained_model.named_parameters():
-        #     if name.startswith('bert.embeddings'):
-        #         new_param = self.model.state_dict()[name]
-        #         if param.data.shape == new_param.shape:
-        #             new_param.copy_(param.data)
-        #         else:
-        #             logging.warning(f"Skipping {name} due to size mismatch")
-
-        # Option 2: Ignore mismatching weights
-        # self.model = BertModel.from_pretrained(
-        #     "bert-base-cased", config=config, ignore_mismatched_sizes=True
-        # )
-
-        # Option 3: Towards paper
         self.vocab_size = config.vocab_size
         self.hidden_size = config.hidden_size
 
@@ -89,12 +69,6 @@ class BertEmbedding(BaseModel):
         :param inputs: The input tensor.
         :return: The output of the model.
         """
-        # token_input, segment_input = inputs
-        # Option 1 & 2:
-        # outputs = self.model(token_input, segment_input)
-        # return outputs.last_hidden_state
-
-        # Option 3:
         input_ids, token_type_ids = inputs
         batch_size, sequence_length = input_ids.size()
 

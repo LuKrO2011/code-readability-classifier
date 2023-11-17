@@ -6,7 +6,12 @@ from readability_classifier.models.base_model import BaseModel
 from readability_classifier.models.extractors.semantic_extractor import (
     SemanticExtractor,
 )
+from readability_classifier.models.extractors.semantic_extractor_krod import (
+    KrodSemanticExtractor,
+)
 from readability_classifier.utils.config import BaseModelConfig, SemanticInput
+
+USE_KROD = True
 
 
 class SemanticModelConfig(BaseModelConfig):
@@ -19,7 +24,10 @@ class SemanticModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        self.input_length = kwargs.get("input_length", 1792)
+        if USE_KROD:
+            self.input_length = kwargs.get("input_length", 640)
+        else:
+            self.input_length = kwargs.get("input_length", 1792)
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
@@ -40,7 +48,10 @@ class SemanticModel(BaseModel):
         super().__init__()
 
         # Feature extractors
-        self.semantic_extractor = SemanticExtractor.build_from_config()
+        if USE_KROD:
+            self.semantic_extractor = KrodSemanticExtractor.build_from_config()
+        else:
+            self.semantic_extractor = SemanticExtractor.build_from_config()
 
         # Define own layers
         self._build_classification_layers(config)

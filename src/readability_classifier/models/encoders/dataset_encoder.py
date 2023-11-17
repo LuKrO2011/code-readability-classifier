@@ -1,6 +1,7 @@
 import logging
 
 import torch
+from torch import Tensor
 
 from readability_classifier.models.encoders.bert_encoder import BertEncoder
 from readability_classifier.models.encoders.dataset_utils import (
@@ -59,6 +60,7 @@ class DatasetEncoder(EncoderInterface):
         # Normalize the scores
         scores = [sample["score"] for sample in unencoded_dataset]
         normalized_scores = self._normalize_scores(scores)
+        # encoded_scores = self._encode_scores(normalized_scores)
 
         # Combine the datasets
         encoded_dataset = []
@@ -68,8 +70,9 @@ class DatasetEncoder(EncoderInterface):
                     "matrix": matrix_dataset[i]["matrix"],
                     "input_ids": bert_dataset[i]["input_ids"],
                     "token_type_ids": bert_dataset[i]["token_type_ids"],
+                    "attention_mask": bert_dataset[i]["attention_mask"],
                     "image": image_dataset[i]["image"],
-                    "score": torch.tensor(normalized_scores[i], dtype=torch.float32),
+                    "score": normalized_scores[i],
                 }
             )
 
@@ -111,3 +114,19 @@ class DatasetEncoder(EncoderInterface):
             ]
 
         return normalized_scores
+
+    @staticmethod
+    def _encode_scores(scores: list[float]) -> Tensor:
+        """
+        Encodes the given scores to a tensor with two classes: Readable and Unreadable.
+        Readable = [1, 0], Unreadable = [0, 1].
+        :param scores: The scores to encode.
+        :return: The encoded scores.
+        """
+        encoded_scores = []
+        for score in scores:
+            if score < 0.5:
+                encoded_scores.append(torch.tensor([1.0, 0.0]))
+            else:
+                encoded_scores.append(torch.tensor([0.0, 1.0]))
+        return torch.stack(encoded_scores)
