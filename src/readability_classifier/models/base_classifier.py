@@ -206,7 +206,9 @@ class BaseClassifier(ABC):
         return loss.item()
 
     @classmethod
-    def _extract(cls, batch: dict) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def _extract(
+        cls, batch: dict
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
         Extracts all data from the batch.
         :param batch: The batch to extract the data from.
@@ -215,9 +217,10 @@ class BaseClassifier(ABC):
         matrix = batch["matrix"]
         input_ids = batch["input_ids"]
         token_type_ids = batch["token_type_ids"]
+        attention_mask = batch["attention_mask"]
         image = batch["image"]
         score = batch["score"].unsqueeze(1)
-        return matrix, input_ids, token_type_ids, image, score
+        return matrix, input_ids, token_type_ids, attention_mask, image, score
 
     @abstractmethod
     def _batch_to_input(self, batch: dict) -> ModelInput:
@@ -242,7 +245,10 @@ class BaseClassifier(ABC):
         :param batch: The batch to convert.
         :return: The scores.
         """
-        return self._to_device(batch["score"])
+        # For Binary:
+        return self._to_device(batch["score"]).unsqueeze(1)
+        # For One Hot:
+        # return self._to_device(batch["score"])
 
     def store(self, path: str = None, epoch: int = None) -> None:
         """

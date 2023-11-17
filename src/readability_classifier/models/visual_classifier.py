@@ -69,6 +69,6 @@ class VisualClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        _, _, _, image, _ = self._extract(batch)
+        _, _, _, _, image, _ = self._extract(batch)
         image = self._to_device(image)
         return VisualInput(image)

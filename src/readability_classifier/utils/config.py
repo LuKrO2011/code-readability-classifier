@@ -37,6 +37,7 @@ class TowardsInput(ModelInput):
     character_matrix: torch.Tensor
     token_input: torch.Tensor
     segment_input: torch.Tensor
+    attention_mask: torch.Tensor
     image: torch.Tensor
 
 
@@ -64,8 +65,9 @@ class SemanticInput(ModelInput):
     Data class for the input of the SemanticModel.
     """
 
-    token_input: torch.Tensor
-    segment_input: torch.Tensor
+    input_ids: torch.Tensor
+    token_type_ids: torch.Tensor
+    attention_mask: torch.Tensor
 
 
 @dataclass(frozen=True)

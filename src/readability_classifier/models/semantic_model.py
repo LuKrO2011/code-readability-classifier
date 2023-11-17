@@ -63,7 +63,9 @@ class SemanticModel(BaseModel):
         :return: The output of the model.
         """
         # Feature extractors
-        semantic_features = self.semantic_extractor(x.token_input, x.segment_input)
+        semantic_features = self.semantic_extractor(
+            x.input_ids, x.token_type_ids, x.attention_mask
+        )
 
         # Pass through dense layers
         return self._forward_classification_layers(semantic_features)

@@ -69,7 +69,8 @@ class SemanticClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        _, input_ids, token_type_ids, _, _ = self._extract(batch)
+        _, input_ids, token_type_ids, attention_mask, _, _ = self._extract(batch)
         input_ids = input_ids.to(self.device)
         token_type_ids = token_type_ids.to(self.device)
-        return SemanticInput(input_ids, token_type_ids)
+        attention_mask = attention_mask.to(self.device)
+        return SemanticInput(input_ids, token_type_ids, attention_mask)

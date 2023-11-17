@@ -73,9 +73,12 @@ class TowardsClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, input_ids, token_type_ids, image, _ = self._extract(batch)
+        matrix, input_ids, token_type_ids, attention_mask, image, _ = self._extract(
+            batch
+        )
         matrix = self._to_device(matrix)
         input_ids = self._to_device(input_ids)
+        attention_mask = self._to_device(attention_mask)
         token_type_ids = self._to_device(token_type_ids)
         image = self._to_device(image)
-        return TowardsInput(matrix, input_ids, token_type_ids, image)
+        return TowardsInput(matrix, input_ids, token_type_ids, attention_mask, image)

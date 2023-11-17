@@ -12,6 +12,12 @@ class KrodBertConfig(BertConfig):
     Configuration class to store the configuration of a `BertEmbedding`.
     """
 
+    # Use:
+    # config = BertConfig.from_pretrained(
+    # 'bert-large-uncased', output_hidden_states=True,
+    #                                     hidden_dropout_prob=0.2,
+    #                                     attention_probs_dropout_prob=0.2)
+
     def __init__(self, **kwargs):
         super().__init__(
             output_hidden_states=True,
@@ -21,7 +27,7 @@ class KrodBertConfig(BertConfig):
         )
 
 
-class KrodBertEmbedding(BaseModel):
+class KrodBertEmbedding:
     """
     A Bert embedding layer.
     """
@@ -29,16 +35,23 @@ class KrodBertEmbedding(BaseModel):
     def __init__(self, config: KrodBertConfig) -> None:
         super().__init__()
         self.model_name = "bert-base-cased"
-        self.model = BertModel.from_pretrained(self.model_name, config=config)
+        self.model = BertModel.from_pretrained(self.model_name)
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # Send the model to the GPU
+        self.model.to(torch.device("cuda"))
+
+    def embed(self, input_ids, token_type_ids, attention_mask):
         """
         Forward pass of the model.
         :param inputs: The input tensor.
         :return: The output of the model.
         """
-        token_input, segment_input = inputs
-        outputs = self.model(token_input, segment_input)
+        outputs = self.model(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            return_dict=True,
+        )
         return outputs.last_hidden_state
 
     @classmethod
@@ -73,7 +86,7 @@ class KrodSemanticExtractor(BaseModel):
         """
         super().__init__()
 
-        self.bert_embedding = KrodBertEmbedding.build_from_config()
+        self.bert_embedding = KrodBertEmbedding(KrodBertConfig())
         self.relu = nn.ReLU()
 
         self.conv1 = nn.Conv1d(
@@ -88,18 +101,25 @@ class KrodSemanticExtractor(BaseModel):
         self.flatten = nn.Flatten()
 
     def forward(
-        self, token_input: torch.Tensor, segment_input: torch.Tensor
+        self,
+        input_ids: torch.Tensor,
+        token_type_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         """
         Forward pass of the model.
-        :param token_input: The token input tensor.
-        :param segment_input: The segment input tensor.
+        :param input_ids: The token input tensor.
+        :param token_type_ids: The segment input tensor.
+        :param attention_mask: The attention mask tensor.
         :return: The output of the model.
         """
-        texture_embedded = self.bert_embedding([token_input, segment_input])
+        # Shape of bert output: (batch_size, sequence_length, hidden_size)
+        texture_embedded = self.bert_embedding.embed(
+            input_ids, token_type_ids, attention_mask
+        )
 
-        # Permute the tensor to fit the convolutional layers
-        texture_embedded = texture_embedded.permute(0, 2, 1)
+        # Shape of texture_embedded: (batch_size, hidden_size, sequence_length)
+        texture_embedded = texture_embedded.transpose(1, 2)
 
         # Apply convolutional and pooling layers
         x = self.relu(self.conv1(texture_embedded))
@@ -109,7 +129,7 @@ class KrodSemanticExtractor(BaseModel):
         x = self.relu(self.conv3(x))
         x = self.pool3(x)
 
-        # Flatten the output of the conv layers
+        # Flatten
         x = self.flatten(x)
 
         return x

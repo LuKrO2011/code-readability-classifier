@@ -104,4 +104,5 @@ class BaseModel(nn.Module, ABC):
         x = self.dense2(x)
         x = self.relu2(x)
         x = self.dense3(x)
-        return self.sigmoid(x)
+        x = self.sigmoid(x)
+        return x
