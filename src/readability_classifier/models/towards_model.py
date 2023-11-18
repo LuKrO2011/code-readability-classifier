@@ -34,7 +34,7 @@ class TowardsModelConfig(BaseModelConfig):
         """
         super().__init__(**kwargs)
         if USE_KROD:
-            self.input_length = kwargs.get("input_length", 16256)
+            self.input_length = kwargs.get("input_length", 10240)
         else:
             self.input_length = kwargs.get("input_length", 17408)
         self.output_length = kwargs.get("output_length", 1)

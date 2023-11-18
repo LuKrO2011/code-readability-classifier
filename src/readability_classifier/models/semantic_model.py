@@ -25,7 +25,7 @@ class SemanticModelConfig(BaseModelConfig):
         """
         super().__init__(**kwargs)
         if USE_KROD:
-            self.input_length = kwargs.get("input_length", 640)
+            self.input_length = kwargs.get("input_length", 448)
         else:
             self.input_length = kwargs.get("input_length", 1792)
         self.output_length = kwargs.get("output_length", 1)

@@ -100,14 +100,24 @@ class KrodSemanticExtractor(BaseModel):
         self.bert_embedding = KrodBertEmbedding(KrodBertConfig.build_config())
         self.relu = nn.ReLU()
 
+        # Convolutional layers
+        # self.conv1 = nn.Conv1d(
+        #     in_channels=768, out_channels=32, kernel_size=5)
+        # self.pool1 = nn.MaxPool1d(kernel_size=5)
+        # self.conv2 = nn.Conv1d(
+        #     in_channels=32, out_channels=32, kernel_size=5)
+
+        # Bidirectional LSTM
+        # self.lstm = nn.LSTM(input_size=32, hidden_size=32, bidirectional=True)
+
         self.conv1 = nn.Conv1d(
-            in_channels=config.input_size, out_channels=32, kernel_size=5
+            in_channels=config.input_size, out_channels=32, kernel_size=2
         )
         self.pool1 = nn.MaxPool1d(kernel_size=2, stride=2)
         self.conv2 = nn.Conv1d(in_channels=32, out_channels=32, kernel_size=2)
         self.pool2 = nn.MaxPool1d(kernel_size=2, stride=2)
         self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3)
-        self.pool3 = nn.MaxPool1d(kernel_size=2, stride=2)
+        self.pool3 = nn.MaxPool1d(kernel_size=3, stride=3)
 
         self.flatten = nn.Flatten()
 
@@ -126,18 +136,35 @@ class KrodSemanticExtractor(BaseModel):
             input_ids, token_type_ids, attention_mask
         )
 
-        # Shape of texture_embedded: (batch_size, hidden_size, sequence_length)
-        texture_embedded = texture_embedded.transpose(1, 2)
+        # Permute the tensor to fit the convolutional layer
+        # -> (batch_size, hidden_size, sequence_length)
+        x = texture_embedded.permute(0, 2, 1)
+
+        # # Apply convolutional and pooling layers
+        # x = self.relu(self.conv1(x))
+        # x = self.pool1(x)
+        # x = self.relu(self.conv2(x))
+        #
+        # # Permute the tensor to fit the LSTM layer
+        # # -> (batch_size, sequence_length, hidden_size)
+        # x = x.permute(0, 2, 1)
+        #
+        # # Apply LSTM
+        # x, _ = self.lstm(x)
+        #
+        # # Flatten the tensor after LSTM
+        # # -> (batch_size, sequence_length * hidden_size)
+        # x = self.flatten(x)
 
         # Apply convolutional and pooling layers
-        x = self.relu(self.conv1(texture_embedded))
+        x = self.relu(self.conv1(x))
         x = self.pool1(x)
         x = self.relu(self.conv2(x))
         x = self.pool2(x)
         x = self.relu(self.conv3(x))
         x = self.pool3(x)
 
-        # Flatten
+        # Flatten the output of the conv layers
         x = self.flatten(x)
 
         return x
