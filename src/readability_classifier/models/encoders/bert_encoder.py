@@ -1,6 +1,7 @@
 import logging
 import re
 
+from torch import Tensor
 from transformers import BertTokenizer
 
 from readability_classifier.models.encoders.dataset_utils import (
@@ -55,6 +56,12 @@ class BertEncoder(EncoderInterface):
         # Flatten the encoded batches
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
 
+        # Encode segment ids
+        # for sample_encoded, sample_unencoded in zip(encoded_dataset,
+        # unencoded_dataset):
+        #     sample_encoded["token_type_ids"] = _calculate_segment_ids(
+        #         sample_unencoded["code_snippet"])
+
         # Log the number of samples in the encoded dataset
         logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
 
@@ -81,10 +88,15 @@ class BertEncoder(EncoderInterface):
         # Log successful encoding
         logging.info("Bert: Text encoded.")
 
+        # Create own segment ids
+        input_ids = encoding["input_ids"]
+        token_type_ids = encoding["token_type_ids"]  # _calculate_segment_ids(input_ids)
+        attention_mask = encoding["attention_mask"]
+
         return {
-            "input_ids": encoding["input_ids"],
-            "token_type_ids": encoding["token_type_ids"],  # Same as segment_ids
-            "attention_mask": encoding["attention_mask"],
+            "input_ids": input_ids,
+            "token_type_ids": token_type_ids,  # Same as segment_ids
+            "attention_mask": attention_mask,
         }
 
     def _encode_batch(self, batch: list[dict], tokenizer: BertTokenizer) -> list[dict]:
@@ -142,3 +154,38 @@ def _split_identifiers(
     new_text = re.sub(snake_case_regex, r"\1 \2 \3", new_text)
 
     return new_text
+
+
+# TODO: This embedding causes an error when passed to Bert
+def _calculate_segment_ids(text: str, length: int = 100, padding=0) -> Tensor:
+    """
+    Calculates the segment ids for the given code snippet.
+    The resulting segment embedding is made up of sentence indexes representing which
+    sentence every token is in.
+    :param text: The code snippet.
+    :param length: The exact length of the segment ids.
+    :param padding: The padding to add, if the length of the segment ids is smaller than
+    the given length.
+    :return: The segment ids.
+    """
+    # Split the code snippet into sentences
+    sentences = re.split(r"\.|\n", text)
+
+    # Calculate the segment ids
+    segment_ids = []
+    for idx, sentence in enumerate(sentences):
+        # Split the sentence into tokens
+        tokens = sentence.split()
+
+        # Add the segment ids for the tokens
+        segment_ids += [idx] * len(tokens)
+
+    # Pad the segment ids if too short
+    segment_ids += [padding] * (length - len(segment_ids))
+
+    # Remove segment ids if too long
+    if len(segment_ids) > length:
+        segment_ids = segment_ids[:length]
+
+    # Convert the segment ids to an int tensor
+    return Tensor(segment_ids).long()
