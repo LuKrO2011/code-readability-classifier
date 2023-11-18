@@ -52,7 +52,7 @@ class VisualExtractor(BaseModel):
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
 
         # In paper: stride not specified
-        self.pool3 = nn.MaxPool2d(kernel_size=3, stride=3)
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # Same as in paper
         self.flatten = nn.Flatten()
