@@ -1,9 +1,10 @@
 import logging
+from dataclasses import dataclass
 
 import torch
 from datasets import Dataset as HFDataset
 from datasets import load_from_disk
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, train_test_split
 from torch.utils.data import DataLoader, Dataset
 
 from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
@@ -125,39 +126,121 @@ def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
     logging.info(f"Stored {len(data)} samples in {data_dir}")
 
 
-def encoded_data_to_dataloaders(
-    encoded_data: ReadabilityDataset,
-    batch_size: int = DEFAULT_MODEL_BATCH_SIZE,
-) -> tuple[DataLoader, DataLoader, DataLoader]:
+@dataclass
+class Datasets:
     """
-    Converts the encoded data to training, validation, and test data loaders.
-    :param encoded_data: The encoded data.
-    :param batch_size: The batch size.
-    :return: A tuple containing the training, validation, and test data loaders.
+    A class for storing the different datasets:
+    - Training Set (further split into train/validation during k-fold CV)
+    - Test Set (completely separate for final model evaluation)
+    Each dataset is a ReadabilityDataset.
+    """
+
+    train_set: ReadabilityDataset
+    test_set: ReadabilityDataset
+
+
+@dataclass
+class Fold:
+    """
+    A class for storing the train and validation sets of a fold:
+    - Training Set
+    - Validation Set
+    Each dataset is a ReadabilityDataset.
+    """
+
+    train_set: ReadabilityDataset
+    val_set: ReadabilityDataset
+
+
+def split_train_test(
+    dataset: ReadabilityDataset,
+) -> Datasets:
+    """
+    Splits the encoded data into Datasets. The datasets contain the training and test
+    data.
+    :param dataset: The encoded data.
+    :return: The datasets containing the training and test data.
     """
     # Split data into training/validation and test data
-    train_val_data, test_data = train_test_split(
-        encoded_data, test_size=0.1, random_state=42
-    )
+    train_data, test_data = train_test_split(dataset, test_size=0.1, random_state=42)
 
-    # Further split training/validation data into training and validation subsets
+    # Convert the split data to ReadabilityDataset
+    train_dataset = ReadabilityDataset(train_data)
+    test_dataset = ReadabilityDataset(test_data)
+
+    # Log the number of samples in the training, validation, and test data
+    logging.info(f"Training data: {len(train_dataset)} samples")
+    logging.info(f"Test data: {len(test_dataset)} samples")
+
+    return Datasets(test_set=test_dataset, train_set=train_dataset)
+
+
+def split_train_val(
+    train_dataset: ReadabilityDataset,
+) -> Fold:
+    """
+    Splits the training data into a training and validation set. Used if no k-fold CV is
+    used.
+    :param train_dataset: The training data.
+    :return: The training and validation sets.
+    """
+    # Split data into training and validation data
     train_data, val_data = train_test_split(
-        train_val_data, test_size=0.1, random_state=42
+        train_dataset, test_size=0.1, random_state=42
     )
 
     # Convert the split data to ReadabilityDataset
     train_dataset = ReadabilityDataset(train_data)
     val_dataset = ReadabilityDataset(val_data)
-    test_dataset = ReadabilityDataset(test_data)
-
-    # Create data loaders for training, validation, and test sets
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Log the number of samples in the training, validation, and test data
     logging.info(f"Training data: {len(train_dataset)} samples")
     logging.info(f"Validation data: {len(val_dataset)} samples")
-    logging.info(f"Test data: {len(test_dataset)} samples")
 
-    return train_loader, val_loader, test_loader
+    return Fold(train_set=train_dataset, val_set=val_dataset)
+
+
+def dataset_to_dataloader(
+    dataset: ReadabilityDataset, batch_size: int = DEFAULT_MODEL_BATCH_SIZE
+) -> DataLoader:
+    """
+    Converts a readability dataset to a data loader.
+    :param dataset: The dataset.
+    :param batch_size: The batch size.
+    :return: The data loader.
+    """
+    # Create data loaders for training, validation, and test sets
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    # Log the number of samples in the training, validation, and test data
+    logging.info(f"Training data: {len(dataset)} samples")
+
+    return loader
+
+
+def split_k_fold(dataset: ReadabilityDataset, k_fold: int = 0) -> list[Fold]:
+    """
+    Splits the training data into k folds.
+    :param dataset: The training data.
+    :param k_fold: The number of folds.
+    :return: The folds.
+    """
+    if k_fold == 0:
+        return [split_train_val(dataset)]
+
+    # Split data into k folds
+    kf = KFold(n_splits=k_fold, shuffle=True, random_state=42)
+
+    # Convert the split data to ReadabilityDataset
+    folds = []
+    for train_index, val_index in kf.split(dataset):
+        train_dataset = ReadabilityDataset([dataset[i] for i in train_index])
+        val_dataset = ReadabilityDataset([dataset[i] for i in val_index])
+        folds.append(Fold(train_set=train_dataset, val_set=val_dataset))
+
+    # Log the number of folds and the number of samples in the first fold
+    logging.info(f"Number of folds: {k_fold}")
+    logging.info(f"Training data in first fold: {len(folds[0].train_set)} samples")
+    logging.info(f"Validation data in first fold: {len(folds[0].val_set)} samples")
+
+    return folds

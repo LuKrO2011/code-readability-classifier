@@ -8,9 +8,11 @@ from typing import Any
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.models.encoders.dataset_utils import (
-    encoded_data_to_dataloaders,
+    dataset_to_dataloader,
     load_encoded_dataset,
     load_raw_dataset,
+    split_train_test,
+    split_train_val,
     store_encoded_dataset,
 )
 from readability_classifier.models.semantic_classifier import SemanticClassifier
@@ -162,6 +164,15 @@ def _set_up_arg_parser() -> ArgumentParser:
         help="Whether the model should be evaluated after training.",
     )
     train_parser.add_argument(
+        "--k-fold",
+        "-k",
+        required=False,
+        type=int,
+        default=0,
+        help="The number of folds for k-fold cross-validation. "
+        "If 0, no cross-validation is performed.",
+    )
+    train_parser.add_argument(
         "--batch-size",
         "-b",
         required=False,
@@ -239,6 +250,7 @@ def _set_up_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
+# TODO: Use builder pattern for the models
 def _run_train(parsed_args) -> None:
     """
     Runs the training of the readability classifier.
@@ -246,15 +258,11 @@ def _run_train(parsed_args) -> None:
     :return: None
     """
     # Get the parsed arguments
-    model = parsed_args.model
     data_dir = parsed_args.input
     encoded = parsed_args.encoded
     store_dir = parsed_args.save
     intermediate_dir = parsed_args.intermediate
-    evaluate = parsed_args.evaluate
-    batch_size = parsed_args.batch_size
-    num_epochs = parsed_args.epochs
-    learning_rate = parsed_args.learning_rate
+    k_fold = parsed_args.k_fold
 
     # Create the store directory if it does not exist
     if not os.path.isdir(store_dir):
@@ -270,10 +278,35 @@ def _run_train(parsed_args) -> None:
     else:
         encoded_data = load_encoded_dataset(data_dir)
 
-    # Create the dataloaders
-    train_loader, val_loader, test_loader = encoded_data_to_dataloaders(
-        encoded_data, batch_size
-    )
+    if k_fold == 0:
+        _run_without_cross_validation(parsed_args, encoded_data)
+    else:
+        _run_with_cross_validation(parsed_args, encoded_data)
+
+
+def _run_without_cross_validation(parsed_args, encoded_data):
+    """
+    Runs the training of the readability classifier without cross-validation.
+    :param parsed_args: Parsed arguments.
+    :param encoded_data: The encoded dataset.
+    :return: None
+    """
+    # Get the parsed arguments
+    model = parsed_args.model
+    store_dir = parsed_args.save
+    evaluate = parsed_args.evaluate
+    batch_size = parsed_args.batch_size
+    num_epochs = parsed_args.epochs
+    learning_rate = parsed_args.learning_rate
+
+    # Split the dataset
+    train_test = split_train_test(encoded_data)
+    train_dataset, test_dataset = train_test.train_set, train_test.test_set
+    train_val = split_train_val(train_dataset)
+    train_dataset, test_dataset = train_val.train_set, train_val.val_set
+    train_loader = dataset_to_dataloader(train_dataset, batch_size)
+    val_loader = dataset_to_dataloader(test_dataset, batch_size)
+    test_loader = dataset_to_dataloader(train_test.test_set, batch_size)
 
     # Build the model
     if model == Model.TOWARDS:
@@ -337,6 +370,77 @@ def _run_train(parsed_args) -> None:
         classifier.evaluate()
 
 
+def _run_with_cross_validation(parsed_args, encoded_data):
+    """
+    Runs the training of the readability classifier with cross-validation.
+    :param parsed_args: Parsed arguments.
+    :param encoded_data: The encoded dataset.
+    :return: None
+    """
+    # Get the parsed arguments
+    model = parsed_args.model
+    store_dir = parsed_args.save
+    batch_size = parsed_args.batch_size
+    num_epochs = parsed_args.epochs
+    learning_rate = parsed_args.learning_rate
+
+    # Build the model
+    train_test = split_train_test(encoded_data)
+    train_dataset, test_dataset = train_test.train_set, train_test.test_set
+
+    # Build the model
+    if model == Model.TOWARDS:
+        classifier = TowardsClassifier(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    elif model == Model.STRUCTURAL:
+        classifier = StructuralClassifier(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    elif model == Model.VISUAL:
+        classifier = VisualClassifier(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    elif model == Model.SEMANTIC:
+        classifier = SemanticClassifier(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    elif model == Model.VIST:
+        classifier = ViStClassifier(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+        )
+    else:
+        raise ModelNotSupportedException(f"{model} is not a supported model.")
+
+    # Train the model
+    classifier.k_fold_cv()
+
+
 def _run_predict(parsed_args):
     """
     Runs the prediction of the readability classifier.
@@ -373,8 +477,10 @@ def _run_evaluate(parsed_args):
     # Load the dataset
     encoded_data = load_encoded_dataset(data_dir)
 
-    # TODO: Create method that only takes test set as input
-    _, _, test_loader = encoded_data_to_dataloaders(encoded_data, batch_size)
+    # TODO: Split once and store the split
+    logging.warning("The test set used is not unseen data!")
+    test_dataset = split_train_test(encoded_data).test_set
+    test_loader = dataset_to_dataloader(test_dataset, batch_size)
 
     # Load the model
     if model == Model.TOWARDS:

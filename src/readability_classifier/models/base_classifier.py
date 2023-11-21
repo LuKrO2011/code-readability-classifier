@@ -21,8 +21,52 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.models.encoders.dataset_utils import (
+    ReadabilityDataset,
+    dataset_to_dataloader,
+    split_k_fold,
+)
 from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, ModelInput
 from readability_classifier.utils.utils import save_content_to_file
+
+
+@dataclass(frozen=True, eq=True)
+class EpochStats:
+    """
+    Data class for epoch stats.
+    """
+
+    epoch: int
+    train_loss: float
+    test_loss: float
+
+    def to_json(self) -> str:
+        """
+        Convert to json.
+        :return: Returns the json string.
+        """
+        return json.dumps(asdict(self))
+
+
+@dataclass(eq=True)
+class TrainStats:
+    """
+    Data class for training stats.
+    """
+
+    best_epoch: int
+    epoch_stats: list[EpochStats]
+    start_time: int = int(time())
+    end_time: int = int(time())
+
+    def to_json(self) -> str:
+        """
+        Convert to json.
+        :return: Returns the json string.
+        """
+        # Update end time every time when stats are saved
+        self.end_time = int(time())
+        return json.dumps(asdict(self))
 
 
 @dataclass(frozen=True, eq=True)
@@ -47,12 +91,100 @@ class EvaluationStats:
         return json.dumps(asdict(self))
 
 
+@dataclass
+class KFoldStats:
+    """
+    Data class for k-fold evaluation stats. Contains max, min, mean and std of the
+    evaluation metrics and the evaluation stats of each fold.
+    """
+
+    max_accuracy: float
+    min_accuracy: float
+    mean_accuracy: float
+    std_accuracy: float
+
+    max_precision: float
+    min_precision: float
+    mean_precision: float
+    std_precision: float
+
+    max_recall: float
+    min_recall: float
+    mean_recall: float
+    std_recall: float
+
+    max_f1: float
+    min_f1: float
+    mean_f1: float
+    std_f1: float
+
+    max_auc: float
+    min_auc: float
+    mean_auc: float
+    std_auc: float
+
+    max_mcc: float
+    min_mcc: float
+    mean_mcc: float
+    std_mcc: float
+
+    fold_stats: list[EvaluationStats]
+
+    def __init__(self, fold_stats: list[EvaluationStats]) -> None:
+        """
+        Initialize the k-fold stats and calculate the max, min, mean and std of the
+        evaluation metrics.
+        :param fold_stats: The evaluation stats of each fold.
+        """
+        self.fold_stats = fold_stats
+
+        # Calculate the max, min, mean and std of the evaluation metrics
+        self.max_accuracy = max([stats.accuracy for stats in fold_stats])
+        self.min_accuracy = min([stats.accuracy for stats in fold_stats])
+        self.mean_accuracy = np.mean([stats.accuracy for stats in fold_stats])
+        self.std_accuracy = np.std([stats.accuracy for stats in fold_stats])
+
+        self.max_precision = max([stats.precision for stats in fold_stats])
+        self.min_precision = min([stats.precision for stats in fold_stats])
+        self.mean_precision = np.mean([stats.precision for stats in fold_stats])
+        self.std_precision = np.std([stats.precision for stats in fold_stats])
+
+        self.max_recall = max([stats.recall for stats in fold_stats])
+        self.min_recall = min([stats.recall for stats in fold_stats])
+        self.mean_recall = np.mean([stats.recall for stats in fold_stats])
+        self.std_recall = np.std([stats.recall for stats in fold_stats])
+
+        self.max_f1 = max([stats.f1 for stats in fold_stats])
+        self.min_f1 = min([stats.f1 for stats in fold_stats])
+        self.mean_f1 = np.mean([stats.f1 for stats in fold_stats])
+        self.std_f1 = np.std([stats.f1 for stats in fold_stats])
+
+        self.max_auc = max([stats.auc for stats in fold_stats])
+        self.min_auc = min([stats.auc for stats in fold_stats])
+        self.mean_auc = np.mean([stats.auc for stats in fold_stats])
+        self.std_auc = np.std([stats.auc for stats in fold_stats])
+
+        self.max_mcc = max([stats.mcc for stats in fold_stats])
+        self.min_mcc = min([stats.mcc for stats in fold_stats])
+        self.mean_mcc = np.mean([stats.mcc for stats in fold_stats])
+        self.std_mcc = np.std([stats.mcc for stats in fold_stats])
+
+    def to_json(self) -> str:
+        """
+        Convert to json.
+        :return: Returns the json string.
+        """
+        return json.dumps(asdict(self))
+
+
 class BaseClassifier(ABC):
     def __init__(
         self,
         model: nn.Module = None,
         criterion: nn.Module = None,
         optimizer: torch.optim.Optimizer = None,
+        train_dataset: ReadabilityDataset = None,
+        test_dataset: ReadabilityDataset = None,
         train_loader: DataLoader = None,
         val_loader: DataLoader = None,
         test_loader: DataLoader = None,
@@ -65,6 +197,9 @@ class BaseClassifier(ABC):
         Initializes the classifier.
         :param model: The model.
         :param criterion: The loss function.
+        :param optimizer: The optimizer.
+        :param train_dataset: The training data.
+        :param test_dataset: The test data.
         :param train_loader: The data loader for the training data.
         :param val_loader: The data loader for the validation data.
         :param test_loader: The data loader for the test data.
@@ -75,6 +210,9 @@ class BaseClassifier(ABC):
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
+        self.initial_optimizer_state_dict = optimizer.state_dict()
+        self.train_dataset = train_dataset
+        self.test_dataset = test_dataset
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.val_loader = val_loader
@@ -87,10 +225,77 @@ class BaseClassifier(ABC):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
-    def fit(self):
+    def k_fold_cv(self, k: int = 10) -> KFoldStats:
+        """
+        Performs k-fold cross validation.
+        :param k: The number of folds.
+        :return: All stats about the k-fold cross validation.
+        """
+        if self.train_dataset is None:
+            raise ValueError("No training data provided.")
+
+        if self.test_dataset is None:
+            raise ValueError("No test data provided.")
+
+        folds = split_k_fold(self.train_dataset, k_fold=k)
+
+        fold_stats = []
+
+        for idx, fold in enumerate(folds):
+            # Log the current fold
+            logging.info(f"Fold {idx + 1}/{k}")
+
+            # Fit the model
+            train_loader = dataset_to_dataloader(
+                fold.train_set, batch_size=self.batch_size
+            )
+            val_loader = dataset_to_dataloader(fold.val_set, batch_size=self.batch_size)
+            self.train_loader = train_loader
+            self.val_loader = val_loader
+            _ = self.fit()
+
+            # Evaluate the model
+            test_loader = dataset_to_dataloader(
+                self.test_dataset, batch_size=self.batch_size
+            )
+            self.test_loader = test_loader
+            stats = self.evaluate()
+            fold_stats.append(stats)
+
+            # Reset the model
+            self.model = self.model.__class__.build_from_config()
+            self.model.to(self.device)
+
+            # Reset the optimizer using the initial state dict
+            self.optimizer = self.optimizer.__class__(
+                self.model.parameters(), lr=self.learning_rate
+            )
+            self.optimizer.load_state_dict(self.initial_optimizer_state_dict)
+
+        # Log the k-fold stats
+        stats = KFoldStats(fold_stats)
+        logging.info(
+            f"Max Accuracy: {stats.max_accuracy:.4f}\n"
+            f"Max Precision: {stats.max_precision:.4f}\n"
+            f"Max Recall: {stats.max_recall:.4f}\n"
+            f"Max F1: {stats.max_f1:.4f}\n"
+            f"Max AUC: {stats.max_auc:.4f}\n"
+            f"Max MCC: {stats.max_mcc:.4f}\n"
+        )
+
+        # Save the k-fold stats
+        save_content_to_file(
+            stats.to_json(),
+            self.store_dir / Path("k_fold_stats.json"),
+        )
+
+        return stats
+
+    # TODO: Allow alternative initialization via dataset instead of data loader
+    def fit(self) -> TrainStats:
         """
         Trains the model.
-        :return: None
+        :return: The training stats.
         """
         if self.train_loader is None:
             raise ValueError("No training data provided.")
@@ -118,6 +323,7 @@ class BaseClassifier(ABC):
                 f"Val   PPL:  {math.exp(val_loss):7.4f}"
             )
 
+            # TODO: Adjust for k-fold
             # Save the model
             self.store(epoch=epoch + 1)
 
@@ -134,6 +340,7 @@ class BaseClassifier(ABC):
         )
 
         logging.info("Training done.")
+        return train_stats
 
     def _fit_batch(self, x_batch: ModelInput, y_batch: Tensor) -> float:
         """
@@ -365,42 +572,3 @@ class BaseClassifier(ABC):
             auc=auc,
             mcc=mcc,
         )
-
-
-@dataclass(frozen=True, eq=True)
-class EpochStats:
-    """
-    Data class for epoch stats.
-    """
-
-    epoch: int
-    train_loss: float
-    test_loss: float
-
-    def to_json(self) -> str:
-        """
-        Convert to json.
-        :return: Returns the json string.
-        """
-        return json.dumps(asdict(self))
-
-
-@dataclass(eq=True)
-class TrainStats:
-    """
-    Data class for training stats.
-    """
-
-    best_epoch: int
-    epoch_stats: list[EpochStats]
-    start_time: int = int(time())
-    end_time: int = int(time())
-
-    def to_json(self) -> str:
-        """
-        Convert to json.
-        :return: Returns the json string.
-        """
-        # Update end time every time when stats are saved
-        self.end_time = int(time())
-        return json.dumps(asdict(self))

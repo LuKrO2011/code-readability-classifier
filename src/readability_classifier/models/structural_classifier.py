@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.models.base_classifier import BaseClassifier
+from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
 from readability_classifier.models.structural_model import StructuralModel
 from readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
@@ -24,6 +25,8 @@ class StructuralClassifier(BaseClassifier):
     def __init__(
         self,
         model_path: Path = None,
+        train_dataset: ReadabilityDataset = None,
+        test_dataset: ReadabilityDataset = None,
         train_loader: DataLoader = None,
         val_loader: DataLoader = None,
         test_loader: DataLoader = None,
@@ -54,6 +57,8 @@ class StructuralClassifier(BaseClassifier):
             model=model,
             criterion=criterion,
             optimizer=optimizer,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
             train_loader=train_loader,
             val_loader=val_loader,
             test_loader=test_loader,
