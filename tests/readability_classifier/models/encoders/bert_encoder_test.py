@@ -34,3 +34,19 @@ def test_encode_bert(bert_encoder):
 
     # Clean up temporary directories
     temp_dir.cleanup()
+
+
+def test_encode_text(bert_encoder):
+    data_dir = "res/raw_datasets/scalabrio"
+
+    # Load raw data
+    raw_data = load_raw_dataset(data_dir)
+
+    # Get the first code snippet
+    text = raw_data[0]["code_snippet"]
+
+    # Encode text
+    encoded_text = bert_encoder.encode_text(text)
+
+    # Check if encoded text is not empty
+    assert len(encoded_text) > 0

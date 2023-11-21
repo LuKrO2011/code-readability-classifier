@@ -56,12 +56,6 @@ class BertEncoder(EncoderInterface):
         # Flatten the encoded batches
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
 
-        # Encode segment ids
-        # for sample_encoded, sample_unencoded in zip(encoded_dataset,
-        # unencoded_dataset):
-        #     sample_encoded["token_type_ids"] = _calculate_segment_ids(
-        #         sample_unencoded["code_snippet"])
-
         # Log the number of samples in the encoded dataset
         logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
 
@@ -88,9 +82,8 @@ class BertEncoder(EncoderInterface):
         # Log successful encoding
         logging.info("Bert: Text encoded.")
 
-        # Create own segment ids
         input_ids = encoding["input_ids"]
-        token_type_ids = encoding["token_type_ids"]  # _calculate_segment_ids(input_ids)
+        token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
         attention_mask = encoding["attention_mask"]
 
         return {
@@ -156,20 +149,33 @@ def _split_identifiers(
     return new_text
 
 
-# TODO: This embedding causes an error when passed to Bert
-def _calculate_segment_ids(text: str, length: int = 100, padding=0) -> Tensor:
+def _calculate_segment_ids(
+    decoded_text: str, length: int = 100, padding=0, remove_empty_lines=False
+) -> Tensor:
     """
     Calculates the segment ids for the given code snippet.
     The resulting segment embedding is made up of sentence indexes representing which
     sentence every token is in.
-    :param text: The code snippet.
+    :param decoded_text: The encoded and decoded code snippet.
     :param length: The exact length of the segment ids.
     :param padding: The padding to add, if the length of the segment ids is smaller than
     the given length.
+    :param remove_empty_lines: Whether to remove empty lines from the code snippet.
     :return: The segment ids.
+
+    NOT WORKING:
+    - DECODED LENGTH != 100
+    - BERT can take as input either one or two sentences and uses the special token
+    [SEP] to differentiate them. Not more than that.
+    https://stackoverflow.com/questions/63609038/can-bert-takes-more-than-2-sentences-for-word-embeddings
     """
-    # Split the code snippet into sentences
-    sentences = re.split(r"\.|\n", text)
+    # Split the code snippet into sentences by [SEP] but keep the [SEP] in the second
+    # part of the split
+    sentences = split_with_sep(decoded_text)
+
+    # Remove empty sentences (e.g. empty lines, only spaces or tabs)
+    if remove_empty_lines:
+        sentences = [sentence for sentence in sentences if sentence.strip() != ""]
 
     # Calculate the segment ids
     segment_ids = []
@@ -183,9 +189,46 @@ def _calculate_segment_ids(text: str, length: int = 100, padding=0) -> Tensor:
     # Pad the segment ids if too short
     segment_ids += [padding] * (length - len(segment_ids))
 
-    # Remove segment ids if too long
+    # Remove segment ids if too long. Should not happen.
     if len(segment_ids) > length:
+        logging.warning("Segment ids are longer than the given length.")
         segment_ids = segment_ids[:length]
 
     # Convert the segment ids to an int tensor
     return Tensor(segment_ids).long()
+
+
+def split_with_sep(text: str, sep: str = "[SEP]") -> list[str]:
+    """
+    Splits the given text with the given separator and keeps the separator in the second
+    part of the split.
+    :param text: The text to split.
+    :param sep: The separator to split the text with.
+    :return: The split text.
+    """
+    sentences = text.split(sep)
+
+    # Add [SEP] everywhere except the last sentence
+    for i in range(len(sentences) - 1):
+        sentences[i] += sep
+
+    return sentences
+
+
+def _add_separators(text: str) -> str:
+    """
+    Adds separators to the given text for each new line.
+    :param text: The text to add separators to.
+    :return: The text with separators.
+    """
+    # Split the text into sentences
+    sentences = re.split(r"\n", text)
+
+    # Remove empty sentences (e.g. empty lines, only spaces or tabs)
+    sentences = [sentence for sentence in sentences if sentence.strip() != ""]
+
+    # Add separators to the sentences
+    sentences = [sentence + " [SEP]" for sentence in sentences]
+
+    # Join the sentences to a text again
+    return "\n".join(sentences)
