@@ -37,6 +37,8 @@ class DatasetEncoder(EncoderInterface):
         bert = self.bert_encoder.encode_text(code_text)
         image = self.visual_encoder.encode_text(code_text)
 
+        # TODO: Add score normalization and encoding
+
         # Log successful encoding
         logging.info("All: Encoding done.")
 
@@ -60,7 +62,7 @@ class DatasetEncoder(EncoderInterface):
         # Normalize the scores
         scores = [sample["score"] for sample in unencoded_dataset]
         normalized_scores = self._normalize_scores(scores)
-        # encoded_scores = self._encode_scores(normalized_scores)
+        encoded_scores = self._encode_scores_regression(normalized_scores)
 
         # Combine the datasets
         encoded_dataset = []
@@ -72,7 +74,7 @@ class DatasetEncoder(EncoderInterface):
                     "token_type_ids": bert_dataset[i]["token_type_ids"],
                     "attention_mask": bert_dataset[i]["attention_mask"],
                     "image": image_dataset[i]["image"],
-                    "score": normalized_scores[i],
+                    "score": encoded_scores[i],
                 }
             )
 
@@ -116,7 +118,7 @@ class DatasetEncoder(EncoderInterface):
         return normalized_scores
 
     @staticmethod
-    def _encode_scores(scores: list[float]) -> Tensor:
+    def _encode_scores_classes(scores: list[float]) -> Tensor:
         """
         Encodes the given scores to a tensor with two classes: Readable and Unreadable.
         Readable = [1, 0], Unreadable = [0, 1].
@@ -130,3 +132,12 @@ class DatasetEncoder(EncoderInterface):
             else:
                 encoded_scores.append(torch.tensor([0.0, 1.0]))
         return torch.stack(encoded_scores)
+
+    @staticmethod
+    def _encode_scores_regression(scores: list[float]) -> Tensor:
+        """
+        Encodes the given scores to a tensor with one score: Readability.
+        :param scores: The scores to encode.
+        :return: The encoded scores.
+        """
+        return torch.tensor(scores)
