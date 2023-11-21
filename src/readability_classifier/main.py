@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from readability_classifier.model_buider import ClassifierBuilder, Model
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.models.encoders.dataset_utils import (
     dataset_to_dataloader,
@@ -15,11 +16,7 @@ from readability_classifier.models.encoders.dataset_utils import (
     split_train_val,
     store_encoded_dataset,
 )
-from readability_classifier.models.semantic_classifier import SemanticClassifier
-from readability_classifier.models.structural_classifier import StructuralClassifier
 from readability_classifier.models.towards_classifier import TowardsClassifier
-from readability_classifier.models.vi_st_classifier import ViStClassifier
-from readability_classifier.models.visual_classifier import VisualClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
@@ -66,12 +63,6 @@ class TaskNotSupportedException(Exception):
     """
 
 
-class ModelNotSupportedException(Exception):
-    """
-    Exception is thrown whenever a model is not supported.
-    """
-
-
 class Tasks(Enum):
     """
     Enum for the different tasks of the readability classifier.
@@ -84,25 +75,6 @@ class Tasks(Enum):
     @classmethod
     def _missing_(cls, value: object) -> Any:
         raise TaskNotSupportedException(f"{value} is a not supported Task!")
-
-    def __str__(self) -> str:
-        return self.value
-
-
-class Model(Enum):
-    """
-    Enum for the different models.
-    """
-
-    TOWARDS = "TOWARDS"
-    STRUCTURAL = "STRUCTURAL"
-    VISUAL = "VISUAL"
-    SEMANTIC = "SEMANTIC"
-    VIST = "VIST"
-
-    @classmethod
-    def _missing_(cls, value: object) -> Any:
-        raise ModelNotSupportedException(f"{value} is not a supported model.")
 
     def __str__(self) -> str:
         return self.value
@@ -250,7 +222,6 @@ def _set_up_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
-# TODO: Use builder pattern for the models
 def _run_train(parsed_args) -> None:
     """
     Runs the training of the readability classifier.
@@ -309,58 +280,11 @@ def _run_without_cross_validation(parsed_args, encoded_data):
     test_loader = dataset_to_dataloader(train_test.test_set, batch_size)
 
     # Build the model
-    if model == Model.TOWARDS:
-        classifier = TowardsClassifier(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.STRUCTURAL:
-        classifier = StructuralClassifier(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.VISUAL:
-        classifier = VisualClassifier(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.SEMANTIC:
-        classifier = SemanticClassifier(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.VIST:
-        classifier = ViStClassifier(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    else:
-        raise ModelNotSupportedException(f"{model} is not a supported model.")
+    builder = ClassifierBuilder()
+    builder.set_model(model)
+    builder.set_dataloaders(train_loader, test_loader, val_loader)
+    builder.set_parameters(store_dir, batch_size, num_epochs, learning_rate)
+    classifier = builder.build()
 
     # Train the model
     classifier.fit()
@@ -389,53 +313,11 @@ def _run_with_cross_validation(parsed_args, encoded_data):
     train_dataset, test_dataset = train_test.train_set, train_test.test_set
 
     # Build the model
-    if model == Model.TOWARDS:
-        classifier = TowardsClassifier(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.STRUCTURAL:
-        classifier = StructuralClassifier(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.VISUAL:
-        classifier = VisualClassifier(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.SEMANTIC:
-        classifier = SemanticClassifier(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    elif model == Model.VIST:
-        classifier = ViStClassifier(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            store_dir=store_dir,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-        )
-    else:
-        raise ModelNotSupportedException(f"{model} is not a supported model.")
+    builder = ClassifierBuilder()
+    builder.set_model(model)
+    builder.set_datasets(train_dataset, test_dataset)
+    builder.set_parameters(store_dir, batch_size, num_epochs, learning_rate)
+    classifier = builder.build()
 
     # Train the model
     classifier.k_fold_cv()
@@ -483,28 +365,12 @@ def _run_evaluate(parsed_args):
     test_loader = dataset_to_dataloader(test_dataset, batch_size)
 
     # Load the model
-    if model == Model.TOWARDS:
-        classifier = TowardsClassifier(
-            model_path=model_path, test_loader=test_loader, batch_size=batch_size
-        )
-    elif model == Model.STRUCTURAL:
-        classifier = StructuralClassifier(
-            model_path=model_path, test_loader=test_loader, batch_size=batch_size
-        )
-    elif model == Model.VISUAL:
-        classifier = VisualClassifier(
-            model_path=model_path, test_loader=test_loader, batch_size=batch_size
-        )
-    elif model == Model.SEMANTIC:
-        classifier = SemanticClassifier(
-            model_path=model_path, test_loader=test_loader, batch_size=batch_size
-        )
-    elif model == Model.VIST:
-        classifier = ViStClassifier(
-            model_path=model_path, test_loader=test_loader, batch_size=batch_size
-        )
-    else:
-        raise ModelNotSupportedException(f"{model} is not a supported model.")
+    builder = ClassifierBuilder()
+    builder.set_model(model)
+    builder.set_evaluation_loader(test_loader)
+    builder.set_model_path(model_path)
+    builder.set_batch_size(batch_size)
+    classifier = builder.build()
 
     # Evaluate the model
     classifier.evaluate()
