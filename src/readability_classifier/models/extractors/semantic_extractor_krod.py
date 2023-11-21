@@ -41,7 +41,7 @@ class KrodBertConfig(BertConfig):
         return load_yaml_file(CONFIGS_PATH / f"{cls.__name__.lower()}.yaml")
 
 
-class KrodBertEmbedding:
+class KrodBertEmbedding(BaseModel):
     """
     A Bert embedding layer.
     """
@@ -52,21 +52,20 @@ class KrodBertEmbedding:
         self.model = BertModel.from_pretrained(self.model_name, config=config)
 
         # Send the model to the GPU
-        self.model.to(torch.device("cuda"))
+        self.model.to(self.device)
 
-    def embed(
+    def forward(
         self,
-        input_ids: torch.Tensor,
-        token_type_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
+        x: SemanticInput,
     ) -> torch.Tensor:
         """
         Embed the input using Bert.
-        :param input_ids: The token input tensor.
-        :param token_type_ids: The segment input tensor.
-        :param attention_mask: The attention mask tensor.
+        :param x: The input.
         :return:
         """
+        input_ids = x.input_ids
+        token_type_ids = x.token_type_ids
+        attention_mask = x.attention_mask
         outputs = self.model(
             input_ids=input_ids,
             token_type_ids=token_type_ids,
@@ -74,6 +73,16 @@ class KrodBertEmbedding:
             return_dict=True,
         )
         return outputs.last_hidden_state
+
+    @classmethod
+    def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
+        """
+        Build the model from a config.
+        :param params: The config.
+        :param save: The path to save the model.
+        :return: Returns the model.
+        """
+        return cls(KrodBertConfig(**params))
 
 
 class KrodSemanticExtractorConfig:
@@ -97,7 +106,7 @@ class KrodSemanticExtractor(BaseModel):
         """
         super().__init__()
 
-        self.bert_embedding = KrodBertEmbedding(KrodBertConfig.build_config())
+        self.bert_embedding = KrodBertEmbedding.build_from_config()
         self.relu = nn.ReLU()
 
         # Convolutional layers
@@ -127,14 +136,9 @@ class KrodSemanticExtractor(BaseModel):
         :param x: The input of the model.
         :return: The output of the model.
         """
-        input_ids = x.input_ids
-        token_type_ids = x.token_type_ids
-        attention_mask = x.attention_mask
-
         # Shape of bert output: (batch_size, sequence_length, hidden_size)
-        texture_embedded = self.bert_embedding.embed(
-            input_ids, token_type_ids, attention_mask
-        )
+        with torch.no_grad():
+            texture_embedded = self.bert_embedding(x)
 
         # Permute the tensor to fit the convolutional layer
         # -> (batch_size, hidden_size, sequence_length)
