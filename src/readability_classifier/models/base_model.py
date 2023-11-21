@@ -28,6 +28,7 @@ class BaseModel(nn.Module, ABC):
         Initializes the model.
         """
         super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @abstractmethod
     def forward(self, x: ModelInput) -> torch.Tensor:
@@ -106,3 +107,12 @@ class BaseModel(nn.Module, ABC):
         x = self.dense3(x)
         x = self.sigmoid(x)
         return x
+
+    def _update_input_length(self, input_length: int) -> None:
+        """
+        Update the input length of the forward classification layers, if needed.
+        :param input_length: The new input length.
+        """
+        if input_length != self.dense1.in_features:
+            self.dense1 = nn.Linear(input_length, 64)
+            self.dense1.to(self.device)

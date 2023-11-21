@@ -17,7 +17,7 @@ class VisualModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        self.input_length = kwargs.get("input_length", 12544)
+        self.input_length = kwargs.get("input_length", 1)  # Overwritten as needed
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
@@ -51,6 +51,9 @@ class VisualModel(BaseModel):
         """
         # Feature extractors
         visual_features = self.visual_extractor(x.image)
+
+        # Update the input length of the forward classification layers
+        self._update_input_length(visual_features.shape[1])
 
         # Pass through dense layers
         return self._forward_classification_layers(visual_features)

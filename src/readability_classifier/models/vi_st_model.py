@@ -20,7 +20,7 @@ class ViStModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        self.input_length = kwargs.get("input_length", 15616)
+        self.input_length = kwargs.get("input_length", 1)  # Overwritten as needed
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
@@ -61,6 +61,9 @@ class ViStModel(BaseModel):
 
         # Concatenate features
         features = torch.cat((visual_features, structural_features), dim=1)
+
+        # Update the input length of the forward classification layers
+        self._update_input_length(features.shape[1])
 
         # Pass through dense layers
         return self._forward_classification_layers(features)

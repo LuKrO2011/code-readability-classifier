@@ -33,10 +33,7 @@ class TowardsModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        if USE_KROD:
-            self.input_length = kwargs.get("input_length", 17600)
-        else:
-            self.input_length = kwargs.get("input_length", 17408)
+        self.input_length = kwargs.get("input_length", 1)  # Overwritten as needed
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
@@ -92,12 +89,15 @@ class TowardsModel(BaseModel):
         visual_features = self.visual_extractor(x.image)
 
         # Concatenate the inputs
-        concatenated = torch.cat(
+        features = torch.cat(
             (structural_features, semantic_features, visual_features), dim=-1
         )
 
+        # Update the input length of the forward classification layers
+        self._update_input_length(features.shape[1])
+
         # Pass through dense layers
-        return self._forward_classification_layers(concatenated)
+        return self._forward_classification_layers(features)
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

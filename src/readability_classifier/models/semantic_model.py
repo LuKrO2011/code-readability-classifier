@@ -24,10 +24,7 @@ class SemanticModelConfig(BaseModelConfig):
         Initialize the config.
         """
         super().__init__(**kwargs)
-        if USE_KROD:
-            self.input_length = kwargs.get("input_length", 448)
-        else:
-            self.input_length = kwargs.get("input_length", 1792)
+        self.input_length = kwargs.get("input_length", 1)  # Overwritten as needed
         self.output_length = kwargs.get("output_length", 1)
         self.dropout = kwargs.get("dropout", 0.5)
 
@@ -64,6 +61,9 @@ class SemanticModel(BaseModel):
         """
         # Feature extractors
         semantic_features = self.semantic_extractor(x)
+
+        # Update the input length of the forward classification layers
+        self._update_input_length(semantic_features.shape[1])
 
         # Pass through dense layers
         return self._forward_classification_layers(semantic_features)
