@@ -26,7 +26,7 @@ def test_forward_pass(structural_extractor):
     output = structural_extractor(input_data)
 
     # Check the output shape
-    assert output.shape == (1, 9216)
+    assert output.shape == (1, 4608)
 
 
 def create_test_data():

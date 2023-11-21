@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
+from readability_classifier.models.fc_model import FullyConnectedModel
 from readability_classifier.utils.config import BaseModelConfig, ModelInput
 from readability_classifier.utils.utils import load_yaml_file
 
@@ -85,13 +86,7 @@ class BaseModel(nn.Module, ABC):
         Defines the own classification layers of the model.
         :param config: The config for the model.
         """
-        self.dense1 = nn.Linear(config.input_length, 64)
-        self.relu = nn.ReLU()
-        self.dropout1 = nn.Dropout(config.dropout)
-        self.dense2 = nn.Linear(64, 16)
-        self.relu2 = nn.ReLU()
-        self.dense3 = nn.Linear(16, config.output_length)
-        self.sigmoid = nn.Sigmoid()
+        self.fc_model = FullyConnectedModel(config)
 
     def _forward_classification_layers(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -99,20 +94,11 @@ class BaseModel(nn.Module, ABC):
         :param x: The input.
         :return: The output.
         """
-        x = self.dense1(x)
-        x = self.relu(x)
-        x = self.dropout1(x)
-        x = self.dense2(x)
-        x = self.relu2(x)
-        x = self.dense3(x)
-        x = self.sigmoid(x)
-        return x
+        return self.fc_model(x)
 
     def _update_input_length(self, input_length: int) -> None:
         """
         Update the input length of the forward classification layers, if needed.
         :param input_length: The new input length.
         """
-        if input_length != self.dense1.in_features:
-            self.dense1 = nn.Linear(input_length, 64)
-            self.dense1.to(self.device)
+        self.fc_model.update_input_length(input_length, self.device)
