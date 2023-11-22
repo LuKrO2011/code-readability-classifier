@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=cayman      # Specify the partition (Cayman cluster)
+#SBATCH --partition=anywhere    # Specify the partition
 #SBATCH --nodes=1               # Number of nodes
 #SBATCH --ntasks-per-node=1     # Number of tasks per node
 #SBATCH --time=1:00:00          # Estimated job duration (hours:minutes:seconds)
