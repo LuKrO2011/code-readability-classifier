@@ -68,6 +68,7 @@ class Tasks(Enum):
     Enum for the different tasks of the readability classifier.
     """
 
+    ENCODE = "ENCODE"
     TRAIN = "TRAIN"
     EVALUATE = "EVALUATE"
     PREDICT = "PREDICT"
@@ -87,6 +88,31 @@ def _set_up_arg_parser() -> ArgumentParser:
     """
     arg_parser = ArgumentParser()
     sub_parser = arg_parser.add_subparsers(dest="command", required=True)
+
+    # Parser for the encoding task
+    encode_parser = sub_parser.add_parser(str(Tasks.ENCODE))
+    encode_parser.add_argument(
+        "--input",
+        "-i",
+        required=True,
+        type=Path,
+        help="Path to the dataset.",
+    )
+    encode_parser.add_argument(
+        "--intermediate",
+        required=False,
+        type=Path,
+        help="Path to where the encoded dataset should be stored. ",
+    )
+    encode_parser.add_argument(
+        "--save",
+        "-s",
+        required=False,
+        type=Path,
+        help="Path where the log file should be stored. If not specified, "
+        "the log file is stored in the current directory.",
+        default=DEFAULT_SAVE_DIR,
+    )
 
     # Parser for the training task
     train_parser = sub_parser.add_parser(str(Tasks.TRAIN))
@@ -220,6 +246,27 @@ def _set_up_arg_parser() -> ArgumentParser:
     )
 
     return arg_parser
+
+
+def _run_encode(parsed_args) -> None:
+    """
+    Runs the encoding of the dataset.
+    :param parsed_args: Parsed arguments.
+    :return: None
+    """
+    # Get the parsed arguments
+    data_dir = parsed_args.input
+    intermediate_dir = parsed_args.intermediate
+
+    # Load the dataset
+    raw_data = load_raw_dataset(data_dir)
+
+    # Encode the dataset
+    encoded_data = DatasetEncoder().encode_dataset(raw_data)
+
+    # Store the encoded dataset
+    if intermediate_dir:
+        store_encoded_dataset(encoded_data, intermediate_dir)
 
 
 def _run_train(parsed_args) -> None:
@@ -396,6 +443,8 @@ def main(args: list[str]) -> int:
 
     # Execute the task
     match task:
+        case Tasks.ENCODE:
+            _run_encode(parsed_args)
         case Tasks.TRAIN:
             _run_train(parsed_args)
         case Tasks.PREDICT:

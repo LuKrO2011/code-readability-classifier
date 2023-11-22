@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  nvidia-services:
+    image: rc:3
+    command: sleep infinity
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities:
+                - gpu
+                - utility # nvidia-smi
+                - compute # CUDA
+                - video   # NVDEC/NVENC/NVCUVID. For instance to use hardware acceleration
+
+  nvidia-smi:
+    extends:
+      service: nvidia-services
+    command: nvidia-smi
+
+  cuda:
+    extends:
+      service: nvidia-services
+    command: python src/readability_classifier/utils/cuda-checker.py
+
+  env:
+    extends:
+      service: nvidia-services
+    volumes:
+      - ./scripts:/scripts
+    environment:
+      - MODEL=VIST
+      - PROGRAM_PATH=src/readability_classifier/main.py
+      - DATA_PATH=res/datasets/combined
+      - SAVE_PATH=res/models
+
+  help:
+    extends:
+      service: env
+    entrypoint: /scripts/help.sh
+
+  train:
+    extends:
+      service: env
+    command: /bin/bash -c "/scripts/train.sh"
+
+#  encode:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py ENCODE -i res/datasets/combined --intermediate res/datasets/encoded -s res/models
+#
+#
+#  towards-train:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models
+#
+#  semantic-train:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -m SEMANTIC
+#
+#  visual-train:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -m VISUAL
+#
+#  structural-train:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -m STRUCTURAL
+#
+#  vist-train:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -m VIST
+#
+#  towards-k-fold:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -k 10
+#
+#  semantic-k-fold:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -k 10 -m SEMANTIC
+#
+#  visual-k-fold:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -k 10 -m VISUAL
+#
+#  structural-k-fold:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -k 10 -m STRUCTURAL
+#
+#  vist-k-fold:
+#    extends:
+#      service: nvidia-services
+#    command: python src/readability_classifier/main.py TRAIN -i res/datasets/combined --intermediate res/datasets/encoded -s res/models -k 10 -m VIST
+#
+#
