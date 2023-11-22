@@ -12,6 +12,8 @@ from readability_classifier.models.encoders.dataset_utils import (
 DEFAULT_TOKEN_LENGTH = 100  # Maximum length of tokens for BERT
 DEFAULT_ENCODE_BATCH_SIZE = 500
 
+NEWLINE_TOKEN = "[NL]"
+
 
 class BertEncoder(EncoderInterface):
     """
@@ -67,6 +69,14 @@ class BertEncoder(EncoderInterface):
         :param text: The text to tokenize and encode.
         :return: A dictionary containing the encoded input_ids and attention_mask.
         """
+        return self.encode_text_with_own_segment_ids_2(text)
+
+    def encode_text_without_own_segment_ids(self, text: str) -> dict:
+        """
+        Tokenizes and encodes the given text using the BERT tokenizer.
+        :param text: The text to tokenize and encode.
+        :return: A dictionary containing the encoded input_ids and attention_mask.
+        """
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
         text = _split_identifiers(text)
         encoding = tokenizer.encode_plus(
@@ -85,6 +95,52 @@ class BertEncoder(EncoderInterface):
         input_ids = encoding["input_ids"]
         token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
         attention_mask = encoding["attention_mask"]
+
+        return {
+            "input_ids": input_ids,
+            "token_type_ids": token_type_ids,  # Same as segment_ids
+            "attention_mask": attention_mask,
+        }
+
+    def encode_text_with_own_segment_ids_2(self, text: str) -> dict:
+        """
+        Tokenizes and encodes the given text using the BERT tokenizer.
+        :param text: The text to tokenize and encode.
+        :return: A dictionary containing the encoded input_ids and attention_mask.
+        """
+        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+
+        # Add a special token "NEWLINE" to the vocabulary
+        tokenizer.add_tokens(NEWLINE_TOKEN)
+
+        # Get the id of the special token "NEWLINE"
+        newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
+
+        # Add a special token "NEWLINE" to the text
+        text = _add_separators(text, NEWLINE_TOKEN)
+
+        # Tokenize the text
+        encoding = tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=self.token_length,
+            padding="max_length",
+            return_attention_mask=True,
+            return_tensors="pt",
+        )
+
+        input_ids = encoding["input_ids"]
+        token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
+        attention_mask = encoding["attention_mask"]
+
+        # Calculate segment ids
+        token_type_ids = _calculate_segment_ids_3(
+            input_ids.tolist()[0], newline_token_id
+        )
+
+        # Log successful encoding
+        logging.info("Bert: Text encoded.")
 
         return {
             "input_ids": input_ids,
@@ -197,6 +253,30 @@ def _split_identifiers(
     return new_text
 
 
+def _calculate_segment_ids_3(input_ids: list[int], sep_token_id: int) -> list[int]:
+    """
+    Calculates the segment ids for the given code snippet.
+    The resulting segment embedding is made up of sentence indexes representing which
+    sentence every token is in. Each line is considered a sentence.
+    :param input_ids: The encoded lines of the code snippet.
+    :param: sep_token_id: The id of the separator token.
+    :return: The segment ids.
+    """
+    segment_ids = []
+
+    # Calculate the segment ids
+    line = 0
+    for token_id in input_ids:
+        # Add the segment ids for the tokens
+        segment_ids.append(line)
+
+        # If the token is a separator token, increase the line number
+        if token_id == sep_token_id:
+            line += 1
+
+    return segment_ids
+
+
 def _calculate_segment_ids_2(encoded_lines: list[list[int]]) -> list[list[int]]:
     """
     Calculates the segment ids for the given code snippet.
@@ -281,10 +361,11 @@ def split_with_sep(text: str, sep: str = "[SEP]") -> list[str]:
     return sentences
 
 
-def _add_separators(text: str) -> str:
+def _add_separators(text: str, sep: str = "[SEP]") -> str:
     """
     Adds separators to the given text for each new line.
     :param text: The text to add separators to.
+    :param sep: The separator to add.
     :return: The text with separators.
     """
     # Split the text into sentences
@@ -294,7 +375,7 @@ def _add_separators(text: str) -> str:
     sentences = [sentence for sentence in sentences if sentence.strip() != ""]
 
     # Add separators to the sentences
-    sentences = [sentence + " [SEP]" for sentence in sentences]
+    sentences = [sentence + " " + sep for sentence in sentences]
 
     # Join the sentences to a text again
     return "\n".join(sentences)
