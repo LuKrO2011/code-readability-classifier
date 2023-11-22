@@ -3,7 +3,7 @@
 #SBATCH --constraint=cayman     # Specify the cluster
 #SBATCH --nodes=1               # Number of nodes
 #SBATCH --ntasks-per-node=1     # Number of tasks per node
-#SBATCH --time=0:14.00         # Estimated job duration (hours:minutes:seconds)
+#SBATCH --time=00:14.00         # Estimated job duration (hours:minutes:seconds)
 #SBATCH --job-name=training_readability_classifier  # Job name
 #SBATCH --output=container_output.txt           # Output file for stdout
 #SBATCH --error=container_error.txt             # Error file for stderr
