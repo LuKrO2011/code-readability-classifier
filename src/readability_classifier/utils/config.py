@@ -29,19 +29,6 @@ class ModelInput:
 
 
 @dataclass(frozen=True)
-class TowardsInput(ModelInput):
-    """
-    Data class for the input of the TowardsModel.
-    """
-
-    character_matrix: torch.Tensor
-    token_input: torch.Tensor
-    segment_input: torch.Tensor
-    attention_mask: torch.Tensor
-    image: torch.Tensor
-
-
-@dataclass(frozen=True)
 class StructuralInput(ModelInput):
     """
     Data class for the input of the StructuralModel.
@@ -69,6 +56,17 @@ class SemanticInput(ModelInput):
     token_type_ids: torch.Tensor
     attention_mask: torch.Tensor
     segment_ids: torch.Tensor
+
+
+@dataclass(frozen=True)
+class TowardsInput(ModelInput):
+    """
+    Data class for the input of the TowardsModel.
+    """
+
+    character_matrix: torch.Tensor
+    bert: SemanticInput
+    image: torch.Tensor
 
 
 @dataclass(frozen=True)

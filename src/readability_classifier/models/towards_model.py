@@ -1,26 +1,16 @@
 from pathlib import Path
 
 import torch
-from torch import nn as nn
 
 from readability_classifier.models.base_model import BaseModel
-from readability_classifier.models.extractors.semantic_extractor import (
-    SemanticExtractor,
-)
-from readability_classifier.models.extractors.semantic_extractor_krod import (
-    KrodSemanticExtractor,
-)
 from readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
 from readability_classifier.models.extractors.visual_extractor import VisualExtractor
-from readability_classifier.utils.config import (
-    BaseModelConfig,
-    SemanticInput,
-    TowardsInput,
-)
+from readability_classifier.models.semantic_model import SemanticExtractorEnum
+from readability_classifier.utils.config import BaseModelConfig, TowardsInput
 
-USE_KROD = True
+EXTRACTOR = SemanticExtractorEnum.OWN_SEGMENT_IDS
 
 
 class TowardsModelConfig(BaseModelConfig):
@@ -59,10 +49,7 @@ class TowardsModel(BaseModel):
 
         # Feature extractors
         self.structural_extractor = StructuralExtractor.build_from_config()
-        if USE_KROD:
-            self.semantic_extractor = KrodSemanticExtractor.build_from_config()
-        else:
-            self.semantic_extractor = SemanticExtractor.build_from_config()
+        self.semantic_extractor = EXTRACTOR.build_from_config()
         self.visual_extractor = VisualExtractor.build_from_config()
 
         # Define own layers
@@ -76,16 +63,7 @@ class TowardsModel(BaseModel):
         """
         # Feature extractors
         structural_features = self.structural_extractor(x.character_matrix)
-        if USE_KROD:
-            semantic_features = self.semantic_extractor(
-                SemanticInput(
-                    input_ids=x.token_input,
-                    token_type_ids=x.segment_input,
-                    attention_mask=x.attention_mask,
-                )
-            )
-        else:
-            semantic_features = self.semantic_extractor(x.token_input, x.segment_input)
+        semantic_features = self.semantic_extractor(x.bert)
         visual_features = self.visual_extractor(x.image)
 
         # Concatenate the inputs

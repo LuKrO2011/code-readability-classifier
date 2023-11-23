@@ -9,6 +9,7 @@ from readability_classifier.models.encoders.dataset_utils import ReadabilityData
 from readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
+    SemanticInput,
     TowardsInput,
 )
 from src.readability_classifier.models.towards_model import TowardsModel
@@ -78,12 +79,24 @@ class TowardsClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, input_ids, token_type_ids, attention_mask, image, _ = self._extract(
-            batch
-        )
+        matrix, bert, image, _ = self._extract(batch)
         matrix = self._to_device(matrix)
-        input_ids = self._to_device(input_ids)
-        attention_mask = self._to_device(attention_mask)
-        token_type_ids = self._to_device(token_type_ids)
         image = self._to_device(image)
-        return TowardsInput(matrix, input_ids, token_type_ids, attention_mask, image)
+
+        input_ids, token_type_ids, attention_mask, segment_ids = self._extract_bert(
+            bert
+        )
+        input_ids = input_ids.to(self.device)
+        token_type_ids = token_type_ids.to(self.device)
+        attention_mask = attention_mask.to(self.device)
+        if segment_ids is not None:
+            segment_ids = segment_ids.to(self.device)
+
+        semantic_input = SemanticInput(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            segment_ids=segment_ids,
+        )
+
+        return TowardsInput(matrix, semantic_input, image)
