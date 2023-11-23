@@ -97,18 +97,27 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
             sample["matrix"], dtype=torch.float32
         )  # Why not int?
         # TODO: The following 4 should be own dic with 4th optional
-        sample["input_ids"] = torch.tensor(
-            sample["input_ids"], dtype=torch.long  # Why not int? Why long?
+        sample["bert"]["input_ids"] = torch.tensor(
+            sample["bert"]["input_ids"], dtype=torch.long  # Why not int? Why long?
         )  # Why not int?
-        sample["token_type_ids"] = torch.tensor(
-            sample["token_type_ids"], dtype=torch.long  # Why not int? Why long?
-        )
-        sample["attention_mask"] = torch.tensor(
-            sample["attention_mask"], dtype=torch.long  # Why not int? Why long?
-        )
-        sample["segment_ids"] = torch.tensor(
-            sample["segment_ids"], dtype=torch.long  # Why not int? Why long?
-        )
+        if "token_type_ids" in sample["bert"]:
+            sample["bert"]["token_type_ids"] = torch.tensor(
+                sample["bert"]["token_type_ids"],
+                dtype=torch.long
+                # Why not int? Why long?
+            )
+        if "attention_mask" in sample["bert"]:
+            sample["bert"]["attention_mask"] = torch.tensor(
+                sample["bert"]["attention_mask"],
+                dtype=torch.long
+                # Why not int? Why long?
+            )
+        if "segment_ids" in sample["bert"]:
+            sample["bert"]["segment_ids"] = torch.tensor(
+                sample["bert"]["segment_ids"],
+                dtype=torch.long
+                # Why not int? Why long?
+            )
         sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 

@@ -426,7 +426,7 @@ class BaseClassifier(ABC):
         return matrix, bert, image, score
 
     @classmethod
-    def _extract_bert(cls, bert: dict) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    def _extract_bert(cls, bert: dict) -> tuple[Tensor, Tensor, Tensor, Tensor | None]:
         """
         Extracts all data from bert encoding.
         :param bert: The bert encoding to extract the data from.
@@ -435,7 +435,7 @@ class BaseClassifier(ABC):
         input_ids = bert["input_ids"]
         token_type_ids = bert["token_type_ids"]
         attention_mask = bert["attention_mask"]
-        segment_ids = bert["segment_ids"]
+        segment_ids = bert["segment_ids"] if "segment_ids" in bert else None
         return input_ids, token_type_ids, attention_mask, segment_ids
 
     @abstractmethod

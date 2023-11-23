@@ -81,5 +81,6 @@ class SemanticClassifier(BaseClassifier):
         input_ids = input_ids.to(self.device)
         token_type_ids = token_type_ids.to(self.device)
         attention_mask = attention_mask.to(self.device)
-        segment_ids = segment_ids.to(self.device)
+        if segment_ids is not None:
+            segment_ids = segment_ids.to(self.device)
         return SemanticInput(input_ids, token_type_ids, attention_mask, segment_ids)

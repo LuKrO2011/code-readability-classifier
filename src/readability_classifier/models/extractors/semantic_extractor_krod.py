@@ -6,6 +6,7 @@ from torch import nn as nn
 from transformers import BertConfig, BertModel
 
 from readability_classifier.models.base_model import BaseModel
+from readability_classifier.models.encoders.bert_encoder import DEFAULT_OWN_SEGMENT_IDS
 from readability_classifier.utils.config import SemanticInput
 from readability_classifier.utils.utils import load_yaml_file
 
@@ -50,6 +51,8 @@ class KrodBertEmbedding(BaseModel):
         super().__init__()
         self.model_name = "bert-base-cased"
         self.model = BertModel.from_pretrained(self.model_name, config=config)
+        if DEFAULT_OWN_SEGMENT_IDS:
+            self.model.resize_token_embeddings(config.vocab_size + 1)
 
         # Send the model to the GPU
         self.model.to(self.device)
