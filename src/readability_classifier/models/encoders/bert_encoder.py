@@ -33,6 +33,16 @@ class BertEncoder(EncoderInterface):
         :param unencoded_dataset: The unencoded dataset.
         :return: The encoded dataset.
         """
+        return self.encode_dataset_with_own_segment_ids(unencoded_dataset)
+
+    def encode_dataset_without_own_segment_ids(
+        self, unencoded_dataset: list[dict]
+    ) -> ReadabilityDataset:
+        """
+        Encodes the given dataset with BERT.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
         # Tokenize and encode the code snippets
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
@@ -57,6 +67,62 @@ class BertEncoder(EncoderInterface):
 
         # Flatten the encoded batches
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
+
+        # Log the number of samples in the encoded dataset
+        logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
+
+        return ReadabilityDataset(encoded_dataset)
+
+    def encode_dataset_with_own_segment_ids(
+        self, unencoded_dataset: list[dict]
+    ) -> ReadabilityDataset:
+        """
+        Encodes the given dataset with BERT. Uses own segment ids: Each line is
+        considered a sentence.
+        :param unencoded_dataset: The unencoded dataset.
+        :return: The encoded dataset.
+        """
+        # Tokenize and encode the code snippets
+        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+
+        # Add a special token "NEWLINE" to the vocabulary
+        tokenizer.add_tokens(NEWLINE_TOKEN)
+
+        # Get the id of the special token "NEWLINE"
+        newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
+
+        # Split identifiers in code snippets
+        for sample in unencoded_dataset:
+            sample["code_snippet"] = _split_identifiers(sample["code_snippet"])
+
+            # Add a special token "NEWLINE" to the text
+            sample["code_snippet"] = _add_separators(
+                sample["code_snippet"], NEWLINE_TOKEN
+            )
+
+        # Convert data to batches
+        batches = [
+            unencoded_dataset[i : i + DEFAULT_ENCODE_BATCH_SIZE]
+            for i in range(0, len(unencoded_dataset), DEFAULT_ENCODE_BATCH_SIZE)
+        ]
+
+        # Log the number of batches to encode
+        logging.info(f"Bert: Number of batches to encode: {len(batches)}")
+
+        # Encode the batches
+        encoded_batches = []
+        for batch in batches:
+            logging.info(f"Encoding batch: {len(encoded_batches) + 1}/{len(batches)}")
+            encoded_batches.append(self._encode_batch(batch, tokenizer))
+
+        # Flatten the encoded batches
+        encoded_dataset = [sample for batch in encoded_batches for sample in batch]
+
+        # Calculate segment ids
+        for sample in encoded_dataset:
+            sample["token_type_ids"] = _calculate_segment_ids_3(
+                sample["input_ids"].tolist(), newline_token_id
+            )
 
         # Log the number of samples in the encoded dataset
         logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
