@@ -14,7 +14,7 @@ DEFAULT_SAVE_PATH = CURR_DIR / Path("../../../models/")
 CONFIGS_PATH = CURR_DIR / Path("../../res/models/")
 
 
-# TODO: Try out: BertForPreTraining
+# TODO: Try BertForPreTraining
 
 
 class OwnBertConfig(BertConfig):
@@ -25,7 +25,7 @@ class OwnBertConfig(BertConfig):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.vocab_size = kwargs.get("vocab_size", 30000)  # 28996
+        self.vocab_size = kwargs.get("vocab_size", 30000)
         self.type_vocab_size = kwargs.get("type_vocab_size", 300)
         self.hidden_size = kwargs.get("hidden_size", 768)
         self.num_hidden_layers = kwargs.get("num_hidden_layers", 12)
@@ -34,7 +34,7 @@ class OwnBertConfig(BertConfig):
         self.hidden_activation = kwargs.get("hidden_activation", "gelu")
         self.hidden_dropout_rate = kwargs.get("hidden_dropout_rate", 0.1)
         self.attention_dropout_rate = kwargs.get("attention_dropout_rate", 0.1)
-        self.max_position_embeddings = kwargs.get("max_position_embeddings", 200)  # 512
+        self.max_position_embeddings = kwargs.get("max_position_embeddings", 200)
         self.max_sequence_length = kwargs.get("max_sequence_length", 100)
 
     @classmethod
@@ -54,7 +54,6 @@ class OwnBertConfig(BertConfig):
         return load_yaml_file(CONFIGS_PATH / f"{cls.__name__.lower()}.yaml")
 
 
-# TODO: In code: token_type_embeddings instead of segment_embeddings
 class OwnBertEmbedding(BaseModel):
     """
     A Bert embedding layer similar to the one used in the TowardsBert paper.
@@ -67,28 +66,33 @@ class OwnBertEmbedding(BaseModel):
         # Specify device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Load the model
+        # Load model for token type embedding
         self.model_name = "bert-base-cased"
         self.model = BertModel.from_pretrained(self.model_name)
         self.model.to(self.device)
         self.model.resize_token_embeddings(28996 + 1)
 
-        # Initialize embeddings
-        self.type_vocab_size = config.type_vocab_size
+        # Initialize other embeddings
+        self.segment_embedding = nn.Embedding(
+            config.type_vocab_size, config.hidden_size
+        )
         self.position_embedding = nn.Embedding(
             config.max_position_embeddings, config.hidden_size
         )
         self.token_type_embedding = nn.Embedding(
             config.type_vocab_size, config.hidden_size
         )
+
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_rate)
+        self.segment_embedding.weight.data.normal_(mean=0.0, std=0.02)
         self.position_embedding.weight.data.normal_(mean=0.0, std=0.02)
         self.token_type_embedding.weight.data.normal_(mean=0.0, std=0.02)
 
         # Send the embeddings to the GPU
         self.layer_norm.to(self.device)
         self.dropout.to(self.device)
+        self.segment_embedding.to(self.device)
         self.position_embedding.to(self.device)
         self.token_type_embedding.to(self.device)
 
@@ -101,36 +105,54 @@ class OwnBertEmbedding(BaseModel):
         input_ids = x.input_ids
         token_type_ids = x.segment_ids
         # attention_mask = x.attention_mask unused
-        # segment_ids = x.segment_ids unused
+        segment_ids = x.segment_ids
 
         batch_size, sequence_length = input_ids.size()
 
         # Create position ids
+        # TODO: Move this to encoding process
         position_ids = torch.arange(sequence_length, dtype=torch.long).unsqueeze(0)
         position_ids = position_ids % self.position_embedding.weight.size(0)
-
-        # Create token type ids
-        if token_type_ids is None:
-            token_type_ids = torch.full_like(input_ids, 0)
-
-        # Move input tensors to GPU
-        input_ids = input_ids.to(self.device)
-        token_type_ids = token_type_ids.cuda(self.device)
+        position_ids = position_ids.repeat(batch_size, 1)
+        position_ids = position_ids.cuda(self.device)
 
         # Get embeddings
-        position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
-        token_type_embeddings = self.token_type_embedding(token_type_ids)
         with torch.no_grad():  # Don't train token embeddings
             token_embeddings = self._model_pass(x)
+        segment_embeddings = self.segment_embedding(segment_ids)
+        position_embeddings = self.position_embedding(position_ids)
+        token_type_embeddings = self.token_type_embedding(token_type_ids)
 
         # Sum all embeddings and apply layer norm and dropout
-        embeddings = token_embeddings + token_type_embeddings + position_embeddings
+        embeddings = (
+            token_embeddings
+            + position_embeddings
+            + segment_embeddings
+            + token_type_embeddings
+        )
+
+        # Cat is not working (recall = 1)
+        # embeddings = torch.cat(
+        #     [
+        #         token_embeddings,
+        #         segment_embeddings,
+        #         position_embeddings,
+        #         token_type_embeddings,
+        #     ],
+        #     dim=2,
+        # )
+
         embeddings = self.layer_norm(embeddings)
         embeddings = self.dropout(embeddings)
 
         return embeddings
 
     def _model_pass(self, x: SemanticInput) -> torch.Tensor:
+        """
+        Pass the input through the Bert model.
+        :param x: The input.
+        :return: The output of the Bert model.
+        """
         input_ids = x.input_ids
         token_type_ids = x.token_type_ids
         attention_mask = x.attention_mask
