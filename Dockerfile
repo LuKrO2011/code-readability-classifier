@@ -33,7 +33,4 @@ VOLUME /app/scripts
 # Define the command to run when the container starts
 #CMD ["python", "src/readability_classifier/main.py", "-h"]
 #CMD ["python", "src/readability_classifier/main.py", "TRAIN", "-i", "res/datasets/combined", "--intermediate", "res/datasets/encoded", "-s", "res/models", "-k", "10"]
-CMD ["sh"]
-
-# Version tag
-LABEL version="2"
+ENTRYPOINT ["python"]
