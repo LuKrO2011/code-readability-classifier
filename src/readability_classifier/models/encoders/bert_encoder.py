@@ -1,7 +1,6 @@
 import logging
 import re
 
-from torch import Tensor
 from transformers import BertTokenizer
 
 from readability_classifier.models.encoders.dataset_utils import (
@@ -27,78 +26,32 @@ class BertEncoder(EncoderInterface):
         """
         self.token_length = token_length
 
-    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
-        """
-        Encodes the given dataset with BERT.
-        :param unencoded_dataset: The unencoded dataset.
-        :return: The encoded dataset.
-        """
-        return self.encode_dataset_with_own_segment_ids(unencoded_dataset)
-
-    def encode_dataset_without_own_segment_ids(
-        self, unencoded_dataset: list[dict]
+    def encode_dataset(
+        self, unencoded_dataset: list[dict], own_segment_ids: bool = True
     ) -> ReadabilityDataset:
         """
         Encodes the given dataset with BERT.
+        If own_segment_ids is True, each line is considered a sentence.
         :param unencoded_dataset: The unencoded dataset.
+        :param own_segment_ids: Whether to use own segment ids or not.
         :return: The encoded dataset.
         """
-        # Tokenize and encode the code snippets
-        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-
-        # Split identifiers in code snippets
-        for sample in unencoded_dataset:
-            sample["code_snippet"] = _split_identifiers(sample["code_snippet"])
-
-        # Convert data to batches
-        batches = [
-            unencoded_dataset[i : i + DEFAULT_ENCODE_BATCH_SIZE]
-            for i in range(0, len(unencoded_dataset), DEFAULT_ENCODE_BATCH_SIZE)
-        ]
-
-        # Log the number of batches to encode
-        logging.info(f"Bert: Number of batches to encode: {len(batches)}")
-
-        # Encode the batches
-        encoded_batches = []
-        for batch in batches:
-            logging.info(f"Encoding batch: {len(encoded_batches) + 1}/{len(batches)}")
-            encoded_batches.append(self._encode_batch(batch, tokenizer))
-
-        # Flatten the encoded batches
-        encoded_dataset = [sample for batch in encoded_batches for sample in batch]
-
-        # Log the number of samples in the encoded dataset
-        logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
-
-        return ReadabilityDataset(encoded_dataset)
-
-    def encode_dataset_with_own_segment_ids(
-        self, unencoded_dataset: list[dict]
-    ) -> ReadabilityDataset:
-        """
-        Encodes the given dataset with BERT. Uses own segment ids: Each line is
-        considered a sentence.
-        :param unencoded_dataset: The unencoded dataset.
-        :return: The encoded dataset.
-        """
-        # Tokenize and encode the code snippets
+        # Load the BERT tokenizer
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
         # Add a special token "NEWLINE" to the vocabulary
-        tokenizer.add_tokens(NEWLINE_TOKEN)
-
-        # Get the id of the special token "NEWLINE"
-        newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
+        if own_segment_ids:
+            tokenizer.add_tokens(NEWLINE_TOKEN)
 
         # Split identifiers in code snippets
         for sample in unencoded_dataset:
             sample["code_snippet"] = _split_identifiers(sample["code_snippet"])
 
             # Add a special token "NEWLINE" to the text
-            sample["code_snippet"] = _add_separators(
-                sample["code_snippet"], NEWLINE_TOKEN
-            )
+            if own_segment_ids:
+                sample["code_snippet"] = _add_separators(
+                    sample["code_snippet"], NEWLINE_TOKEN
+                )
 
         # Convert data to batches
         batches = [
@@ -119,71 +72,32 @@ class BertEncoder(EncoderInterface):
         encoded_dataset = [sample for batch in encoded_batches for sample in batch]
 
         # Calculate segment ids
-        for sample in encoded_dataset:
-            sample["token_type_ids"] = _calculate_segment_ids_3(
-                sample["input_ids"].tolist(), newline_token_id
-            )
+        if own_segment_ids:
+            newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
+            for sample in encoded_dataset:
+                sample["token_type_ids"] = _calculate_segment_ids(
+                    sample["input_ids"].tolist(), newline_token_id
+                )
 
         # Log the number of samples in the encoded dataset
-        logging.info(f"Bert encoding done. Number of samples: {len(encoded_dataset)}")
+        logging.info(f"Bert: Encoding done. Number of samples: {len(encoded_dataset)}")
 
         return ReadabilityDataset(encoded_dataset)
 
-    def encode_text(self, text: str) -> dict:
+    def encode_text(self, text: str, own_segment_ids: bool = True) -> dict:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
+        If own_segment_ids is True, each line is considered a sentence.
         :param text: The text to tokenize and encode.
-        :return: A dictionary containing the encoded input_ids and attention_mask.
-        """
-        return self.encode_text_with_own_segment_ids_2(text)
-
-    def encode_text_without_own_segment_ids(self, text: str) -> dict:
-        """
-        Tokenizes and encodes the given text using the BERT tokenizer.
-        :param text: The text to tokenize and encode.
-        :return: A dictionary containing the encoded input_ids and attention_mask.
-        """
-        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-        text = _split_identifiers(text)
-        encoding = tokenizer.encode_plus(
-            text,
-            add_special_tokens=True,
-            truncation=True,
-            max_length=self.token_length,
-            padding="max_length",
-            return_attention_mask=True,
-            return_tensors="pt",
-        )
-
-        # Log successful encoding
-        logging.info("Bert: Text encoded.")
-
-        input_ids = encoding["input_ids"]
-        token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
-        attention_mask = encoding["attention_mask"]
-
-        return {
-            "input_ids": input_ids,
-            "token_type_ids": token_type_ids,  # Same as segment_ids
-            "attention_mask": attention_mask,
-        }
-
-    def encode_text_with_own_segment_ids_2(self, text: str) -> dict:
-        """
-        Tokenizes and encodes the given text using the BERT tokenizer.
-        :param text: The text to tokenize and encode.
+        :param own_segment_ids: Whether to use own segment ids or not.
         :return: A dictionary containing the encoded input_ids and attention_mask.
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
         # Add a special token "NEWLINE" to the vocabulary
-        tokenizer.add_tokens(NEWLINE_TOKEN)
-
-        # Get the id of the special token "NEWLINE"
-        newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
-
-        # Add a special token "NEWLINE" to the text
-        text = _add_separators(text, NEWLINE_TOKEN)
+        if own_segment_ids:
+            tokenizer.add_tokens(NEWLINE_TOKEN)
+            text = _add_separators(text, NEWLINE_TOKEN)
 
         # Tokenize the text
         encoding = tokenizer.encode_plus(
@@ -201,57 +115,11 @@ class BertEncoder(EncoderInterface):
         attention_mask = encoding["attention_mask"]
 
         # Calculate segment ids
-        token_type_ids = _calculate_segment_ids_3(
-            input_ids.tolist()[0], newline_token_id
-        )
-
-        # Log successful encoding
-        logging.info("Bert: Text encoded.")
-
-        return {
-            "input_ids": input_ids,
-            "token_type_ids": token_type_ids,  # Same as segment_ids
-            "attention_mask": attention_mask,
-        }
-
-    def encode_text_with_own_segment_ids(self, text: str) -> dict:
-        """
-        Tokenizes and encodes the given text using the BERT tokenizer.
-        :param text: The text to tokenize and encode.
-        :return: A dictionary containing the encoded input_ids and attention_mask.
-        """
-        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-        text = _split_identifiers(text)
-        lines = text.split("\n")
-
-        # Tokenize the lines
-        encoding = tokenizer(lines)
-        input_ids = encoding["input_ids"]
-        token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
-        attention_mask = encoding["attention_mask"]
-
-        # Calculate segment ids
-        token_type_ids = _calculate_segment_ids_2(input_ids)
-
-        # Flatten the lists
-        input_ids = [item for sublist in input_ids for item in sublist]
-        token_type_ids = [item for sublist in token_type_ids for item in sublist]
-        attention_mask = [item for sublist in attention_mask for item in sublist]
-
-        # Truncate the lists
-        input_ids = input_ids[: self.token_length]
-        token_type_ids = token_type_ids[: self.token_length]
-        attention_mask = attention_mask[: self.token_length]
-
-        # Pad the lists
-        input_ids += [0] * (self.token_length - len(input_ids))
-        token_type_ids += [0] * (self.token_length - len(token_type_ids))
-        attention_mask += [0] * (self.token_length - len(attention_mask))
-
-        # Convert the lists to tensors
-        input_ids = Tensor(input_ids).long()
-        token_type_ids = Tensor(token_type_ids).long()
-        attention_mask = Tensor(attention_mask).long()
+        if own_segment_ids:
+            newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
+            token_type_ids = _calculate_segment_ids(
+                input_ids.tolist()[0], newline_token_id
+            )
 
         # Log successful encoding
         logging.info("Bert: Text encoded.")
@@ -319,7 +187,7 @@ def _split_identifiers(
     return new_text
 
 
-def _calculate_segment_ids_3(input_ids: list[int], sep_token_id: int) -> list[int]:
+def _calculate_segment_ids(input_ids: list[int], sep_token_id: int) -> list[int]:
     """
     Calculates the segment ids for the given code snippet.
     The resulting segment embedding is made up of sentence indexes representing which
@@ -341,90 +209,6 @@ def _calculate_segment_ids_3(input_ids: list[int], sep_token_id: int) -> list[in
             line += 1
 
     return segment_ids
-
-
-def _calculate_segment_ids_2(encoded_lines: list[list[int]]) -> list[list[int]]:
-    """
-    Calculates the segment ids for the given code snippet.
-    The resulting segment embedding is made up of sentence indexes representing which
-    sentence every token is in. Each line is considered a sentence.
-    :param encoded_lines: The encoded lines of the code snippet.
-    :return: The segment ids.
-    """
-    segment_ids = []
-
-    # Calculate the segment ids
-    for idx, line in enumerate(encoded_lines):
-        # Add the segment ids for the tokens
-        segment_ids.append([idx] * len(line))
-
-    return segment_ids
-
-
-def _calculate_segment_ids(
-    decoded_text: str, length: int = 100, padding=0, remove_empty_lines=False
-) -> Tensor:
-    """
-    Calculates the segment ids for the given code snippet.
-    The resulting segment embedding is made up of sentence indexes representing which
-    sentence every token is in.
-    :param decoded_text: The encoded and decoded code snippet.
-    :param length: The exact length of the segment ids.
-    :param padding: The padding to add, if the length of the segment ids is smaller than
-    the given length.
-    :param remove_empty_lines: Whether to remove empty lines from the code snippet.
-    :return: The segment ids.
-
-    NOT WORKING:
-    - DECODED LENGTH != 100
-    - BERT can take as input either one or two sentences and uses the special token
-    [SEP] to differentiate them. Not more than that.
-    https://stackoverflow.com/questions/63609038/can-bert-takes-more-than-2-sentences-for-word-embeddings
-    """
-    # Split the code snippet into sentences by [SEP] but keep the [SEP] in the second
-    # part of the split
-    sentences = split_with_sep(decoded_text)
-
-    # Remove empty sentences (e.g. empty lines, only spaces or tabs)
-    if remove_empty_lines:
-        sentences = [sentence for sentence in sentences if sentence.strip() != ""]
-
-    # Calculate the segment ids
-    segment_ids = []
-    for idx, sentence in enumerate(sentences):
-        # Split the sentence into tokens
-        tokens = sentence.split()
-
-        # Add the segment ids for the tokens
-        segment_ids += [idx] * len(tokens)
-
-    # Pad the segment ids if too short
-    segment_ids += [padding] * (length - len(segment_ids))
-
-    # Remove segment ids if too long. Should not happen.
-    if len(segment_ids) > length:
-        logging.warning("Segment ids are longer than the given length.")
-        segment_ids = segment_ids[:length]
-
-    # Convert the segment ids to an int tensor
-    return Tensor(segment_ids).long()
-
-
-def split_with_sep(text: str, sep: str = "[SEP]") -> list[str]:
-    """
-    Splits the given text with the given separator and keeps the separator in the second
-    part of the split.
-    :param text: The text to split.
-    :param sep: The separator to split the text with.
-    :return: The split text.
-    """
-    sentences = text.split(sep)
-
-    # Add [SEP] everywhere except the last sentence
-    for i in range(len(sentences) - 1):
-        sentences[i] += sep
-
-    return sentences
 
 
 def _add_separators(text: str, sep: str = "[SEP]") -> str:
