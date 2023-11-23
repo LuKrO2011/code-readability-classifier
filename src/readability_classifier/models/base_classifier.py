@@ -413,21 +413,30 @@ class BaseClassifier(ABC):
         return loss.item()
 
     @classmethod
-    def _extract(
-        cls, batch: dict
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def _extract(cls, batch: dict) -> tuple[Tensor, dict[str, Tensor], Tensor, Tensor]:
         """
         Extracts all data from the batch.
         :param batch: The batch to extract the data from.
         :return: The extracted data.
         """
         matrix = batch["matrix"]
-        input_ids = batch["input_ids"]
-        token_type_ids = batch["token_type_ids"]
-        attention_mask = batch["attention_mask"]
+        bert = batch["bert"]
         image = batch["image"]
         score = batch["score"].unsqueeze(1)
-        return matrix, input_ids, token_type_ids, attention_mask, image, score
+        return matrix, bert, image, score
+
+    @classmethod
+    def _extract_bert(cls, bert: dict) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        """
+        Extracts all data from bert encoding.
+        :param bert: The bert encoding to extract the data from.
+        :return: The extracted data.
+        """
+        input_ids = bert["input_ids"]
+        token_type_ids = bert["token_type_ids"]
+        attention_mask = bert["attention_mask"]
+        segment_ids = bert["segment_ids"]
+        return input_ids, token_type_ids, attention_mask, segment_ids
 
     @abstractmethod
     def _batch_to_input(self, batch: dict) -> ModelInput:

@@ -68,6 +68,7 @@ class SemanticInput(ModelInput):
     input_ids: torch.Tensor
     token_type_ids: torch.Tensor
     attention_mask: torch.Tensor
+    segment_ids: torch.Tensor
 
 
 @dataclass(frozen=True)

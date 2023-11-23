@@ -9,9 +9,23 @@ from readability_classifier.models.extractors.semantic_extractor import (
 from readability_classifier.models.extractors.semantic_extractor_krod import (
     KrodSemanticExtractor,
 )
+from readability_classifier.models.extractors.semantic_extractor_own import (
+    OwnSemanticExtractor,
+)
 from readability_classifier.utils.config import BaseModelConfig, SemanticInput
 
-USE_KROD = True
+
+class SemanticExtractorEnum:
+    """
+    Enum for the different semantic extractors.
+    """
+
+    TOWARDS = SemanticExtractor
+    KROD = KrodSemanticExtractor
+    OWN_SEGMENT_IDS = OwnSemanticExtractor
+
+
+EXTRACTOR = SemanticExtractorEnum.TOWARDS
 
 
 class SemanticModelConfig(BaseModelConfig):
@@ -45,10 +59,7 @@ class SemanticModel(BaseModel):
         super().__init__()
 
         # Feature extractors
-        if USE_KROD:
-            self.semantic_extractor = KrodSemanticExtractor.build_from_config()
-        else:
-            self.semantic_extractor = SemanticExtractor.build_from_config()
+        self.semantic_extractor = EXTRACTOR.build_from_config()
 
         # Define own layers
         self._build_classification_layers(config)

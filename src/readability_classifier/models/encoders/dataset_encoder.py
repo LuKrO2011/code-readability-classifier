@@ -70,9 +70,7 @@ class DatasetEncoder(EncoderInterface):
             encoded_dataset.append(
                 {
                     "matrix": matrix_dataset[i]["matrix"],
-                    "input_ids": bert_dataset[i]["input_ids"],
-                    "token_type_ids": bert_dataset[i]["token_type_ids"],
-                    "attention_mask": bert_dataset[i]["attention_mask"],
+                    "bert": bert_dataset[i],
                     "image": image_dataset[i]["image"],
                     "score": encoded_scores[i],
                 }

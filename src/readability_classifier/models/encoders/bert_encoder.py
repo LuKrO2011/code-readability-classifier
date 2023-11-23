@@ -1,6 +1,7 @@
 import logging
 import re
 
+import torch
 from transformers import BertTokenizer
 
 from readability_classifier.models.encoders.dataset_utils import (
@@ -77,9 +78,10 @@ class BertEncoder(EncoderInterface):
         if own_segment_ids:
             newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
             for sample in encoded_dataset:
-                sample["token_type_ids"] = _calculate_segment_ids(
+                segment_ids = _calculate_segment_ids(
                     sample["input_ids"].tolist(), newline_token_id
                 )
+                sample["segment_ids"] = torch.Tensor(segment_ids).long()
 
         # Log the number of samples in the encoded dataset
         logging.info(f"Bert: Encoding done. Number of samples: {len(encoded_dataset)}")
@@ -114,25 +116,18 @@ class BertEncoder(EncoderInterface):
             return_tensors="pt",
         )
 
-        input_ids = encoding["input_ids"]
-        token_type_ids = encoding["token_type_ids"]  # Same as segment_ids
-        attention_mask = encoding["attention_mask"]
-
         # Calculate segment ids
         if own_segment_ids:
             newline_token_id = tokenizer.encode(NEWLINE_TOKEN)[1]
-            token_type_ids = _calculate_segment_ids(
-                input_ids.tolist()[0], newline_token_id
+            segment_ids = _calculate_segment_ids(
+                encoding["input_ids"].tolist()[0], newline_token_id
             )
+            encoding["segment_ids"] = torch.Tensor(segment_ids).long().unsqueeze(0)
 
         # Log successful encoding
         logging.info("Bert: Text encoded.")
 
-        return {
-            "input_ids": input_ids,
-            "token_type_ids": token_type_ids,  # Same as segment_ids
-            "attention_mask": attention_mask,
-        }
+        return encoding
 
     def _encode_batch(self, batch: list[dict], tokenizer: BertTokenizer) -> list[dict]:
         """
@@ -156,7 +151,7 @@ class BertEncoder(EncoderInterface):
 
         # Extract input ids and attention mask from batch_encoding
         input_ids = batch_encoding["input_ids"]
-        token_type_ids = batch_encoding["token_type_ids"]  # Same as segment_ids
+        token_type_ids = batch_encoding["token_type_ids"]
         attention_mask = batch_encoding["attention_mask"]
 
         # Create a dictionary for each sample in the batch

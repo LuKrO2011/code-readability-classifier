@@ -16,7 +16,7 @@ class ReadabilityDataset(Dataset):
     dictionaries containing encoded code snippet variants and/or their scores.
     """
 
-    def __init__(self, data: list[dict[str, torch.Tensor]]):
+    def __init__(self, data: list[dict[str, torch.Tensor | dict[str, torch.Tensor]]]):
         """
         Initialize the dataset with a dictionary containing data samples.
         :param data: A list of dictionaries containing the data samples.
@@ -29,7 +29,9 @@ class ReadabilityDataset(Dataset):
         """
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
         """
         Return a sample from the dataset by its index. The sample is a dictionary
         containing encoded code snippet variants and/or their scores.
@@ -38,7 +40,7 @@ class ReadabilityDataset(Dataset):
         """
         return self.data[idx]
 
-    def to_list(self) -> list[dict]:
+    def to_list(self) -> list[dict[str, torch.Tensor | dict[str, torch.Tensor]]]:
         """
         Return the dataset as a list.
         :return: A list containing the data samples.
@@ -94,6 +96,7 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
         sample["matrix"] = torch.tensor(
             sample["matrix"], dtype=torch.float32
         )  # Why not int?
+        # TODO: The following 4 should be own dic with 4th optional
         sample["input_ids"] = torch.tensor(
             sample["input_ids"], dtype=torch.long  # Why not int? Why long?
         )  # Why not int?
@@ -102,6 +105,9 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
         )
         sample["attention_mask"] = torch.tensor(
             sample["attention_mask"], dtype=torch.long  # Why not int? Why long?
+        )
+        sample["segment_ids"] = torch.tensor(
+            sample["segment_ids"], dtype=torch.long  # Why not int? Why long?
         )
         sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
