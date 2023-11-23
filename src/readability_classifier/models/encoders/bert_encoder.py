@@ -9,9 +9,9 @@ from readability_classifier.models.encoders.dataset_utils import (
 )
 
 DEFAULT_TOKEN_LENGTH = 100  # Maximum length of tokens for BERT
-DEFAULT_ENCODE_BATCH_SIZE = 500
-
-NEWLINE_TOKEN = "[NL]"
+DEFAULT_ENCODE_BATCH_SIZE = 500  # Number of samples to encode at once
+NEWLINE_TOKEN = "[NL]"  # Special token for new lines
+DEFAULT_OWN_SEGMENT_IDS = True  # Whether to use own segment ids or not
 
 
 class BertEncoder(EncoderInterface):
@@ -27,7 +27,9 @@ class BertEncoder(EncoderInterface):
         self.token_length = token_length
 
     def encode_dataset(
-        self, unencoded_dataset: list[dict], own_segment_ids: bool = True
+        self,
+        unencoded_dataset: list[dict],
+        own_segment_ids: bool = DEFAULT_OWN_SEGMENT_IDS,
     ) -> ReadabilityDataset:
         """
         Encodes the given dataset with BERT.
@@ -84,7 +86,9 @@ class BertEncoder(EncoderInterface):
 
         return ReadabilityDataset(encoded_dataset)
 
-    def encode_text(self, text: str, own_segment_ids: bool = True) -> dict:
+    def encode_text(
+        self, text: str, own_segment_ids: bool = DEFAULT_OWN_SEGMENT_IDS
+    ) -> dict:
         """
         Tokenizes and encodes the given text using the BERT tokenizer.
         If own_segment_ids is True, each line is considered a sentence.
