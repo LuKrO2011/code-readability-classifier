@@ -74,7 +74,6 @@ class OwnBertEmbedding(BaseModel):
         self.model.resize_token_embeddings(28996 + 1)
 
         # Initialize embeddings
-        self.token_embedding = nn.Embedding(config.vocab_size, config.hidden_size)
         self.type_vocab_size = config.type_vocab_size
         self.position_embedding = nn.Embedding(
             config.max_position_embeddings, config.hidden_size
@@ -84,14 +83,12 @@ class OwnBertEmbedding(BaseModel):
         )
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_rate)
-        self.token_embedding.weight.data.normal_(mean=0.0, std=0.02)
         self.position_embedding.weight.data.normal_(mean=0.0, std=0.02)
         self.token_type_embedding.weight.data.normal_(mean=0.0, std=0.02)
 
         # Send the embeddings to the GPU
         self.layer_norm.to(self.device)
         self.dropout.to(self.device)
-        self.token_embedding.to(self.device)
         self.position_embedding.to(self.device)
         self.token_type_embedding.to(self.device)
 
@@ -123,7 +120,8 @@ class OwnBertEmbedding(BaseModel):
         # Get embeddings
         position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
         token_type_embeddings = self.token_type_embedding(token_type_ids)
-        token_embeddings = self._model_pass(x)
+        with torch.no_grad():  # Don't train token embeddings
+            token_embeddings = self._model_pass(x)
 
         # Sum all embeddings and apply layer norm and dropout
         embeddings = token_embeddings + token_type_embeddings + position_embeddings
