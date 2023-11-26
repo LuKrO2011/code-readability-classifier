@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   nvidia-services:
-    image: rc:3
+    image: rc:5
     command: sleep infinity
     deploy:
       resources:

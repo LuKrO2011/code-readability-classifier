@@ -1,17 +1,56 @@
-#!/bin/bash
-#SBATCH --partition=anywhere    # Specify the partition
-#SBATCH --constraint=cayman     # Specify the cluster
-#SBATCH --nodes=1               # Number of nodes
-#SBATCH --ntasks-per-node=1     # Number of tasks per node
-#SBATCH --job-name=training_readability_classifier  # Job name
-#SBATCH --output=container_output.txt           # Output file for stdout
-#SBATCH --error=container_error.txt             # Error file for stderr
-#SBATCH --mail-user=krodinger@fim.uni-passau.de # Email
+#! /usr/bin/env bash
+#
+#SBATCH --job-name=training_readability_classifier
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=02:00:00  # two hours
+#SBATCH --mail-user=krodinger@fim.uni-passau.de
+#SBATCH --constraint=thor
+#SBATCH --partition=anywhere
+#SBATCH --mem-bind=local
+#SBATCH --nodes=1-1
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-core=1
+#SBATCH --mail-type=FAIL,END
+#
+# A container image can be built locally or on a SLURM workstation node and
+# then be exported to an archive using:
+#
+# podman save TODO-image-tag > IMAGE.tar
+#
+# After the archive was copied to the /scratch/$USER/... directory this script
+# can be used to run SLURM jobs in the container.
+# Make sure this script is located somewhere in `/scratch/$USER` and executable.
+# Then start the job with `sbatch ./this-script.sh`.
 
-# Set the environment variables
+set -eu
+
 unset XDG_RUNTIME_DIR XDG_CONFIG_HOME
 export HOME=/local/$USER/podman.home
+export TMPDIR=/local/$USER/tmp
 
-# Run the specific task/command within the Podman container
-# podman --root=/local/$USER/podman-compose -f docker-compose.yml run train
-podman --root=/local/$USER/podman-compose run localhost/rc:4 python src/readability_classifier/main.py TRAIN -i res/datasets/combined -s res/models
+mkdir -p "/local/${USER}/podman.home/"
+
+echo "Loading image..."
+podman \
+    --root="/local/$USER/podman" \
+    load \
+    -i "/scratch/$USER/rc4.tar"
+
+podman \
+    --root="/local/$USER/podman" \
+    image ls
+
+podman \
+    --root="/local/$USER/podman" \
+    run \
+    --rm \
+    # -v "SOME_PATH/datasets:/datasets" \
+    # -v "SOME_PATH/results:/eval/results/" \
+    --name "rc-container" \
+    "localhost/rc:4" \
+    python src/readability_classifier/utils/cuda-checker.py
+
+podman \
+    --root="/local/$USER/podman" \
+    image prune -a -f

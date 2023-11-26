@@ -1,0 +1,22 @@
+version: '1'
+
+services:
+  nvidia-services:
+    image: rc:5
+    command: sleep infinity
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: all
+    security_opt:
+      - label=type:container_runtime_t
+
+  nvidia-smi:
+    extends:
+      service: nvidia-services
+    command: nvidia-smi
+
+  cuda:
+    extends:
+      service: nvidia-services
+    command: python src/readability_classifier/utils/cuda-checker.py
