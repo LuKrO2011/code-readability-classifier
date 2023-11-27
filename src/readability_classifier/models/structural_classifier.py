@@ -74,6 +74,6 @@ class StructuralClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, _, _, _, _, _ = self._extract(batch)
+        matrix, _, _, _ = self._extract(batch)
         matrix = self._to_device(matrix)
         return StructuralInput(matrix)

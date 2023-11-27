@@ -114,7 +114,7 @@ class OwnBertEmbedding(BaseModel):
         position_ids = torch.arange(sequence_length, dtype=torch.long).unsqueeze(0)
         position_ids = position_ids % self.position_embedding.weight.size(0)
         position_ids = position_ids.repeat(batch_size, 1)
-        position_ids = position_ids.cuda(self.device)
+        position_ids = position_ids.to(self.device)
 
         # Get embeddings
         with torch.no_grad():  # Don't train token embeddings

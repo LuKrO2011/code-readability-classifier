@@ -106,7 +106,7 @@ class BertEmbedding(nn.Module):
 
         # Move input tensors to GPU
         input_ids = input_ids.to(self.device)
-        token_type_ids = token_type_ids.cuda(self.device)
+        token_type_ids = token_type_ids.to(self.device)
 
         # Get embeddings
         position_embeddings = self.position_embedding(position_ids.to(input_ids.device))
