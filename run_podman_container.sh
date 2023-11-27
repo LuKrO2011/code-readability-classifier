@@ -35,7 +35,7 @@ echo "Loading image..."
 podman \
     --root="/local/$USER/podman" \
     load \
-    -i "/scratch/$USER/rc4.tar"
+    -i "/scratch/$USER/rc6.tar"
 
 podman \
     --root="/local/$USER/podman" \
@@ -45,11 +45,11 @@ podman \
     --root="/local/$USER/podman" \
     run \
     --rm \
-    # -v "SOME_PATH/datasets:/datasets" \
-    # -v "SOME_PATH/results:/eval/results/" \
+    -v "$(pwd)/scripts:/app/scripts" \
+    -v "$(pwd)/res:/app/res" \
     --name "rc-container" \
-    "localhost/rc:4" \
-    python src/readability_classifier/utils/cuda-checker.py
+    "lukro2011/rc:6" \
+    /bin/bash scripts/help.sh
 
 podman \
     --root="/local/$USER/podman" \

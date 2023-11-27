@@ -1,9 +1,16 @@
 version: '1'
 
 services:
+  base:
+    image: rc:6
+    volumes:
+      - ./src:/src
+      - ./scripts:/scripts
+      - ./res:/res
+
   nvidia-services:
-    image: rc:5
-    command: sleep infinity
+    extends:
+      service: base
     devices:
       - /dev/nvidia0:/dev/nvidia0
     environment:
@@ -20,3 +27,8 @@ services:
     extends:
       service: nvidia-services
     command: python src/readability_classifier/utils/cuda-checker.py
+
+  help:
+    extends:
+      service: base
+    entrypoint: /scripts/help.sh

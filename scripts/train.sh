@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Get the model name from the environment variable
-MODEL=$MODEL
-DATA_PATH=$DATA_PATH
-SAVE_PATH=$SAVE_PATH
-PROGRAM_PATH=$PROGRAM_PATH
-BATCH_SIZE=$BATCH_SIZE
-EPOCHS=$EPOCHS
-LEARNING_RATE=$LEARNING_RATE
-K_FOLD=$K_FOLD
+# Set the paths to the program, data, and save directories
+MODEL=TOWARDS
+BATCH_SIZE=8
+EPOCHS=20
+LEARNING_RATE=0.0015
+K_FOLD=10
+PROGRAM_PATH=src/readability_classifier/main.py
+DATA_PATH=res/datasets/combined
+SAVE_PATH=res/models
 
 # Display the provided model
 echo "Selected model: $MODEL"
@@ -20,5 +20,5 @@ echo "Epochs: $EPOCHS"
 echo "Learning rate: $LEARNING_RATE"
 echo "K fold: $K_FOLD"
 
-## Run the main program
+# Run the main program
 python "${PROGRAM_PATH}" TRAIN -i "${DATA_PATH}" -s "${SAVE_PATH}" -m "${MODEL}" -b "${BATCH_SIZE}" -e "${EPOCHS}" -r "${LEARNING_RATE}" -k "${K_FOLD}"

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Get the model name from the environment variable
-PROGRAM_PATH=$PROGRAM_PATH
+PROGRAM_PATH=src/readability_classifier/main.py
 
 python "${PROGRAM_PATH}" -h
