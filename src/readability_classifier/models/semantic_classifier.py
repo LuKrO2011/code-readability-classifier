@@ -83,4 +83,9 @@ class SemanticClassifier(BaseClassifier):
         attention_mask = attention_mask.to(self.device)
         if segment_ids is not None:
             segment_ids = segment_ids.to(self.device)
-        return SemanticInput(input_ids, token_type_ids, attention_mask, segment_ids)
+        return SemanticInput(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            segment_ids=segment_ids,
+        )
