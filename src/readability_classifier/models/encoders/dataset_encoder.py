@@ -61,8 +61,7 @@ class DatasetEncoder(EncoderInterface):
 
         # Normalize the scores
         scores = [sample["score"] for sample in unencoded_dataset]
-        normalized_scores = self._normalize_scores(scores)
-        encoded_scores = self._encode_scores_regression(normalized_scores)
+        encoded_scores = self._encode_scores_class(scores)
 
         # Combine the datasets
         encoded_dataset = []
@@ -130,6 +129,26 @@ class DatasetEncoder(EncoderInterface):
             else:
                 encoded_scores.append(torch.tensor([0.0, 1.0]))
         return torch.stack(encoded_scores)
+
+    @staticmethod
+    def _encode_scores_class(scores: list[float]) -> Tensor:
+        """
+        Encodes the given scores to a tensor with two classes: Readable and Unreadable.
+        Readable = 1, Unreadable = 0.
+        The upper half of the scores is considered readable, the lower half unreadable.
+        :param scores: The scores to encode.
+        :return: The encoded scores.
+        """
+        encoded_scores = []
+
+        median = sorted(scores)[len(scores) // 2]
+        for score in scores:
+            if score < median:
+                encoded_scores.append(torch.tensor([0.0]))
+            else:
+                encoded_scores.append(torch.tensor([1.0]))
+
+        return torch.tensor(encoded_scores)
 
     @staticmethod
     def _encode_scores_regression(scores: list[float]) -> Tensor:
