@@ -1,23 +1,48 @@
-from datasets import concatenate_datasets, load_from_disk
+from datasets import Dataset, concatenate_datasets, load_from_disk
 
 
-def combine_datasets(input_paths: list[str], output_path: str) -> None:
+def load_datasets(paths: list[str]) -> list[Dataset]:
     """
-    Combines the datasets from the specified paths into one dataset.
-    :param input_paths: The paths to the datasets.
-    :param output_path: The path to the combined dataset.
+    Loads the datasets from the specified paths.
+    :param paths: The paths to the datasets.
+    :return: The datasets.
     """
-    # Load the datasets
     datasets = []
-    for path in input_paths:
+    for path in paths:
         dataset = load_from_disk(path)
         datasets.append(dataset)
 
-    # Combine the datasets
-    combined_dataset = concatenate_datasets(datasets)
+    return datasets
 
-    # Save the combined dataset
-    combined_dataset.save_to_disk(output_path)
+
+def remove_ambiguous_samples(dataset: Dataset) -> Dataset:
+    """
+    Removes the samples from the dataset that have an ambiguous readability score.
+    Unambiguous readability scores are the 25% with the lowest and the 25% with the
+    highest readability scores.
+    :param dataset: The dataset.
+    :return: The dataset without the ambiguous samples.
+    """
+    # Sort the dataset samples by readability score
+    sorted_samples = sorted(dataset, key=lambda x: x["score"])
+
+    # Calculate the number of samples to remove from the start and end
+    num_samples = len(sorted_samples)
+    num_to_remove = int(num_samples * 0.25)
+
+    # Get the indices of samples to be removed (lowest 25% and highest 25%)
+    indices_to_remove = set(range(num_to_remove)).union(
+        set(range(num_samples - num_to_remove, num_samples))
+    )
+
+    # Create a new dataset without the ambiguous samples
+    filtered_samples = [
+        sample
+        for idx, sample in enumerate(sorted_samples)
+        if idx not in indices_to_remove
+    ]
+
+    return dataset.from_list(filtered_samples)
 
 
 if __name__ == "__main__":
@@ -38,4 +63,7 @@ if __name__ == "__main__":
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Combined"
     )
 
-    combine_datasets([dorn_path, bw_path, scalabrio_path], combined_path)
+    datasets = load_datasets([dorn_path, bw_path, scalabrio_path])
+    datasets = [remove_ambiguous_samples(dataset) for dataset in datasets]
+    combined_dataset = concatenate_datasets(datasets)
+    combined_dataset.save_to_disk(combined_path)
