@@ -10,7 +10,7 @@ from readability_classifier.models.extractors.visual_extractor import VisualExtr
 from readability_classifier.models.semantic_model import SemanticExtractorEnum
 from readability_classifier.utils.config import BaseModelConfig, TowardsInput
 
-EXTRACTOR = SemanticExtractorEnum.OWN_SEGMENT_IDS
+EXTRACTOR = SemanticExtractorEnum.KROD
 
 
 class TowardsModelConfig(BaseModelConfig):

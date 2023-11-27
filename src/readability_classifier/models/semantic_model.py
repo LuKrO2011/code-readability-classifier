@@ -25,7 +25,7 @@ class SemanticExtractorEnum:
     OWN_SEGMENT_IDS = OwnSemanticExtractor
 
 
-EXTRACTOR = SemanticExtractorEnum.OWN_SEGMENT_IDS
+EXTRACTOR = SemanticExtractorEnum.KROD
 
 
 class SemanticModelConfig(BaseModelConfig):
