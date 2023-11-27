@@ -12,7 +12,7 @@ from readability_classifier.models.encoders.dataset_utils import (
 DEFAULT_TOKEN_LENGTH = 100  # Maximum length of tokens for BERT
 DEFAULT_ENCODE_BATCH_SIZE = 500  # Number of samples to encode at once
 NEWLINE_TOKEN = "[NL]"  # Special token for new lines
-DEFAULT_OWN_SEGMENT_IDS = True  # Whether to use own segment ids or not
+DEFAULT_OWN_SEGMENT_IDS = False  # Whether to use own segment ids or not
 
 
 class BertEncoder(EncoderInterface):
