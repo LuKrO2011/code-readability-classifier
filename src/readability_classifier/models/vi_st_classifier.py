@@ -75,7 +75,7 @@ class ViStClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, _, _, _, image, _ = self._extract(batch)
+        matrix, _, image, _ = self._extract(batch)
         image = self._to_device(image)
         matrix = self._to_device(matrix)
         return ViStModelInput(image=image, matrix=matrix)
