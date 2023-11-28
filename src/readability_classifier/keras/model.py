@@ -9,6 +9,7 @@ import keras
 import numpy as np
 import tensorflow as tf
 from keras import layers, models, optimizers, regularizers
+from sklearn.metrics import f1_score, matthews_corrcoef, precision_score, recall_score
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.util import tf_inspect
 from transformers import BertTokenizer
@@ -843,8 +844,6 @@ class Classifier:
         :param train_acc: The training accuracy.
         :return: None
         """
-        mcc = []
-        f1 = []
         history_dict = fold_history.history
         val_acc_values = get_from_dict(history_dict, "val_acc")
         val_recall_value = get_from_dict(history_dict, "val_recall")
@@ -854,70 +853,62 @@ class Classifier:
         val_false_positives = get_from_dict(history_dict, "val_false_positives")
         val_true_positives = get_from_dict(history_dict, "val_true_positives")
         val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
+
+        mccs = []
+        f1s = []
         for i in range(EPOCHS):
-            self.evaluate_epoch(
-                f1,
-                mcc,
-                i,
-                val_false_negatives,
-                val_false_positives,
-                val_true_negatives,
-                val_true_positives,
+            f1, mcc = self.evaluate_epoch(
+                epoch_index=i,
+                false_negatives=val_false_negatives,
+                false_positives=val_false_positives,
+                true_negatives=val_true_negatives,
+                true_positives=val_true_positives,
             )
+            f1s.append(f1)
+            mccs.append(mcc)
+
         train_acc.append(np.max(val_acc_values))
-        best_f1.append(np.max(f1))
+        best_f1.append(np.max(f1s))
         best_auc.append(np.max(val_auc_value))
-        best_mcc.append(np.max(mcc))
+        best_mcc.append(np.max(mccs))
+
         print("Processing fold #", epoch_time)
         print("------------------------------------------------")
         print("best accuracy score is #", np.max(val_acc_values))
         print("average recall score is #", np.mean(val_recall_value))
         print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(f1))
+        print("best f1 score is #", np.max(f1s))
         print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(mcc))
+        print("best mcc score is #", np.max(mccs))
         print()
         print()
 
     @staticmethod
     def evaluate_epoch(
-        f1s: list,
-        mccs: list,
         epoch_index: int,
         false_negatives: list,
         false_positives: list,
         true_negatives: list,
         true_positives: list,
-    ) -> None:
+    ) -> tuple[float, float]:
         """
         Evaluate an epoch of the model.
-        :param f1s: The list of F1.
-        :param mccs: The list of MCC.
         :param epoch_index: The index of the epoch.
         :param false_negatives: The list of false negatives.
         :param false_positives: The list of false positives.
         :param true_negatives: The list of true negatives.
         :param true_positives: The list of true positives.
-        :return: None
+        :return: The f1 and mcc of the epoch.
         """
         tp = true_positives[epoch_index]
         tn = true_negatives[epoch_index]
         fp = false_positives[epoch_index]
         fn = false_negatives[epoch_index]
-        if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-            result_mcc = (tp * tn - fp * fn) / (
-                math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-            )
-            mccs.append(result_mcc)
-            result_precision = tp / (tp + fp)
-            result_recall = tp / (tp + fn)
-            result_f1 = (
-                2
-                * result_precision
-                * result_recall
-                / (result_precision + result_recall)
-            )
-            f1s.append(result_f1)
+        mcc = matthews_corrcoef(tp, tn, fp, fn)
+        precision = precision_score(tp, fp)
+        recall = recall_score(tp, fn)
+        f1 = f1_score(precision, recall)
+        return f1, mcc
 
     def train_fold(self, fold_index: int, num_sample: int) -> keras.callbacks.History:
         """
