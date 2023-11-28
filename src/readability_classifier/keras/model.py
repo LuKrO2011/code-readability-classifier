@@ -487,17 +487,20 @@ def create_structure_model(input_shape=(50, 305)):
     return model_input, flattened
 
 
-def create_NetT():
-    structure_input, structure_flatten = create_structure_model()
-
+def create_classification_model(input_layer):
     dense1 = layers.Dense(
         units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(structure_flatten)
+    )(input_layer)
     drop = layers.Dropout(0.5)(dense1)
     dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    output = layers.Dense(1, activation="sigmoid")(dense2)
+    return layers.Dense(1, activation="sigmoid")(dense2)
 
-    model = models.Model(structure_input, output)
+
+def create_NetT():
+    structure_input, structure_flatten = create_structure_model()
+    classification_output = create_classification_model(structure_flatten)
+
+    model = models.Model(structure_input, classification_output)
 
     rms = optimizers.RMSprop(learning_rate=0.0015)
 
