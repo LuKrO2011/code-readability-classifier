@@ -246,119 +246,124 @@ def preprocess_structure_data(struc_dir: str = structure_dir) -> dict:
     return data
 
 
-def process_texture_data(
-    texture_dir: str = texture_dir, max_len: int = MAX_LEN
-) -> tuple[dict, dict, dict]:
+class TexturePreprocessor:
     """
-    Preprocess the texture data.
-
-    :param texture_dir: The directory of the texture data.
-    :param max_len: The maximum length of the text.
-    :return: The dictionary that stores the token, position, and segment information.
+    Preprocessor for the texture data.
     """
-    data_token = {}
-    data_position = {}
-    data_segment = {}
 
-    # Process files in different label types ("Readable", "Unreadable")
-    for label_type in ["Readable", "Unreadable"]:
-        string_content = process_files_in_directory(
-            os.path.join(texture_dir, label_type), max_len
-        )
-        process_string_content(
-            string_content, data_token, data_position, data_segment, max_len
-        )
+    @classmethod
+    def process(cls, texture_dir: str = texture_dir,
+                max_len: int = MAX_LEN) -> tuple[dict, dict, dict]:
+        """
+        Preprocess the texture data.
 
-    return data_token, data_position, data_segment
+        :param texture_dir: The directory of the texture data.
+        :param max_len: The maximum length of the text.
+        :return: The dictionary that stores the token, position, and segment information.
+        """
+        data_token = {}
+        data_position = {}
+        data_segment = {}
 
+        # Process files in different label types ("Readable", "Unreadable")
+        for label_type in ["Readable", "Unreadable"]:
+            string_content = cls._process_files_in_directory(
+                os.path.join(texture_dir, label_type), max_len
+            )
+            cls._process_string(
+                string_content, data_token, data_position, data_segment, max_len
+            )
 
-def process_files_in_directory(directory: str, max_len: int) -> dict:
-    """
-    Process text files in a directory.
+        return data_token, data_position, data_segment
 
-    :param directory: The directory path containing text files.
-    :param max_len: The maximum length of the text.
-    :return: A dictionary with processed string content.
-    """
-    string_content = {}
+    @classmethod
+    def _process_files_in_directory(cls, directory: str, max_len: int) -> dict:
+        """
+        Process text files in a directory.
 
-    for file_name in os.listdir(directory):
-        if file_name.endswith(".txt"):
-            content = process_file(os.path.join(directory, file_name), max_len)
-            string_content[file_name.split(".")[0]] = content
+        :param directory: The directory path containing text files.
+        :param max_len: The maximum length of the text.
+        :return: A dictionary with processed string content.
+        """
+        string_content = {}
 
-    return string_content
+        for file_name in os.listdir(directory):
+            if file_name.endswith(".txt"):
+                content = cls._process_file(os.path.join(directory, file_name), max_len)
+                string_content[file_name.split(".")[0]] = content
 
+        return string_content
 
-def process_file(file_path: str, max_len: int) -> str:
-    """
-    Process content in a text file.
+    @classmethod
+    def _process_file(cls, file_path: str, max_len: int) -> str:
+        """
+        Process content in a text file.
 
-    :param file_path: The path to the text file.
-    :param max_len: The maximum length of the text.
-    :return: Processed string content.
-    """
-    processed_content = ""
-    with open(file_path, errors="ignore") as file:
-        for content in file:
-            content = re.sub(JAVA_NAMING_REGEX, r"\1 \2", content)
-            content = re.sub(pattern1, lambda x: " " + x.group(0) + " ", content)
-            content = re.sub(pattern2, lambda x: " " + x.group(0) + " ", content)
-            content = re.sub(pattern3, lambda x: " ", content)
-            processed_content += process_content(content, max_len)
+        :param file_path: The path to the text file.
+        :param max_len: The maximum length of the text.
+        :return: Processed string content.
+        """
+        processed_content = ""
+        with open(file_path, errors="ignore") as file:
+            for content in file:
+                content = re.sub(JAVA_NAMING_REGEX, r"\1 \2", content)
+                content = re.sub(pattern1, lambda x: " " + x.group(0) + " ", content)
+                content = re.sub(pattern2, lambda x: " " + x.group(0) + " ", content)
+                content = re.sub(pattern3, lambda x: " ", content)
+                processed_content += cls._process_content(content, max_len)
 
-    return processed_content
+        return processed_content
 
+    @staticmethod
+    def _process_content(content: str, max_len: int) -> str:
+        """
+        Process individual content and return processed string.
 
-def process_content(content: str, max_len: int) -> str:
-    """
-    Process individual content and return processed string.
-
-    :param content: Individual content to process.
-    :param max_len: The maximum length of the text.
-    :return: Processed string.
-    """
-    processed_string = ""
-    count = 0
-    for word in content.split():
-        if len(word) > 1 or not word.isalpha():
-            processed_string += " " + word
+        :param content: Individual content to process.
+        :param max_len: The maximum length of the text.
+        :return: Processed string.
+        """
+        processed_string = ""
+        count = 0
+        for word in content.split():
+            if len(word) > 1 or not word.isalpha():
+                processed_string += " " + word
+                count += 1
+        while count < max_len:
+            processed_string += " 0"  # Assuming "0" represents padding
             count += 1
-    while count < max_len:
-        processed_string += " 0"  # Assuming "0" represents padding
-        count += 1
 
-    return processed_string
+        return processed_string
 
+    @staticmethod
+    def _process_string(
+        string_content: dict,
+        data_token: dict,
+        data_position: dict,
+        data_segment: dict,
+        max_len: int,
+    ) -> None:
+        """
+        Process string content to tokens and store in dictionaries.
 
-def process_string_content(
-    string_content: dict,
-    data_token: dict,
-    data_position: dict,
-    data_segment: dict,
-    max_len: int,
-) -> None:
-    """
-    Process string content to tokens and store in dictionaries.
+        :param string_content: Dictionary with string content.
+        :param data_token: Dictionary to store token information.
+        :param data_position: Dictionary to store position information.
+        :param data_segment: Dictionary to store segment information.
+        :param max_len: The maximum length of the text.
+        """
+        for sample, content in string_content.items():
+            list_token = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(content))
+            list_token = list_token[:max_len]
+            while len(list_token) < max_len:
+                list_token.append(0)
+            data_token[sample] = list_token
 
-    :param string_content: Dictionary with string content.
-    :param data_token: Dictionary to store token information.
-    :param data_position: Dictionary to store position information.
-    :param data_segment: Dictionary to store segment information.
-    :param max_len: The maximum length of the text.
-    """
-    for sample, content in string_content.items():
-        list_token = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(content))
-        list_token = list_token[:max_len]
-        while len(list_token) < max_len:
-            list_token.append(0)
-        data_token[sample] = list_token
+            list_position = list(range(min(len(list_token), max_len)))
+            data_position[sample] = list_position
 
-        list_position = list(range(min(len(list_token), max_len)))
-        data_position[sample] = list_position
-
-        list_segment = list(range(len(list_position)))
-        data_segment[sample] = list_segment
+            list_segment = list(range(len(list_position)))
+            data_segment[sample] = list_segment
 
 
 def preprocess_picture_data():
@@ -669,7 +674,7 @@ def get_from_dict(dictionary, key_start: str):
 
 if __name__ == "__main__":
     data_set = preprocess_structure_data()
-    data_token, data_position, data_segment = process_texture_data()
+    data_token, data_position, data_segment = TexturePreprocessor.process()
     preprocess_picture_data()
     random_dataSet()
 
@@ -716,38 +721,38 @@ if __name__ == "__main__":
 
     for epoch in range(k_fold):
         print(f"Now is fold {epoch}")
-        x_val_structure = train_structure[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_token = train_token[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_segment = train_segment[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_image = train_image[epoch * num_sample : (epoch + 1) * num_sample]
-        y_val = train_label[epoch * num_sample : (epoch + 1) * num_sample]
+        x_val_structure = train_structure[epoch * num_sample: (epoch + 1) * num_sample]
+        x_val_token = train_token[epoch * num_sample: (epoch + 1) * num_sample]
+        x_val_segment = train_segment[epoch * num_sample: (epoch + 1) * num_sample]
+        x_val_image = train_image[epoch * num_sample: (epoch + 1) * num_sample]
+        y_val = train_label[epoch * num_sample: (epoch + 1) * num_sample]
 
         x_train_structure_part_1 = train_structure[: epoch * num_sample]
-        x_train_structure_part_2 = train_structure[(epoch + 1) * num_sample :]
+        x_train_structure_part_2 = train_structure[(epoch + 1) * num_sample:]
         x_train_structure = np.concatenate(
             [x_train_structure_part_1, x_train_structure_part_2], axis=0
         )
 
         x_train_token_part_1 = train_token[: epoch * num_sample]
-        x_train_token_part_2 = train_token[(epoch + 1) * num_sample :]
+        x_train_token_part_2 = train_token[(epoch + 1) * num_sample:]
         x_train_token = np.concatenate(
             [x_train_token_part_1, x_train_token_part_2], axis=0
         )
 
         x_train_segment_part_1 = train_segment[: epoch * num_sample]
-        x_train_segment_part_2 = train_segment[(epoch + 1) * num_sample :]
+        x_train_segment_part_2 = train_segment[(epoch + 1) * num_sample:]
         x_train_segment = np.concatenate(
             [x_train_segment_part_1, x_train_segment_part_2], axis=0
         )
 
         x_train_image_part_1 = train_image[: epoch * num_sample]
-        x_train_image_part_2 = train_image[(epoch + 1) * num_sample :]
+        x_train_image_part_2 = train_image[(epoch + 1) * num_sample:]
         x_train_image = np.concatenate(
             [x_train_image_part_1, x_train_image_part_2], axis=0
         )
 
         y_train_part_1 = train_label[: epoch * num_sample]
-        y_train_part_2 = train_label[(epoch + 1) * num_sample :]
+        y_train_part_2 = train_label[(epoch + 1) * num_sample:]
         y_train = np.concatenate([y_train_part_1, y_train_part_2], axis=0)
 
         # model training for VST, V, S, T
@@ -763,22 +768,22 @@ if __name__ == "__main__":
         checkpoint_vst = ModelCheckpoint(
             filepath_vst, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_vst_list = [checkpoint_vst]
+        callbacks_vst_list = []  # checkpoint_vst
 
         checkpoint_v = ModelCheckpoint(
             filepath_v, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_v_list = [checkpoint_v]
+        callbacks_v_list = []  # checkpoint_v
 
         checkpoint_s = ModelCheckpoint(
             filepath_s, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_s_list = [checkpoint_s]
+        callbacks_s_list = []  # checkpoint_s
 
         checkpoint_t = ModelCheckpoint(
             filepath_t, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_t_list = [checkpoint_t]
+        callbacks_t_list = []  # checkpoint_t
 
         history_vst = VST_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
