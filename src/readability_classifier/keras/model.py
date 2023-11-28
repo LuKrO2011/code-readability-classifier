@@ -751,10 +751,10 @@ class Classifier:
         """
         self.towards_model = towards_model
 
-    def train(self):
+    def train(self) -> tuple[list, list]:
         """
         Train the model.
-        :return: None
+        :return: The training history and the training accuracy.
         """
         file_name, data_set, data_structure = StructurePreprocessor.process(
             STRUCTURE_DIR
@@ -791,48 +791,60 @@ class Classifier:
 
         for fold_index in range(k_fold):
             print(f"Now is fold {fold_index}")
-            self.train_fold(fold_index=fold_index, num_sample=num_sample)
+            fold_history = self.train_fold(fold_index=fold_index, num_sample=num_sample)
+            history.append(fold_history)
 
-        self.evaluate(history, train_acc)
+        return history, train_acc
 
-    def evaluate(self, history, train_acc):
+    def evaluate(self, history: list, train_acc: list) -> None:
         """
         Evaluate the model.
         :param history: The training history.
         :param train_acc: The training accuracy.
         :return: None
         """
-        best_val_f1 = []
-        best_val_auc = []
-        best_val_mcc = []
-        epoch_time_vst = 1
+        best_f1 = []
+        best_auc = []
+        best_mcc = []
+        fold_index = 1
         for history_item in history:
             self.evaluate_fold(
-                best_val_auc,
-                best_val_f1,
-                best_val_mcc,
-                epoch_time_vst,
+                best_auc,
+                best_f1,
+                best_mcc,
+                fold_index,
                 history_item,
                 train_acc,
             )
+            fold_index += 1
         print("Average vst model acc score", np.mean(train_acc))
-        print("Average vst model f1 score", np.mean(best_val_f1))
-        print("Average vst model auc score", np.mean(best_val_auc))
-        print("Average vst model mcc score", np.mean(best_val_mcc))
+        print("Average vst model f1 score", np.mean(best_f1))
+        print("Average vst model auc score", np.mean(best_auc))
+        print("Average vst model mcc score", np.mean(best_mcc))
         print()
 
     def evaluate_fold(
         self,
-        best_val_auc,
-        best_val_f1,
-        best_val_mcc,
-        epoch_time_vst,
-        history_item,
-        train_acc,
+        best_auc: list,
+        best_f1: list,
+        best_mcc: list,
+        epoch_time: int,
+        fold_history: keras.callbacks.History,
+        train_acc: list,
     ):
-        MCC_vst = []
-        F1_vst = []
-        history_dict = history_item.fold_stats
+        """
+        Evaluate the model for a fold.
+        :param best_auc: The list of best AUC.
+        :param best_f1: The list of best F1.
+        :param best_mcc: The list of best MCC.
+        :param epoch_time: The epoch time.
+        :param fold_history: The history of the fold.
+        :param train_acc: The training accuracy.
+        :return: None
+        """
+        mcc = []
+        f1 = []
+        history_dict = fold_history.fold_stats
         val_acc_values = history_dict["val_acc"]
         val_recall_value = get_from_dict(history_dict, "val_recall")
         val_precision_value = get_from_dict(history_dict, "val_precision")
@@ -843,8 +855,8 @@ class Classifier:
         val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
         for i in range(20):
             self.evaluate_epoch(
-                F1_vst,
-                MCC_vst,
+                f1,
+                mcc,
                 i,
                 val_false_negatives,
                 val_false_positives,
@@ -852,40 +864,50 @@ class Classifier:
                 val_true_positives,
             )
         train_acc.append(np.max(val_acc_values))
-        best_val_f1.append(np.max(F1_vst))
-        best_val_auc.append(np.max(val_auc_value))
-        best_val_mcc.append(np.max(MCC_vst))
-        print("Processing fold #", epoch_time_vst)
+        best_f1.append(np.max(f1))
+        best_auc.append(np.max(val_auc_value))
+        best_mcc.append(np.max(mcc))
+        print("Processing fold #", epoch_time)
         print("------------------------------------------------")
         print("best accuracy score is #", np.max(val_acc_values))
         print("average recall score is #", np.mean(val_recall_value))
         print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(F1_vst))
+        print("best f1 score is #", np.max(f1))
         print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(MCC_vst))
+        print("best mcc score is #", np.max(mcc))
         print()
         print()
-        epoch_time_vst = epoch_time_vst + 1
 
+    @staticmethod
     def evaluate_epoch(
-        self,
-        F1_vst,
-        MCC_vst,
-        i,
-        val_false_negatives,
-        val_false_positives,
-        val_true_negatives,
-        val_true_positives,
-    ):
-        tp = val_true_positives[i]
-        tn = val_true_negatives[i]
-        fp = val_false_positives[i]
-        fn = val_false_negatives[i]
+        f1s: list,
+        mccs: list,
+        epoch_index: int,
+        false_negatives: list,
+        false_positives: list,
+        true_negatives: list,
+        true_positives: list,
+    ) -> None:
+        """
+        Evaluate an epoch of the model.
+        :param f1s: The list of F1.
+        :param mccs: The list of MCC.
+        :param epoch_index: The index of the epoch.
+        :param false_negatives: The list of false negatives.
+        :param false_positives: The list of false positives.
+        :param true_negatives: The list of true negatives.
+        :param true_positives: The list of true positives.
+        :return: None
+        """
+        tp = true_positives[epoch_index]
+        tn = true_negatives[epoch_index]
+        fp = false_positives[epoch_index]
+        fn = false_negatives[epoch_index]
         if tp > 0 and tn > 0 and fn > 0 and fp > 0:
             result_mcc = (tp * tn - fp * fn) / (
                 math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
             )
-            MCC_vst.append(result_mcc)
+            mccs.append(result_mcc)
             result_precision = tp / (tp + fp)
             result_recall = tp / (tp + fn)
             result_f1 = (
@@ -894,9 +916,15 @@ class Classifier:
                 * result_recall
                 / (result_precision + result_recall)
             )
-            F1_vst.append(result_f1)
+            f1s.append(result_f1)
 
     def train_fold(self, fold_index: int, num_sample: int) -> keras.callbacks.History:
+        """
+        Train the model for a fold.
+        :param fold_index: The index of the fold.
+        :param num_sample: The number of samples.
+        :return: The history of the fold.
+        """
         # Get the validation set
         (
             x_val_structure,
@@ -956,7 +984,8 @@ def main():
     """
     towards_model = create_towards_model()
     classifier = Classifier(towards_model)
-    classifier.train()
+    history, train_acc = classifier.train()
+    classifier.evaluate(history, train_acc)
 
 
 if __name__ == "__main__":
