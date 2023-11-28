@@ -164,6 +164,8 @@ TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
 VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 TOKENIZER_NAME = "bert-base-cased"
+K_FOLD = 10
+EPOCHS = 20
 
 # Default values
 DEFAULT_LEARNING_RATE = 0.0015
@@ -784,12 +786,11 @@ class Classifier:
         print("Shape of segment tensor:", self.segment.shape)
         print("Shape of label tensor:", self.label.shape)
 
-        k_fold = 10
-        num_sample = math.ceil(len(self.label) / k_fold)
+        num_sample = math.ceil(len(self.label) / K_FOLD)
         train_acc = []
         history = []
 
-        for fold_index in range(k_fold):
+        for fold_index in range(1):  # K_FOLD
             print(f"Now is fold {fold_index}")
             fold_history = self.train_fold(fold_index=fold_index, num_sample=num_sample)
             history.append(fold_history)
@@ -844,8 +845,8 @@ class Classifier:
         """
         mcc = []
         f1 = []
-        history_dict = fold_history.fold_stats
-        val_acc_values = history_dict["val_acc"]
+        history_dict = fold_history.history
+        val_acc_values = get_from_dict(history_dict, "val_acc")
         val_recall_value = get_from_dict(history_dict, "val_recall")
         val_precision_value = get_from_dict(history_dict, "val_precision")
         val_auc_value = get_from_dict(history_dict, "val_auc")
@@ -853,7 +854,7 @@ class Classifier:
         val_false_positives = get_from_dict(history_dict, "val_false_positives")
         val_true_positives = get_from_dict(history_dict, "val_true_positives")
         val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-        for i in range(20):
+        for i in range(EPOCHS):
             self.evaluate_epoch(
                 f1,
                 mcc,
@@ -966,7 +967,7 @@ class Classifier:
         return towards_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
             y_train,
-            epochs=20,
+            epochs=EPOCHS,
             batch_size=42,
             callbacks=callbacks,
             verbose=0,
