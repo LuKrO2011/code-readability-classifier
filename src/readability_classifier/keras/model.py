@@ -730,33 +730,12 @@ if __name__ == "__main__":
 
         # model training for VST, V, S, T
         VST_model = create_towards_model()
-        V_model = create_visual_model()
-        S_model = create_semantic_model()
-        T_model = create_structural_model()
 
         filepath_vst = "../Experimental output/VST_BEST.hdf5"
-        filepath_v = "../Experimental output/V_BEST.hdf5"
-        filepath_s = "../Experimental output/S_BEST.hdf5"
-        filepath_t = "../Experimental output/T_BEST.hdf5"
         checkpoint_vst = ModelCheckpoint(
             filepath_vst, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
         callbacks_vst_list = [checkpoint_vst]
-
-        checkpoint_v = ModelCheckpoint(
-            filepath_v, monitor="val_acc", verbose=1, save_best_only=True, model="max"
-        )
-        callbacks_v_list = [checkpoint_v]
-
-        checkpoint_s = ModelCheckpoint(
-            filepath_s, monitor="val_acc", verbose=1, save_best_only=True, model="max"
-        )
-        callbacks_s_list = [checkpoint_s]
-
-        checkpoint_t = ModelCheckpoint(
-            filepath_t, monitor="val_acc", verbose=1, save_best_only=True, model="max"
-        )
-        callbacks_t_list = [checkpoint_t]
 
         history_vst = VST_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
@@ -773,55 +752,10 @@ if __name__ == "__main__":
 
         history_vst_list.append(history_vst)
 
-        history_t = T_model.fit(
-            x_train_structure,
-            y_train,
-            epochs=20,
-            batch_size=42,
-            callbacks=callbacks_s_list,
-            verbose=0,
-            validation_data=(x_val_structure, y_val),
-        )
-
-        history_t_list.append(history_t)
-
-        history_s = S_model.fit(
-            [x_train_token, x_train_segment],
-            y_train,
-            epochs=20,
-            batch_size=42,
-            callbacks=callbacks_t_list,
-            verbose=0,
-            validation_data=([x_val_token, x_val_segment], y_val),
-        )
-
-        history_s_list.append(history_s)
-
-        history_v = V_model.fit(
-            x_train_image,
-            y_train,
-            epochs=20,
-            batch_size=42,
-            callbacks=callbacks_v_list,
-            verbose=0,
-            validation_data=(x_val_image, y_val),
-        )
-
-        history_v_list.append(history_v)
-
     # data analyze
     best_val_f1_vst = []
-    best_val_f1_v = []
-    best_val_f1_s = []
-    best_val_f1_t = []
     best_val_auc_vst = []
-    best_val_auc_v = []
-    best_val_auc_s = []
-    best_val_auc_t = []
     best_val_mcc_vst = []
-    best_val_mcc_v = []
-    best_val_mcc_s = []
-    best_val_mcc_t = []
 
     epoch_time_vst = 1
     for history_item in history_vst_list:
@@ -871,173 +805,8 @@ if __name__ == "__main__":
         print()
         epoch_time_vst = epoch_time_vst + 1
 
-    epoch_time_v = 1
-    for history_item in history_v_list:
-        MCC_v = []
-        F1_v = []
-        history_dict = history_item.history
-        val_acc_values = history_dict["val_acc"]
-        val_recall_value = get_from_dict(history_dict, "val_recall")
-        val_precision_value = get_from_dict(history_dict, "val_precision")
-        val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-        val_false_positives = get_from_dict(history_dict, "val_false_positives")
-        val_true_positives = get_from_dict(history_dict, "val_true_positives")
-        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-        for i in range(20):
-            tp = val_true_positives[i]
-            tn = val_true_negatives[i]
-            fp = val_false_positives[i]
-            fn = val_false_negatives[i]
-            if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-                result_mcc = (tp * tn - fp * fn) / (
-                    math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-                )
-                MCC_v.append(result_mcc)
-                result_precision = tp / (tp + fp)
-                result_recall = tp / (tp + fn)
-                result_f1 = (
-                    2
-                    * result_precision
-                    * result_recall
-                    / (result_precision + result_recall)
-                )
-                F1_v.append(result_f1)
-        train_v_acc.append(np.max(val_acc_values))
-        best_val_f1_v.append(np.max(F1_v))
-        best_val_auc_v.append(np.max(val_auc_value))
-        best_val_mcc_v.append(np.max(MCC_v))
-        print("Processing fold #", epoch_time_v)
-        print("------------------------------------------------")
-        print("best accuracy score is #", np.max(val_acc_values))
-        print("average recall score is #", np.mean(val_recall_value))
-        print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(F1_v))
-        print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(MCC_v))
-        print()
-        print()
-        epoch_time_v = epoch_time_v + 1
-
-    epoch_time_t = 1
-    for history_item in history_t_list:
-        MCC_T = []
-        F1_T = []
-        history_dict = history_item.history
-        val_acc_values = history_dict["val_acc"]
-        val_recall_value = get_from_dict(history_dict, "val_recall")
-        val_precision_value = get_from_dict(history_dict, "val_precision")
-        val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-        val_false_positives = get_from_dict(history_dict, "val_false_positives")
-        val_true_positives = get_from_dict(history_dict, "val_true_positives")
-        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-        for i in range(20):
-            tp = val_true_positives[i]
-            tn = val_true_negatives[i]
-            fp = val_false_positives[i]
-            fn = val_false_negatives[i]
-            if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-                result_mcc = (tp * tn - fp * fn) / (
-                    math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-                )
-                MCC_T.append(result_mcc)
-                result_precision = tp / (tp + fp)
-                result_recall = tp / (tp + fn)
-                result_f1 = (
-                    2
-                    * result_precision
-                    * result_recall
-                    / (result_precision + result_recall)
-                )
-                F1_T.append(result_f1)
-        train_t_acc.append(np.max(val_acc_values))
-        best_val_f1_t.append(np.max(F1_T))
-        best_val_auc_t.append(np.max(val_auc_value))
-        best_val_mcc_t.append(np.max(MCC_T))
-        print("Processing fold #", epoch_time_t)
-        print("------------------------------------------------")
-        print("best accuracy score is #", np.max(val_acc_values))
-        print("average recall score is #", np.mean(val_recall_value))
-        print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(F1_T))
-        print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(MCC_T))
-        print()
-        print()
-        epoch_time_t = epoch_time_t + 1
-
-    epoch_time_s = 1
-    for history_item in history_s_list:
-        MCC_S = []
-        F1_S = []
-        history_dict = history_item.history
-        val_acc_values = history_dict["val_acc"]
-        val_recall_value = get_from_dict(history_dict, "val_recall")
-        val_precision_value = get_from_dict(history_dict, "val_precision")
-        val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-        val_false_positives = get_from_dict(history_dict, "val_false_positives")
-        val_true_positives = get_from_dict(history_dict, "val_true_positives")
-        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-        for i in range(20):
-            tp = val_true_positives[i]
-            tn = val_true_negatives[i]
-            fp = val_false_positives[i]
-            fn = val_false_negatives[i]
-            if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-                result_mcc = (tp * tn - fp * fn) / (
-                    math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-                )
-                MCC_S.append(result_mcc)
-                result_precision = tp / (tp + fp)
-                result_recall = tp / (tp + fn)
-                result_f1 = (
-                    2
-                    * result_precision
-                    * result_recall
-                    / (result_precision + result_recall)
-                )
-                F1_S.append(result_f1)
-        train_s_acc.append(np.max(val_acc_values))
-        best_val_f1_s.append(np.max(F1_S))
-        best_val_auc_s.append(np.max(val_auc_value))
-        best_val_mcc_s.append(np.max(MCC_S))
-        print("Processing fold #", epoch_time_s)
-        print("------------------------------------------------")
-        print("best accuracy score is #", np.max(val_acc_values))
-        print("average recall score is #", np.mean(val_recall_value))
-        print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(F1_S))
-        print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(MCC_S))
-        print()
-        print()
-        epoch_time_s = epoch_time_s + 1
-
     print("Average vst model acc score", np.mean(train_vst_acc))
     print("Average vst model f1 score", np.mean(best_val_f1_vst))
     print("Average vst model auc score", np.mean(best_val_auc_vst))
     print("Average vst model mcc score", np.mean(best_val_mcc_vst))
-    print()
-
-    print("visual")
-    print("Average V model acc score", np.mean(train_v_acc))
-    print("Average V model f1 score", np.mean(best_val_f1_v))
-    print("Average V model auc score", np.mean(best_val_auc_v))
-    print("Average V model mcc score", np.mean(best_val_mcc_v))
-    print()
-
-    print("semantics")
-    print("Average S model acc score", np.mean(train_s_acc))
-    print("Average S model f1 score", np.mean(best_val_f1_s))
-    print("Average S model auc score", np.mean(best_val_auc_s))
-    print("Average S model mcc score", np.mean(best_val_mcc_s))
-    print()
-
-    print("structure")
-    print("Average T model acc score", np.mean(train_t_acc))
-    print("Average T model f1 score", np.mean(best_val_f1_t))
-    print("Average T model auc score", np.mean(best_val_auc_t))
-    print("Average T model mcc score", np.mean(best_val_mcc_t))
     print()
