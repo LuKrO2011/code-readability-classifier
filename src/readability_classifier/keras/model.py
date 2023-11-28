@@ -144,24 +144,23 @@ class BertEmbedding(keras.layers.Layer):
         return config
 
 
-JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
-
 # Define the path of the data
 STRUCTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Structure"
 TEXTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Texture"
 PICTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Image"
 
-# Use for texture data preprocessing
-pattern = "[A-Z]"
-pattern1 = '["\\[\\]\\\\]'
-pattern2 = "[*.+!$#&,;{}()':=/<>%-]"
-pattern3 = "[_]"
+# Regex and patterns
+JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
+BRACKETS_AND_BACKSLASH = '["\\[\\]\\\\]'
+SPECIAL_CHARACTERS = "[*.+!$#&,;{}()':=/<>%-]"
+UNDERSCORE = "[_]"
 
-# Define basic parameters
+# Define parameters
 MAX_LEN = 100
-training_samples = 147
-validation_samples = 63
-max_words = 1000
+TOTAL_SAMPLES = 210
+TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
+VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
+MAX_WORDS = 1000
 
 # store all data
 data_set = {}
@@ -307,9 +306,13 @@ class TexturePreprocessor:
         with open(file_path, errors="ignore") as file:
             for content in file:
                 content = re.sub(JAVA_NAMING_REGEX, r"\1 \2", content)
-                content = re.sub(pattern1, lambda x: " " + x.group(0) + " ", content)
-                content = re.sub(pattern2, lambda x: " " + x.group(0) + " ", content)
-                content = re.sub(pattern3, lambda x: " ", content)
+                content = re.sub(
+                    BRACKETS_AND_BACKSLASH, lambda x: " " + x.group(0) + " ", content
+                )
+                content = re.sub(
+                    SPECIAL_CHARACTERS, lambda x: " " + x.group(0) + " ", content
+                )
+                content = re.sub(UNDERSCORE, lambda x: " ", content)
                 processed_content += cls._process_content(content, max_len)
 
         return processed_content
