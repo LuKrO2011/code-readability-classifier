@@ -640,62 +640,31 @@ def create_visual_model(learning_rate: float = 0.0015) -> keras.Model:
     return model
 
 
-def create_VST_model():
-    structure_input = keras.Input(shape=(50, 305), name="structure")
-    structure_reshape = keras.layers.Reshape((50, 305, 1))(structure_input)
-    structure_conv1 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_reshape
-    )
-    structure_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv1)
-    structure_conv2 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_pool1
-    )
-    structure_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv2)
-    structure_conv3 = keras.layers.Conv2D(filters=64, kernel_size=3, activation="relu")(
-        structure_pool2
-    )
-    structure_pool3 = keras.layers.MaxPool2D(pool_size=3, strides=3)(structure_conv3)
-    structure_flatten = keras.layers.Flatten()(structure_pool3)
+def create_towards_model(learning_rate: float = 0.0015) -> keras.Model:
+    """
+    Create the VST model.
+    :return: The model.
+    """
+    structure_input, structure_flatten = create_structural_extractor()
+    token_input, segment_input, gru = create_semantic_extractor()
+    image_input, image_flatten = create_visual_extractor()
 
-    bert_config = BertConfig(max_sequence_length=MAX_LEN)
-    token_input = keras.Input(shape=(MAX_LEN,), name="token")
-    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
-    texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
-    texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
-    texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
-    texture_conv2 = keras.layers.Conv1D(32, 5, activation="relu")(texture_pool1)
-    texture_gru = keras.layers.Bidirectional(keras.layers.LSTM(32))(texture_conv2)
+    concatenated = layers.concatenate([structure_flatten, gru, image_flatten], axis=-1)
 
-    image_input = keras.Input(shape=(128, 128, 3), name="image")
-    image_conv1 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_input)
-    image_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv1)
-    image_conv2 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_pool1)
-    image_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv2)
-    image_conv3 = keras.layers.Conv2D(
-        filters=64, kernel_size=3, padding="same", activation="relu"
-    )(image_pool2)
-    image_pool3 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv3)
-    image_flatten = keras.layers.Flatten()(image_pool3)
-
-    concatenated = keras.layers.concatenate(
-        [structure_flatten, texture_gru, image_flatten], axis=-1
-    )
-
-    dense1 = keras.layers.Dense(
+    dense1 = layers.Dense(
         units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
     )(concatenated)
-    drop = keras.layers.Dropout(0.5)(dense1)
-    dense2 = keras.layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    dense3 = keras.layers.Dense(1, activation="sigmoid")(dense2)
-    model = keras.Model(
-        [structure_input, token_input, segment_input, image_input], dense3
+    drop = layers.Dropout(0.5)(dense1)
+    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
+    classification_output = layers.Dense(1, activation="sigmoid")(dense2)
+
+    model = models.Model(
+        [structure_input, token_input, segment_input, image_input],
+        classification_output,
     )
-    rms = keras.optimizers.RMSprop(lr=0.0015)
-    # model.summary()
+
+    rms = optimizers.RMSprop(learning_rate=learning_rate)
+
     model.compile(
         optimizer=rms,
         loss="binary_crossentropy",
@@ -881,7 +850,7 @@ if __name__ == "__main__":
         y_train = np.concatenate([y_train_part_1, y_train_part_2], axis=0)
 
         # model training for VST, V, S, T
-        VST_model = create_VST_model()
+        VST_model = create_towards_model()
         V_model = create_visual_model()
         S_model = create_semantic_model()
         T_model = create_structural_model()
