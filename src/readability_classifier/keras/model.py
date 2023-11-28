@@ -8,7 +8,7 @@ import keras
 import keras.backend as K
 import numpy as np
 import tensorflow as tf
-from keras import regularizers
+from keras import layers, models, optimizers, regularizers
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -470,31 +470,37 @@ def precision(y_true, y_pred):
     return true_positives / (predicted_positives + K.epsilon())
 
 
+def create_structure_model(input_shape=(50, 305)):
+    model_input = layers.Input(shape=input_shape, name="structure")
+    reshaped_input = layers.Reshape((*input_shape, 1))(model_input)
+
+    conv1 = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(reshaped_input)
+    pool1 = layers.MaxPooling2D(pool_size=2, strides=2)(conv1)
+
+    conv2 = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(pool1)
+    pool2 = layers.MaxPooling2D(pool_size=2, strides=2)(conv2)
+
+    conv3 = layers.Conv2D(filters=64, kernel_size=3, activation="relu")(pool2)
+    pool3 = layers.MaxPooling2D(pool_size=3, strides=3)(conv3)
+
+    flattened = layers.Flatten()(pool3)
+    return model_input, flattened
+
+
 def create_NetT():
-    structure_input = keras.Input(shape=(50, 305), name="structure")
-    structure_reshape = keras.layers.Reshape((50, 305, 1))(structure_input)
-    structure_conv1 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_reshape
-    )
-    structure_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv1)
-    structure_conv2 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_pool1
-    )
-    structure_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv2)
-    structure_conv3 = keras.layers.Conv2D(filters=64, kernel_size=3, activation="relu")(
-        structure_pool2
-    )
-    structure_pool3 = keras.layers.MaxPool2D(pool_size=3, strides=3)(structure_conv3)
-    structure_flatten = keras.layers.Flatten()(structure_pool3)
-    dense1 = keras.layers.Dense(
+    structure_input, structure_flatten = create_structure_model()
+
+    dense1 = layers.Dense(
         units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
     )(structure_flatten)
-    drop = keras.layers.Dropout(0.5)(dense1)
-    dense2 = keras.layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    dense3 = keras.layers.Dense(1, activation="sigmoid")(dense2)
-    model = keras.Model(structure_input, dense3)
-    rms = keras.optimizers.RMSprop(lr=0.0015)
-    # model.summary()
+    drop = layers.Dropout(0.5)(dense1)
+    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
+    output = layers.Dense(1, activation="sigmoid")(dense2)
+
+    model = models.Model(structure_input, output)
+
+    rms = optimizers.RMSprop(learning_rate=0.0015)
+
     model.compile(
         optimizer=rms,
         loss="binary_crossentropy",
@@ -509,6 +515,7 @@ def create_NetT():
             "FalsePositives",
         ],
     )
+
     return model
 
 
