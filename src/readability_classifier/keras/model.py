@@ -2,6 +2,7 @@ import math
 import os
 import random
 import re
+from dataclasses import dataclass
 
 import cv2
 import keras
@@ -718,57 +719,140 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
-if __name__ == "__main__":
-    # TODO: Remove computation of those: data_position and data_image (unused)
-    file_name, data_set, data_structure = StructurePreprocessor.process(STRUCTURE_DIR)
-    data_token, _, data_segment = TexturePreprocessor().process(TEXTURE_DIR)
-    data_picture, _ = PicturePreprocessor.process(PICTURE_DIR)
+@dataclass
+class TowardsInput:
+    """
+    Data class for the input of the TowardsModel.
+    """
 
-    all_data, label, structure, image, token, segment = random_dataset(
-        file_name=file_name,
-        data_set=data_set,
-        data_structure=data_structure,
-        data_picture=data_picture,
-        data_token=data_token,
-        data_segment=data_segment,
-    )
+    label: np.ndarray
+    structure: np.ndarray
+    image: np.ndarray
+    token: np.ndarray
+    segment: np.ndarray
 
-    # format the data
-    label = np.asarray(label)
-    structure = np.asarray(structure)
-    image = np.asarray(image)
-    token = np.asarray(token)
-    segment = np.asarray(segment)
 
-    print("Shape of structure data tensor:", structure.shape)
-    print("Shape of image data tensor:", image.shape)
-    print("Shape of token tensor:", token.shape)
-    print("Shape of segment tensor:", segment.shape)
-    print("Shape of label tensor:", label.shape)
+# TODO: Remove computation of those: data_position and data_image (unused)
+class Classifier:
+    """
+    A source code readability classifier.
+    """
 
-    train_structure = structure
-    train_image = image
-    train_token = token
-    train_segment = segment
-    train_label = label
+    label: np.ndarray = None
+    structure: np.ndarray = None
+    image: np.ndarray = None
+    token: np.ndarray = None
+    segment: np.ndarray = None
 
-    k_fold = 10
-    num_sample = math.ceil(len(train_label) / k_fold)
-    train_vst_acc = []
-    train_v_acc = []
-    train_s_acc = []
-    train_t_acc = []
+    def __init__(self, towards_model: keras.Model) -> None:
+        """
+        Initializes the classifier.
+        :param towards_model: The towards model.
+        """
+        self.towards_model = towards_model
 
-    history = []
-    history_v_list = []
-    history_s_list = []
-    history_t_list = []
+    def train(self):
+        """
+        Train the model.
+        :return: None
+        """
+        file_name, data_set, data_structure = StructurePreprocessor.process(
+            STRUCTURE_DIR
+        )
+        data_token, _, data_segment = TexturePreprocessor().process(TEXTURE_DIR)
+        data_picture, _ = PicturePreprocessor.process(PICTURE_DIR)
 
-    svm_score = []
+        all_data, label, structure, image, token, segment = random_dataset(
+            file_name=file_name,
+            data_set=data_set,
+            data_structure=data_structure,
+            data_picture=data_picture,
+            data_token=data_token,
+            data_segment=data_segment,
+        )
 
-    for fold_index in range(k_fold):
-        print(f"Now is fold {fold_index}")
+        # format the data
+        self.label = np.asarray(label)
+        self.structure = np.asarray(structure)
+        self.image = np.asarray(image)
+        self.token = np.asarray(token)
+        self.segment = np.asarray(segment)
 
+        print("Shape of structure data tensor:", self.structure.shape)
+        print("Shape of image data tensor:", self.image.shape)
+        print("Shape of token tensor:", self.token.shape)
+        print("Shape of segment tensor:", self.segment.shape)
+        print("Shape of label tensor:", self.label.shape)
+
+        k_fold = 10
+        num_sample = math.ceil(len(self.label) / k_fold)
+        train_acc = []
+        history = []
+
+        for fold_index in range(k_fold):
+            print(f"Now is fold {fold_index}")
+            self.train_fold(fold_index=fold_index, num_sample=num_sample)
+
+        # data analyze
+        best_val_f1 = []
+        best_val_auc = []
+        best_val_mcc = []
+
+        epoch_time_vst = 1
+        for history_item in history:
+            MCC_vst = []
+            F1_vst = []
+            history_dict = history_item.fold_stats
+            val_acc_values = history_dict["val_acc"]
+            val_recall_value = get_from_dict(history_dict, "val_recall")
+            val_precision_value = get_from_dict(history_dict, "val_precision")
+            val_auc_value = get_from_dict(history_dict, "val_auc")
+            val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
+            val_false_positives = get_from_dict(history_dict, "val_false_positives")
+            val_true_positives = get_from_dict(history_dict, "val_true_positives")
+            val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
+            for i in range(20):
+                tp = val_true_positives[i]
+                tn = val_true_negatives[i]
+                fp = val_false_positives[i]
+                fn = val_false_negatives[i]
+                if tp > 0 and tn > 0 and fn > 0 and fp > 0:
+                    result_mcc = (tp * tn - fp * fn) / (
+                        math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
+                    )
+                    MCC_vst.append(result_mcc)
+                    result_precision = tp / (tp + fp)
+                    result_recall = tp / (tp + fn)
+                    result_f1 = (
+                        2
+                        * result_precision
+                        * result_recall
+                        / (result_precision + result_recall)
+                    )
+                    F1_vst.append(result_f1)
+            train_acc.append(np.max(val_acc_values))
+            best_val_f1.append(np.max(F1_vst))
+            best_val_auc.append(np.max(val_auc_value))
+            best_val_mcc.append(np.max(MCC_vst))
+            print("Processing fold #", epoch_time_vst)
+            print("------------------------------------------------")
+            print("best accuracy score is #", np.max(val_acc_values))
+            print("average recall score is #", np.mean(val_recall_value))
+            print("average precision score is #", np.mean(val_precision_value))
+            print("best f1 score is #", np.max(F1_vst))
+            print("best auc score is #", np.max(val_auc_value))
+            print("best mcc score is #", np.max(MCC_vst))
+            print()
+            print()
+            epoch_time_vst = epoch_time_vst + 1
+
+        print("Average vst model acc score", np.mean(train_acc))
+        print("Average vst model f1 score", np.mean(best_val_f1))
+        print("Average vst model auc score", np.mean(best_val_auc))
+        print("Average vst model mcc score", np.mean(best_val_mcc))
+        print()
+
+    def train_fold(self, fold_index: int, num_sample: int) -> keras.callbacks.History:
         # Get the validation set
         (
             x_val_structure,
@@ -779,13 +863,12 @@ if __name__ == "__main__":
         ) = get_validation_set(
             fold_index=fold_index,
             num_sample=num_sample,
-            train_structure=train_structure,
-            train_token=train_token,
-            train_segment=train_segment,
-            train_image=train_image,
-            train_label=train_label,
+            train_structure=self.structure,
+            train_token=self.token,
+            train_segment=self.segment,
+            train_image=self.image,
+            train_label=self.label,
         )
-
         # Get the training set
         (
             x_train_structure,
@@ -796,20 +879,19 @@ if __name__ == "__main__":
         ) = get_training_set(
             fold_index=fold_index,
             num_sample=num_sample,
-            train_structure=train_structure,
-            train_token=train_token,
-            train_segment=train_segment,
-            train_image=train_image,
-            train_label=train_label,
+            train_structure=self.structure,
+            train_token=self.token,
+            train_segment=self.segment,
+            train_image=self.image,
+            train_label=self.label,
         )
-
         # Train the model
         towards_model = create_towards_model()
         checkpoint = ModelCheckpoint(
             MODEL_OUTPUT, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
         callbacks = [checkpoint]
-        fold_stats = towards_model.fit(
+        return towards_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
             y_train,
             epochs=20,
@@ -821,63 +903,17 @@ if __name__ == "__main__":
                 y_val,
             ),
         )
-        history.append(fold_stats)
 
-    # data analyze
-    best_val_f1 = []
-    best_val_auc = []
-    best_val_mcc = []
 
-    epoch_time_vst = 1
-    for history_item in history:
-        MCC_vst = []
-        F1_vst = []
-        history_dict = history_item.fold_stats
-        val_acc_values = history_dict["val_acc"]
-        val_recall_value = get_from_dict(history_dict, "val_recall")
-        val_precision_value = get_from_dict(history_dict, "val_precision")
-        val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-        val_false_positives = get_from_dict(history_dict, "val_false_positives")
-        val_true_positives = get_from_dict(history_dict, "val_true_positives")
-        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-        for i in range(20):
-            tp = val_true_positives[i]
-            tn = val_true_negatives[i]
-            fp = val_false_positives[i]
-            fn = val_false_negatives[i]
-            if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-                result_mcc = (tp * tn - fp * fn) / (
-                    math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-                )
-                MCC_vst.append(result_mcc)
-                result_precision = tp / (tp + fp)
-                result_recall = tp / (tp + fn)
-                result_f1 = (
-                    2
-                    * result_precision
-                    * result_recall
-                    / (result_precision + result_recall)
-                )
-                F1_vst.append(result_f1)
-        train_vst_acc.append(np.max(val_acc_values))
-        best_val_f1.append(np.max(F1_vst))
-        best_val_auc.append(np.max(val_auc_value))
-        best_val_mcc.append(np.max(MCC_vst))
-        print("Processing fold #", epoch_time_vst)
-        print("------------------------------------------------")
-        print("best accuracy score is #", np.max(val_acc_values))
-        print("average recall score is #", np.mean(val_recall_value))
-        print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(F1_vst))
-        print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(MCC_vst))
-        print()
-        print()
-        epoch_time_vst = epoch_time_vst + 1
+def main():
+    """
+    Main function.
+    :return: None
+    """
+    towards_model = create_towards_model()
+    classifier = Classifier(towards_model)
+    classifier.train()
 
-    print("Average vst model acc score", np.mean(train_vst_acc))
-    print("Average vst model f1 score", np.mean(best_val_f1))
-    print("Average vst model auc score", np.mean(best_val_auc))
-    print("Average vst model mcc score", np.mean(best_val_mcc))
-    print()
+
+if __name__ == "__main__":
+    main()
