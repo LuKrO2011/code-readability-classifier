@@ -5,12 +5,11 @@ import re
 
 import cv2
 import keras
-import keras.backend as K
 import numpy as np
 import tensorflow as tf
 from keras import layers, models, optimizers, regularizers
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import precision_score, recall_score, roc_auc_score
 from sklearn.neighbors import KNeighborsClassifier
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.util import tf_inspect
@@ -458,19 +457,14 @@ def random_dataset(
     return all_data, label, structure, image, token, segment
 
 
-def recall(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    return true_positives / (possible_positives + K.epsilon())
-
-
-def precision(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    return true_positives / (predicted_positives + K.epsilon())
-
-
-def create_structure_model(input_shape=(50, 305)):
+def create_structural_extractor(
+    input_shape: tuple[int, int] = (50, 305)
+) -> tuple[tf.Tensor, tf.Tensor]:
+    """
+    Create the structural model.
+    :param input_shape: The input shape of the model.
+    :return: The input layer and the flattened layer.
+    """
     model_input = layers.Input(shape=input_shape, name="structure")
     reshaped_input = layers.Reshape((*input_shape, 1))(model_input)
 
@@ -487,7 +481,12 @@ def create_structure_model(input_shape=(50, 305)):
     return model_input, flattened
 
 
-def create_classification_model(input_layer):
+def create_classification_model(input_layer: tf.Tensor) -> tf.Tensor:
+    """
+    Create the classification model.
+    :param input_layer: The input layer of the model.
+    :return: The output layer of the model.
+    """
     dense1 = layers.Dense(
         units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
     )(input_layer)
@@ -496,13 +495,18 @@ def create_classification_model(input_layer):
     return layers.Dense(1, activation="sigmoid")(dense2)
 
 
-def create_NetT():
-    structure_input, structure_flatten = create_structure_model()
+def create_structural_model(learning_rate: float = 0.0015) -> keras.Model:
+    """
+    Create the structural model for the matrix encoding.
+    :return: The model.
+    """
+
+    structure_input, structure_flatten = create_structural_extractor()
     classification_output = create_classification_model(structure_flatten)
 
     model = models.Model(structure_input, classification_output)
 
-    rms = optimizers.RMSprop(learning_rate=0.0015)
+    rms = optimizers.RMSprop(learning_rate=learning_rate)
 
     model.compile(
         optimizer=rms,
@@ -726,7 +730,9 @@ def create_random_forest_classifier():
     )
     rms = keras.optimizers.RMSprop(lr=0.0015)
     model_random_forest.compile(
-        optimizer=rms, loss="binary_crossentropy", metrics=["acc", recall, precision]
+        optimizer=rms,
+        loss="binary_crossentropy",
+        metrics=["acc", recall_score, precision_score],
     )
     return model_random_forest
 
@@ -841,7 +847,7 @@ if __name__ == "__main__":
         VST_model = create_VST_model()
         V_model = create_NetV()
         S_model = create_NetS()
-        T_model = create_NetT()
+        T_model = create_structural_model()
 
         filepath_vst = "../Experimental output/VST_BEST.hdf5"
         filepath_v = "../Experimental output/V_BEST.hdf5"
