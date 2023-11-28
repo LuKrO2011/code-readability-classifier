@@ -419,19 +419,46 @@ class PicturePreprocessor:
         return picture_data, image_data
 
 
-def random_dataSet():
+def random_dataset(
+    file_name: list,
+    data_set: dict,
+    data_structure: dict,
+    data_picture: dict,
+    data_token: dict,
+    data_segment: dict,
+    num_samples: int = 210,
+) -> tuple[list, list, list, list, list, list]:
+    """
+    Randomly select num_samples samples from the dataset.
+    :param file_name: The list of file names.
+    :param data_set: The dictionary that stores the data.
+    :param data_structure: The dictionary that stores the structure information.
+    :param data_picture: The dictionary that stores the picture information.
+    :param data_token: The dictionary that stores the token information.
+    :param data_segment: The dictionary that stores the segment information.
+    :param num_samples: The number of samples to select.
+    :return: The randomly selected samples.
+    """
     count_id = 0
-    while count_id < 210:
+    all_data = []
+    label = []
+    structure = []
+    image = []
+    token = []
+    segment = []
+
+    while count_id < num_samples and file_name:
         index_id = random.randint(0, len(file_name) - 1)
-        all_data.append(file_name[index_id])
-        file_name.remove(file_name[index_id])
-        count_id += 1
-    for item in all_data:
+        item = file_name.pop(index_id)
+        all_data.append(item)
         label.append(data_set[item])
         structure.append(data_structure[item])
         image.append(data_picture[item])
         token.append(data_token[item])
         segment.append(data_segment[item])
+        count_id += 1
+
+    return all_data, label, structure, image, token, segment
 
 
 def recall(y_true, y_pred):
@@ -715,7 +742,15 @@ if __name__ == "__main__":
     data_set = StructurePreprocessor.process(STRUCTURE_DIR)
     data_token, data_position, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
     data_picture, data_image = PicturePreprocessor.process(PICTURE_DIR)
-    random_dataSet()
+
+    all_data, label, structure, image, token, segment = random_dataset(
+        file_name=file_name,
+        data_set=data_set,
+        data_structure=data_structure,
+        data_picture=data_picture,
+        data_token=data_token,
+        data_segment=data_segment,
+    )
 
     # format the data
     label = np.asarray(label)
