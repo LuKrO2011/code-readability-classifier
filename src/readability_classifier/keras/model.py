@@ -148,6 +148,7 @@ class BertEmbedding(keras.layers.Layer):
 STRUCTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Structure"
 TEXTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Texture"
 PICTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Image"
+MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
 
 # Regex and patterns
 JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
@@ -758,7 +759,7 @@ if __name__ == "__main__":
     train_s_acc = []
     train_t_acc = []
 
-    history_vst_list = []
+    history = []
     history_v_list = []
     history_s_list = []
     history_t_list = []
@@ -767,6 +768,8 @@ if __name__ == "__main__":
 
     for fold_index in range(k_fold):
         print(f"Now is fold {fold_index}")
+
+        # Get the validation set
         (
             x_val_structure,
             x_val_token,
@@ -783,6 +786,7 @@ if __name__ == "__main__":
             train_label=train_label,
         )
 
+        # Get the training set
         (
             x_train_structure,
             x_train_token,
@@ -799,40 +803,36 @@ if __name__ == "__main__":
             train_label=train_label,
         )
 
-        # model training for VST, V, S, T
-        VST_model = create_towards_model()
-
-        filepath_vst = "../Experimental output/VST_BEST.hdf5"
-        checkpoint_vst = ModelCheckpoint(
-            filepath_vst, monitor="val_acc", verbose=1, save_best_only=True, model="max"
+        # Train the model
+        towards_model = create_towards_model()
+        checkpoint = ModelCheckpoint(
+            MODEL_OUTPUT, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_vst_list = [checkpoint_vst]
-
-        history_vst = VST_model.fit(
+        callbacks = [checkpoint]
+        fold_stats = towards_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
             y_train,
             epochs=20,
             batch_size=42,
-            callbacks=callbacks_vst_list,
+            callbacks=callbacks,
             verbose=0,
             validation_data=(
                 [x_val_structure, x_val_token, x_val_segment, x_val_image],
                 y_val,
             ),
         )
-
-        history_vst_list.append(history_vst)
+        history.append(fold_stats)
 
     # data analyze
-    best_val_f1_vst = []
-    best_val_auc_vst = []
-    best_val_mcc_vst = []
+    best_val_f1 = []
+    best_val_auc = []
+    best_val_mcc = []
 
     epoch_time_vst = 1
-    for history_item in history_vst_list:
+    for history_item in history:
         MCC_vst = []
         F1_vst = []
-        history_dict = history_item.history
+        history_dict = history_item.fold_stats
         val_acc_values = history_dict["val_acc"]
         val_recall_value = get_from_dict(history_dict, "val_recall")
         val_precision_value = get_from_dict(history_dict, "val_precision")
@@ -861,9 +861,9 @@ if __name__ == "__main__":
                 )
                 F1_vst.append(result_f1)
         train_vst_acc.append(np.max(val_acc_values))
-        best_val_f1_vst.append(np.max(F1_vst))
-        best_val_auc_vst.append(np.max(val_auc_value))
-        best_val_mcc_vst.append(np.max(MCC_vst))
+        best_val_f1.append(np.max(F1_vst))
+        best_val_auc.append(np.max(val_auc_value))
+        best_val_mcc.append(np.max(MCC_vst))
         print("Processing fold #", epoch_time_vst)
         print("------------------------------------------------")
         print("best accuracy score is #", np.max(val_acc_values))
@@ -877,7 +877,7 @@ if __name__ == "__main__":
         epoch_time_vst = epoch_time_vst + 1
 
     print("Average vst model acc score", np.mean(train_vst_acc))
-    print("Average vst model f1 score", np.mean(best_val_f1_vst))
-    print("Average vst model auc score", np.mean(best_val_auc_vst))
-    print("Average vst model mcc score", np.mean(best_val_mcc_vst))
+    print("Average vst model f1 score", np.mean(best_val_f1))
+    print("Average vst model auc score", np.mean(best_val_auc))
+    print("Average vst model mcc score", np.mean(best_val_mcc))
     print()
