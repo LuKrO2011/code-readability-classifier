@@ -162,11 +162,6 @@ TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
 VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 
-# load the tokenizer
-tokenizer_path = "bert-base-cased"
-tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
-print("Successfully load the BertTokenizer")
-
 
 class StructurePreprocessor:
     """
@@ -216,6 +211,9 @@ class TexturePreprocessor:
     """
     Preprocessor for the texture data.
     """
+
+    tokenizer_path = "bert-base-cased"
+    tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 
     @classmethod
     def process(
@@ -306,8 +304,8 @@ class TexturePreprocessor:
 
         return processed_string
 
-    @staticmethod
     def _process_string(
+        self,
         string_content: dict,
         data_token: dict,
         data_position: dict,
@@ -324,7 +322,9 @@ class TexturePreprocessor:
         :param max_len: The maximum length of the text.
         """
         for sample, content in string_content.items():
-            list_token = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(content))
+            list_token = self.tokenizer.convert_tokens_to_ids(
+                self.tokenizer.tokenize(content)
+            )
             list_token = list_token[:max_len]
             while len(list_token) < max_len:
                 list_token.append(0)
