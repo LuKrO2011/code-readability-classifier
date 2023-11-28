@@ -16,12 +16,12 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.util import tf_inspect
 from transformers import BertTokenizer
 
-# Uncomment the following line to use CPU
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-
-# Define the basic bert class
 class BertConfig:
+    """
+    Configuration class to store the configuration of a `BertModel`.
+    """
+
     def __init__(self, **kwargs):
         super().__init__()
         self.vocab_size = kwargs.pop("vocab_size", 30000)
@@ -37,7 +37,12 @@ class BertConfig:
         self.max_sequence_length = kwargs.pop("max_sequence_length", 200)
 
 
-class BertEmbedding(tf.keras.layers.Layer):
+class BertEmbedding(keras.layers.Layer):
+    """
+    An own embedding layer that can be used for both token embeddings and
+    segment embeddings in the BERT model.
+    """
+
     def __init__(self, config, **kwargs):
         super().__init__(name="BertEmbedding")
         self.vocab_size = config.vocab_size
@@ -45,46 +50,57 @@ class BertEmbedding(tf.keras.layers.Layer):
         self.token_embedding = self.add_weight(
             "weight",
             shape=[self.vocab_size, self.hidden_size],
-            initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
+            initializer=keras.initializers.TruncatedNormal(stddev=0.02),
         )
         self.type_vocab_size = config.type_vocab_size
 
-        self.position_embedding = tf.keras.layers.Embedding(
+        self.position_embedding = keras.layers.Embedding(
             config.max_position_embeddings,
             config.hidden_size,
-            embeddings_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
+            embeddings_initializer=keras.initializers.TruncatedNormal(stddev=0.02),
             name="position_embedding",
         )
-        self.token_type_embedding = tf.keras.layers.Embedding(
+        self.token_type_embedding = keras.layers.Embedding(
             config.type_vocab_size,
             config.hidden_size,
-            embeddings_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
+            embeddings_initializer=keras.initializers.TruncatedNormal(stddev=0.02),
             name="token_type_embedding",
         )
-        self.layer_norm = tf.keras.layers.LayerNormalization(
+        self.layer_norm = keras.layers.LayerNormalization(
             epsilon=1e-12, name="LayerNorm"
         )
-        self.dropout = tf.keras.layers.Dropout(config.hidden_dropout_rate)
+        self.dropout = keras.layers.Dropout(config.hidden_dropout_rate)
 
-    def build(self, input_shape):
+    def build(self, input_shape: tf.TensorShape):
+        """
+        Build the layer.
+        :param input_shape: The shape of the input tensor.
+        :return: None
+        """
         with tf.name_scope("bert_embeddings"):
             super().build(input_shape)
 
-    def call(self, inputs, training=False, mode="embedding"):
+    def call(self, inputs: tf.Tensor, training: bool = False, mode: str = "embedding"):
+        """
+        Forward pass of the layer.
+        """
         # used for masked lm
         if mode == "linear":
             return tf.matmul(inputs, self.token_embedding, transpose_b=True)
 
+        # used for sentence classification
         input_ids, token_type_ids = inputs
         input_ids = tf.cast(input_ids, dtype=tf.int32)
         position_ids = tf.range(input_ids.shape[1], dtype=tf.int32)[tf.newaxis, :]
         if token_type_ids is None:
             token_type_ids = tf.fill(input_ids.shape.as_list(), 0)
 
+        # create embeddings
         position_embeddings = self.position_embedding(position_ids)
         token_type_embeddings = self.token_type_embedding(token_type_ids)
         token_embeddings = tf.gather(self.token_embedding, input_ids)
 
+        # sum embeddings
         embeddings = token_embeddings + token_type_embeddings + position_embeddings
         embeddings = self.layer_norm(embeddings)
         embeddings = self.dropout(embeddings, training=training)
@@ -132,7 +148,7 @@ class BertEmbedding(tf.keras.layers.Layer):
         return config
 
 
-# The following part is about defining relevant data path
+# Define the path of the data
 structure_dir = "../../res/keras/Dataset/Processed Dataset/Structure"
 texture_dir = "../../res/keras/Dataset/Processed Dataset/Texture"
 picture_dir = "../../res/keras/Dataset/Processed Dataset/Image"
@@ -176,48 +192,56 @@ data_picture = {}
 # store content of each picture
 data_image = []
 
-# 实验部分  --  随机打乱数据
+# store the final data
 all_data = []
 train_data = []
 test_data = []
-
 structure = []
 image = []
 label = []
 token = []
 segment = []
 
+# load the tokenizer
 tokenizer_path = "bert-base-cased"
 tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 print("Successfully load the BertTokenizer")
 
 
-def preprocess_structure_data():
+def preprocess_structure_data(struc_dir: str = structure_dir) -> dict:
+    """
+    Preprocess the structure data.
+    :param struc_dir: The directory of the structure data.
+    :return: The dictionary that stores the data.
+    """
+    data = {}
+
     for label_type in ["Readable", "Unreadable"]:
-        dir_name = os.path.join(structure_dir, label_type)
+        dir_name = os.path.join(struc_dir, label_type)
         for f_name in os.listdir(dir_name):
-            f = open(os.path.join(dir_name, f_name), errors="ignore")
-            lines = []
-            if not f_name.startswith("."):
-                file_name.append(f_name.split(".")[0])
-                for line in f:
-                    line = line.strip(",\n")
-                    info = line.split(",")
-                    info_int = []
-                    count = 0
-                    for item in info:
-                        if count < 305:
-                            info_int.append(int(item))
-                            count += 1
-                    info_int = np.asarray(info_int)
-                    lines.append(info_int)
-                f.close()
-                lines = np.asarray(lines)
-                if label_type == "Readable":
-                    data_set[f_name.split(".")[0]] = 0
-                else:
-                    data_set[f_name.split(".")[0]] = 1
-                data_structure[f_name.split(".")[0]] = lines
+            with open(os.path.join(dir_name, f_name), errors="ignore") as f:
+                lines = []
+                if not f_name.startswith("."):
+                    file_name.append(f_name.split(".")[0])
+                    for line in f:
+                        line = line.strip(",\n")
+                        info = line.split(",")
+                        info_int = []
+                        count = 0
+                        for item in info:
+                            if count < 305:
+                                info_int.append(int(item))
+                                count += 1
+                        info_int = np.asarray(info_int)
+                        lines.append(info_int)
+            lines = np.asarray(lines)
+            if label_type == "Readable":
+                data[f_name.split(".")[0]] = 0
+            else:
+                data[f_name.split(".")[0]] = 1
+            data_structure[f_name.split(".")[0]] = lines
+
+    return data
 
 
 def process_texture_data():
@@ -580,7 +604,7 @@ def get_from_dict(dictionary, key_start: str):
 
 
 if __name__ == "__main__":
-    preprocess_structure_data()
+    data_set = preprocess_structure_data()
     process_texture_data()
     preprocess_picture_data()
     random_dataSet()
