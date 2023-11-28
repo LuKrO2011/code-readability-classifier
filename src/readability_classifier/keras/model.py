@@ -163,6 +163,20 @@ VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 TOKENIZER_NAME = "bert-base-cased"
 
+# Default values
+DEFAULT_LEARNING_RATE = 0.0015
+DEFAULT_LOSS = "binary_crossentropy"
+DEFAULT_METRICS = [
+    "acc",
+    "Recall",
+    "Precision",
+    "AUC",
+    "TruePositives",
+    "TrueNegatives",
+    "FalseNegatives",
+    "FalsePositives",
+]
+
 
 class StructurePreprocessor:
     """
@@ -463,7 +477,9 @@ def create_structural_extractor(
     return model_input, flattened
 
 
-def create_structural_model(learning_rate: float = 0.0015) -> keras.Model:
+def create_structural_model(
+    learning_rate: float = DEFAULT_LEARNING_RATE,
+) -> keras.Model:
     """
     Create the structural model for the matrix encoding.
     :return: The model.
@@ -478,17 +494,8 @@ def create_structural_model(learning_rate: float = 0.0015) -> keras.Model:
 
     model.compile(
         optimizer=rms,
-        loss="binary_crossentropy",
-        metrics=[
-            "acc",
-            "Recall",
-            "Precision",
-            "AUC",
-            "TruePositives",
-            "TrueNegatives",
-            "FalseNegatives",
-            "FalsePositives",
-        ],
+        loss=DEFAULT_LOSS,
+        metrics=DEFAULT_METRICS,
     )
 
     return model
@@ -519,7 +526,7 @@ def create_semantic_extractor(
     return token_input, segment_input, gru
 
 
-def create_semantic_model(learning_rate: float = 0.0015) -> keras.Model:
+def create_semantic_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras.Model:
     """
     Create the semantic model for the bert encoding.
     :param learning_rate: The learning rate of the model.
@@ -534,17 +541,8 @@ def create_semantic_model(learning_rate: float = 0.0015) -> keras.Model:
 
     model.compile(
         optimizer=rms,
-        loss="binary_crossentropy",
-        metrics=[
-            "acc",
-            "Recall",
-            "Precision",
-            "AUC",
-            "TruePositives",
-            "TrueNegatives",
-            "FalseNegatives",
-            "FalsePositives",
-        ],
+        loss=DEFAULT_LOSS,
+        metrics=DEFAULT_METRICS,
     )
     return model
 
@@ -578,7 +576,7 @@ def create_visual_extractor(
     return model_input, flattened
 
 
-def create_visual_model(learning_rate: float = 0.0015) -> keras.Model:
+def create_visual_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras.Model:
     """
     Create the visual model for the image encoding.
     :param learning_rate: The learning rate of the model.
@@ -593,22 +591,13 @@ def create_visual_model(learning_rate: float = 0.0015) -> keras.Model:
 
     model.compile(
         optimizer=rms,
-        loss="binary_crossentropy",
-        metrics=[
-            "acc",
-            "Recall",
-            "Precision",
-            "AUC",
-            "TruePositives",
-            "TrueNegatives",
-            "FalseNegatives",
-            "FalsePositives",
-        ],
+        loss=DEFAULT_LOSS,
+        metrics=DEFAULT_METRICS,
     )
     return model
 
 
-def create_towards_model(learning_rate: float = 0.0015) -> keras.Model:
+def create_towards_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras.Model:
     """
     Create the VST model.
     :return: The model.
@@ -635,17 +624,8 @@ def create_towards_model(learning_rate: float = 0.0015) -> keras.Model:
 
     model.compile(
         optimizer=rms,
-        loss="binary_crossentropy",
-        metrics=[
-            "acc",
-            "Recall",
-            "Precision",
-            "AUC",
-            "TruePositives",
-            "TrueNegatives",
-            "FalseNegatives",
-            "FalsePositives",
-        ],
+        loss=DEFAULT_LOSS,
+        metrics=DEFAULT_METRICS,
     )
     return model
 
