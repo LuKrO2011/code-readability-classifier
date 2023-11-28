@@ -8,9 +8,6 @@ import keras
 import numpy as np
 import tensorflow as tf
 from keras import layers, models, optimizers, regularizers
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import precision_score, recall_score, roc_auc_score
-from sklearn.neighbors import KNeighborsClassifier
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.util import tf_inspect
 from transformers import BertTokenizer
@@ -682,67 +679,6 @@ def create_towards_model(learning_rate: float = 0.0015) -> keras.Model:
     return model
 
 
-def create_random_forest_classifier():
-    structure_input = keras.Input(shape=(50, 305), name="structure")
-    structure_reshape = keras.layers.Reshape((50, 305, 1))(structure_input)
-    structure_conv1 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_reshape
-    )
-    structure_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv1)
-    structure_conv2 = keras.layers.Conv2D(filters=32, kernel_size=3, activation="relu")(
-        structure_pool1
-    )
-    structure_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(structure_conv2)
-    structure_conv3 = keras.layers.Conv2D(filters=64, kernel_size=3, activation="relu")(
-        structure_pool2
-    )
-    structure_pool3 = keras.layers.MaxPool2D(pool_size=3, strides=3)(structure_conv3)
-    structure_flatten = keras.layers.Flatten()(structure_pool3)
-
-    bert_config = BertConfig(max_sequence_length=MAX_LEN)
-    token_input = keras.Input(shape=(MAX_LEN,), name="token")
-    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
-    texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
-    texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
-    texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
-    texture_conv2 = keras.layers.Conv1D(32, 5, activation="relu")(texture_pool1)
-
-    texture_gru = keras.layers.Bidirectional(keras.layers.LSTM(32))(texture_conv2)
-
-    image_input = keras.Input(shape=(128, 128, 3), name="image")
-    image_conv1 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_input)
-    image_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv1)
-    image_conv2 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_pool1)
-    image_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv2)
-    image_conv3 = keras.layers.Conv2D(
-        filters=64, kernel_size=3, padding="same", activation="relu"
-    )(image_pool2)
-    image_pool3 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv3)
-    image_flatten = keras.layers.Flatten()(image_pool3)
-
-    concatenated = keras.layers.concatenate(
-        [structure_flatten, texture_gru, image_flatten], axis=-1
-    )
-
-    dense1 = keras.layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(concatenated)
-    model_random_forest = keras.Model(
-        [structure_input, token_input, segment_input, image_input], dense1
-    )
-    rms = keras.optimizers.RMSprop(lr=0.0015)
-    model_random_forest.compile(
-        optimizer=rms,
-        loss="binary_crossentropy",
-        metrics=["acc", recall_score, precision_score],
-    )
-    return model_random_forest
-
-
 def get_from_dict(dictionary, key_start: str):
     """
     Get a value from a dict by key_start. The first value of the dict where the key
@@ -803,14 +739,6 @@ if __name__ == "__main__":
     history_s_list = []
     history_t_list = []
 
-    random_forest_score = []
-    random_forest_score_f1 = []
-    random_forest_score_mcc = []
-    random_forest_score_roc = []
-    knn_score = []
-    knn_score_f1 = []
-    knn_score_roc = []
-    knn_score_mcc = []
     svm_score = []
 
     for epoch in range(k_fold):
@@ -929,109 +857,6 @@ if __name__ == "__main__":
         )
 
         history_v_list.append(history_v)
-
-        # model training for different machine learning classifier
-        random_forest_classifier = create_random_forest_classifier()
-        train_feature = []
-        for feature in random_forest_classifier.predict(
-            [x_train_structure, x_train_token, x_train_segment, x_train_image]
-        ):
-            train_feature.append(feature)
-        val_feature = []
-        for feature in random_forest_classifier.predict(
-            [x_val_structure, x_val_token, x_val_segment, x_val_image]
-        ):
-            val_feature.append(feature)
-
-        forest_results_acc = []
-        forest_results_f1 = []
-        forest_results_mcc = []
-        forest_results_roc = []
-        for feature_num in range(3, 80, 2):
-            forest = RandomForestClassifier(
-                n_estimators=feature_num,
-                random_state=37,
-                bootstrap=True,
-                max_features="sqrt",
-                max_samples=0.8,
-                warm_start=True,
-            )
-            forest.fit(train_feature, y_train)
-            pre_result = forest.predict(val_feature)
-            tp = 0
-            tn = 0
-            fp = 0
-            fn = 0
-            for i in range(len(y_val)):
-                if pre_result[i] == 1:
-                    if y_val[i] == 1:
-                        tp += 1
-                    else:
-                        fp += 1
-                else:
-                    if y_val[i] == 1:
-                        fn += 1
-                    else:
-                        tn += 1
-
-            acc = (tp + tn) / len(y_val)
-            pre = tp / (tp + fp)
-            rec = tp / (tp + fn)
-            f1 = 2 * pre * rec / (pre + rec)
-            mcc = (tp * tn - fp * fn) / (
-                math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-            )
-
-            roc = roc_auc_score(y_true=y_val, y_score=pre_result)
-            forest_results_acc.append(acc)
-            forest_results_f1.append(f1)
-            forest_results_roc.append(roc)
-            forest_results_mcc.append(mcc)
-        random_forest_score.append(np.max(forest_results_acc))
-        random_forest_score_roc.append(np.max(forest_results_roc))
-        random_forest_score_f1.append(np.max(forest_results_f1))
-        random_forest_score_mcc.append(np.max(forest_results_mcc))
-
-        knn_results_acc = []
-        knn_results_f1 = []
-        knn_results_mcc = []
-        knn_results_roc = []
-        for n_neighbors in range(1, 20, 1):
-            knn = KNeighborsClassifier(n_neighbors=n_neighbors)
-            knn.fit(train_feature, y_train)
-            pre_result = knn.predict(val_feature)
-            tp = 0
-            tn = 0
-            fp = 0
-            fn = 0
-            for i in range(len(y_val)):
-                if pre_result[i] == 1:
-                    if y_val[i] == 1:
-                        tp += 1
-                    else:
-                        fp += 1
-                else:
-                    if y_val[i] == 1:
-                        fn += 1
-                    else:
-                        tn += 1
-            acc = (tp + tn) / len(y_val)
-            pre = tp / (tp + fp)
-            rec = tp / (tp + fn)
-            f1 = 2 * pre * rec / (pre + rec)
-            mcc = (tp * tn - fp * fn) / (
-                math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-            )
-
-            roc = roc_auc_score(y_true=y_val, y_score=pre_result)
-            knn_results_acc.append(acc)
-            knn_results_f1.append(f1)
-            knn_results_roc.append(roc)
-            knn_results_mcc.append(mcc)
-        knn_score.append(np.max(knn_results_acc))
-        knn_score_roc.append(np.max(knn_results_roc))
-        knn_score_f1.append(np.max(knn_results_f1))
-        knn_score_mcc.append(np.max(knn_results_mcc))
 
     # data analyze
     best_val_f1_vst = []
@@ -1238,15 +1063,6 @@ if __name__ == "__main__":
         print()
         print()
         epoch_time_s = epoch_time_s + 1
-
-    print("Random Forest Average ACC Score", np.mean(random_forest_score))
-    print("KNN Average Score", np.mean(knn_score))
-    print("Random Forest Average F1 Score", np.mean(random_forest_score_f1))
-    print("KNN Average Score", np.mean(knn_score_f1))
-    print("Random Forest Average MCC Score", np.mean(random_forest_score_mcc))
-    print("KNN Average Score", np.mean(knn_score_mcc))
-    print("Random Forest Average AUC Score", np.mean(random_forest_score_roc))
-    print("KNN Average Score", np.mean(knn_score_roc))
 
     print("Average vst model acc score", np.mean(train_vst_acc))
     print("Average vst model f1 score", np.mean(best_val_f1_vst))
