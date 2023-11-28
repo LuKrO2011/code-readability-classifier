@@ -904,7 +904,7 @@ class Classifier:
         tn = true_negatives[epoch_index]
         fp = false_positives[epoch_index]
         fn = false_negatives[epoch_index]
-        mcc = matthews_corrcoef(tp, tn, fp, fn)
+        mcc = matthews_corrcoef([1] * tp + [0] * fn, [1] * fp + [0] * tn)
         precision = precision_score(tp, fp)
         recall = recall_score(tp, fn)
         f1 = f1_score(precision, recall)
