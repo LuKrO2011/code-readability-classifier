@@ -162,28 +162,6 @@ TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
 VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 
-# store all data
-data_set = {}
-
-# store file name
-file_name = []
-
-# store structure information
-data_structure = {}
-
-# store texture information
-data_texture = {}
-
-# store token, position and segment information
-data_token = {}
-data_segment = {}
-
-# store the content of each text
-string_content = {}
-
-# store picture information
-data_picture = {}
-
 # store the final data
 all_data = []
 train_data = []
