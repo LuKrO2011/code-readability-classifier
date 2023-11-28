@@ -457,11 +457,25 @@ def random_dataset(
     return all_data, label, structure, image, token, segment
 
 
+def create_classification_model(input_layer: tf.Tensor) -> tf.Tensor:
+    """
+    Create the classification model.
+    :param input_layer: The input layer of the model.
+    :return: The output layer of the model.
+    """
+    dense1 = layers.Dense(
+        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
+    )(input_layer)
+    drop = layers.Dropout(0.5)(dense1)
+    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
+    return layers.Dense(1, activation="sigmoid")(dense2)
+
+
 def create_structural_extractor(
     input_shape: tuple[int, int] = (50, 305)
 ) -> tuple[tf.Tensor, tf.Tensor]:
     """
-    Create the structural model.
+    Create the structural extractor layers.
     :param input_shape: The input shape of the model.
     :return: The input layer and the flattened layer.
     """
@@ -479,20 +493,6 @@ def create_structural_extractor(
 
     flattened = layers.Flatten()(pool3)
     return model_input, flattened
-
-
-def create_classification_model(input_layer: tf.Tensor) -> tf.Tensor:
-    """
-    Create the classification model.
-    :param input_layer: The input layer of the model.
-    :return: The output layer of the model.
-    """
-    dense1 = layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(input_layer)
-    drop = layers.Dropout(0.5)(dense1)
-    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    return layers.Dense(1, activation="sigmoid")(dense2)
 
 
 def create_structural_model(learning_rate: float = 0.0015) -> keras.Model:
@@ -526,25 +526,44 @@ def create_structural_model(learning_rate: float = 0.0015) -> keras.Model:
     return model
 
 
-def create_NetS():
-    bert_config = BertConfig(max_sequence_length=MAX_LEN)
-    token_input = keras.Input(shape=(MAX_LEN,), name="token")
-    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
-    texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
-    texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
-    texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
-    texture_conv2 = keras.layers.Conv1D(32, 5, activation="relu")(texture_pool1)
+def create_semantic_extractor(
+    input_shape: tuple[int, int] = (MAX_LEN,)
+) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    """
+    Create the semantic extractor layers.
+    :param input_shape: The input shape of the model.
+    :return: The input layer, the token embedding layer, and the segment embedding layer
+    """
+    token_input = layers.Input(shape=input_shape, name="token")
+    segment_input = layers.Input(shape=input_shape, name="segment")
 
-    texture_gru = keras.layers.Bidirectional(keras.layers.LSTM(32))(texture_conv2)
-    dense1 = keras.layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(texture_gru)
-    drop = keras.layers.Dropout(0.5)(dense1)
-    dense2 = keras.layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    dense3 = keras.layers.Dense(1, activation="sigmoid")(dense2)
-    model = keras.Model([token_input, segment_input], dense3)
-    rms = keras.optimizers.RMSprop(lr=0.0015)
-    # model.summary()
+    embedding = BertEmbedding(config=BertConfig(max_sequence_length=MAX_LEN))(
+        [token_input, segment_input]
+    )
+
+    conv1 = layers.Conv1D(32, 5, activation="relu")(embedding)
+    pool1 = layers.MaxPooling1D(3)(conv1)
+
+    conv2 = layers.Conv1D(32, 5, activation="relu")(pool1)
+
+    gru = layers.Bidirectional(layers.LSTM(32))(conv2)
+
+    return token_input, segment_input, gru
+
+
+def create_semantic_model(learning_rate: float = 0.0015) -> keras.Model:
+    """
+    Create the semantic model for the bert encoding.
+    :param learning_rate: The learning rate of the model.
+    :return: The model.
+    """
+    token_input, segment_input, gru = create_semantic_extractor()
+    classification_output = create_classification_model(gru)
+
+    model = models.Model([token_input, segment_input], classification_output)
+
+    rms = optimizers.RMSprop(learning_rate=learning_rate)
+
     model.compile(
         optimizer=rms,
         loss="binary_crossentropy",
@@ -846,7 +865,7 @@ if __name__ == "__main__":
         # model training for VST, V, S, T
         VST_model = create_VST_model()
         V_model = create_NetV()
-        S_model = create_NetS()
+        S_model = create_semantic_model()
         T_model = create_structural_model()
 
         filepath_vst = "../Experimental output/VST_BEST.hdf5"
