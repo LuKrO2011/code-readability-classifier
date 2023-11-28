@@ -161,11 +161,7 @@ TOTAL_SAMPLES = 210
 TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
 VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
-
-# load the tokenizer
-tokenizer_path = "bert-base-cased"
-tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
-print("Successfully load the BertTokenizer")
+TOKENIZER_NAME = "bert-base-cased"
 
 
 class StructurePreprocessor:
@@ -217,9 +213,11 @@ class TexturePreprocessor:
     Preprocessor for the texture data.
     """
 
-    @classmethod
+    def __init__(self):
+        self.tokenizer = BertTokenizer.from_pretrained(TOKENIZER_NAME)
+
     def process(
-        cls, texture_dir: str, max_len: int = MAX_LEN
+        self, texture_dir: str, max_len: int = MAX_LEN
     ) -> tuple[dict, dict, dict]:
         """
         Preprocess the texture data.
@@ -234,10 +232,10 @@ class TexturePreprocessor:
 
         # Process files in different label types ("Readable", "Unreadable")
         for label_type in ["Readable", "Unreadable"]:
-            string_content = cls._process_files_in_directory(
+            string_content = self._process_files_in_directory(
                 os.path.join(texture_dir, label_type), max_len
             )
-            cls._process_string(
+            self._process_string(
                 string_content, data_token, data_position, data_segment, max_len
             )
 
@@ -306,8 +304,8 @@ class TexturePreprocessor:
 
         return processed_string
 
-    @staticmethod
     def _process_string(
+        self,
         string_content: dict,
         data_token: dict,
         data_position: dict,
@@ -324,7 +322,9 @@ class TexturePreprocessor:
         :param max_len: The maximum length of the text.
         """
         for sample, content in string_content.items():
-            list_token = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(content))
+            list_token = self.tokenizer.convert_tokens_to_ids(
+                self.tokenizer.tokenize(content)
+            )
             list_token = list_token[:max_len]
             while len(list_token) < max_len:
                 list_token.append(0)
@@ -667,7 +667,7 @@ def get_from_dict(dictionary, key_start: str):
 if __name__ == "__main__":
     # TODO: Remove computation of those: data_position and data_image (unused)
     file_name, data_set, data_structure = StructurePreprocessor.process(STRUCTURE_DIR)
-    data_token, _, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
+    data_token, _, data_segment = TexturePreprocessor().process(TEXTURE_DIR)
     data_picture, _ = PicturePreprocessor.process(PICTURE_DIR)
 
     all_data, label, structure, image, token, segment = random_dataset(
