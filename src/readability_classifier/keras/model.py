@@ -181,18 +181,13 @@ data_texture = {}
 
 # store token, position and segment information
 data_token = {}
-data_position = {}
 data_segment = {}
-# dic_content = {}
 
 # store the content of each text
 string_content = {}
 
 # store picture information
 data_picture = {}
-
-# store content of each picture
-data_image = []
 
 # store the final data
 all_data = []
@@ -216,13 +211,15 @@ class StructurePreprocessor:
     """
 
     @classmethod
-    def process(cls, structure_dir: str) -> dict:
+    def process(cls, structure_dir: str) -> tuple[list, dict, dict]:
         """
         Preprocess the structure data.
         :param structure_dir: The directory of the structure data.
-        :return: The dictionary that stores the data.
+        :return: The file names and the dictionary that stores the structure information
         """
+        file_name = []
         data = {}
+        data_structure = {}
 
         for label_type in ["Readable", "Unreadable"]:
             dir_name = os.path.join(structure_dir, label_type)
@@ -249,7 +246,7 @@ class StructurePreprocessor:
                     data[f_name.split(".")[0]] = 1
                 data_structure[f_name.split(".")[0]] = lines
 
-        return data
+        return file_name, data, data_structure
 
 
 class TexturePreprocessor:
@@ -739,9 +736,10 @@ def get_from_dict(dictionary, key_start: str):
 
 
 if __name__ == "__main__":
-    data_set = StructurePreprocessor.process(STRUCTURE_DIR)
-    data_token, data_position, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
-    data_picture, data_image = PicturePreprocessor.process(PICTURE_DIR)
+    # TODO: Remove computation of those: data_position and data_image (unused)
+    file_name, data_set, data_structure = StructurePreprocessor.process(STRUCTURE_DIR)
+    data_token, _, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
+    data_picture, _ = PicturePreprocessor.process(PICTURE_DIR)
 
     all_data, label, structure, image, token, segment = random_dataset(
         file_name=file_name,
