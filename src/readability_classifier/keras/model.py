@@ -148,6 +148,8 @@ class BertEmbedding(keras.layers.Layer):
         return config
 
 
+JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
+
 # Define the path of the data
 structure_dir = "../../res/keras/Dataset/Processed Dataset/Structure"
 texture_dir = "../../res/keras/Dataset/Processed Dataset/Texture"
@@ -160,7 +162,7 @@ pattern2 = "[*.+!$#&,;{}()':=/<>%-]"
 pattern3 = "[_]"
 
 # Define basic parameters
-max_len = 100
+MAX_LEN = 100
 training_samples = 147
 validation_samples = 63
 max_words = 1000
@@ -244,57 +246,119 @@ def preprocess_structure_data(struc_dir: str = structure_dir) -> dict:
     return data
 
 
-def process_texture_data():
-    for label_type in ["Readable", "Unreadable"]:
-        dir_name = os.path.join(texture_dir, label_type)
-        for f_name in os.listdir(dir_name):
-            if f_name[-4:] == ".txt":
-                list_content = []
-                list_position = []
-                list_segment = []
-                s = ""
-                segment_id = 0
-                position_id = 0
-                count = 0
-                f = open(os.path.join(dir_name, f_name), errors="ignore")
-                for content in f:
-                    content = re.sub(r"([a-z]+)([A-Z]+)", r"\1 \2", content)
-                    content = re.sub(
-                        pattern1, lambda x: " " + x.group(0) + " ", content
-                    )
-                    content = re.sub(
-                        pattern2, lambda x: " " + x.group(0) + " ", content
-                    )
-                    content = re.sub(pattern3, lambda x: " ", content)
-                    list_value = content.split()
-                    for item in list_value:
-                        if len(item) > 1 or not item.isalpha():
-                            s = s + " " + item
-                            list_content.append(item)
-                            if count < max_len:
-                                list_position.append(position_id)
-                                position_id += 1
-                                list_segment.append(segment_id)
-                            count += 1
-                    segment_id += 1
-                while count < max_len:
-                    list_segment.append(segment_id)
-                    list_position.append(count)
-                    count += 1
-                f.close()
-                string_content[f_name.split(".")[0]] = s
-                data_position[f_name.split(".")[0]] = list_position
-                data_segment[f_name.split(".")[0]] = list_segment
-                # dic_content[f_name.split('.')[0]] = list_content
+def process_texture_data(
+    texture_dir: str = texture_dir, max_len: int = MAX_LEN
+) -> tuple[dict, dict, dict]:
+    """
+    Preprocess the texture data.
 
-        for sample in string_content:
-            list_token = tokenizer.convert_tokens_to_ids(
-                tokenizer.tokenize(string_content[sample])
-            )
-            list_token = list_token[:max_len]
-            while len(list_token) < max_len:
-                list_token.append(0)
-            data_token[sample] = list_token
+    :param texture_dir: The directory of the texture data.
+    :param max_len: The maximum length of the text.
+    :return: The dictionary that stores the token, position, and segment information.
+    """
+    data_token = {}
+    data_position = {}
+    data_segment = {}
+
+    # Process files in different label types ("Readable", "Unreadable")
+    for label_type in ["Readable", "Unreadable"]:
+        string_content = process_files_in_directory(
+            os.path.join(texture_dir, label_type), max_len
+        )
+        process_string_content(
+            string_content, data_token, data_position, data_segment, max_len
+        )
+
+    return data_token, data_position, data_segment
+
+
+def process_files_in_directory(directory: str, max_len: int) -> dict:
+    """
+    Process text files in a directory.
+
+    :param directory: The directory path containing text files.
+    :param max_len: The maximum length of the text.
+    :return: A dictionary with processed string content.
+    """
+    string_content = {}
+
+    for file_name in os.listdir(directory):
+        if file_name.endswith(".txt"):
+            content = process_file(os.path.join(directory, file_name), max_len)
+            string_content[file_name.split(".")[0]] = content
+
+    return string_content
+
+
+def process_file(file_path: str, max_len: int) -> str:
+    """
+    Process content in a text file.
+
+    :param file_path: The path to the text file.
+    :param max_len: The maximum length of the text.
+    :return: Processed string content.
+    """
+    processed_content = ""
+    with open(file_path, errors="ignore") as file:
+        for content in file:
+            content = re.sub(JAVA_NAMING_REGEX, r"\1 \2", content)
+            content = re.sub(pattern1, lambda x: " " + x.group(0) + " ", content)
+            content = re.sub(pattern2, lambda x: " " + x.group(0) + " ", content)
+            content = re.sub(pattern3, lambda x: " ", content)
+            processed_content += process_content(content, max_len)
+
+    return processed_content
+
+
+def process_content(content: str, max_len: int) -> str:
+    """
+    Process individual content and return processed string.
+
+    :param content: Individual content to process.
+    :param max_len: The maximum length of the text.
+    :return: Processed string.
+    """
+    processed_string = ""
+    count = 0
+    for word in content.split():
+        if len(word) > 1 or not word.isalpha():
+            processed_string += " " + word
+            count += 1
+    while count < max_len:
+        processed_string += " 0"  # Assuming "0" represents padding
+        count += 1
+
+    return processed_string
+
+
+def process_string_content(
+    string_content: dict,
+    data_token: dict,
+    data_position: dict,
+    data_segment: dict,
+    max_len: int,
+) -> None:
+    """
+    Process string content to tokens and store in dictionaries.
+
+    :param string_content: Dictionary with string content.
+    :param data_token: Dictionary to store token information.
+    :param data_position: Dictionary to store position information.
+    :param data_segment: Dictionary to store segment information.
+    :param max_len: The maximum length of the text.
+    """
+    for sample, content in string_content.items():
+        list_token = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(content))
+        list_token = list_token[:max_len]
+        while len(list_token) < max_len:
+            list_token.append(0)
+        data_token[sample] = list_token
+
+        list_position = list(range(min(len(list_token), max_len)))
+        data_position[sample] = list_position
+
+        list_segment = list(range(len(list_position)))
+        data_segment[sample] = list_segment
 
 
 def preprocess_picture_data():
@@ -381,9 +445,9 @@ def create_NetT():
 
 
 def create_NetS():
-    bert_config = BertConfig(max_sequence_length=max_len)
-    token_input = keras.Input(shape=(max_len,), name="token")
-    segment_input = keras.Input(shape=(max_len,), name="segment")
+    bert_config = BertConfig(max_sequence_length=MAX_LEN)
+    token_input = keras.Input(shape=(MAX_LEN,), name="token")
+    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
     texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
     texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
     texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
@@ -474,9 +538,9 @@ def create_VST_model():
     structure_pool3 = keras.layers.MaxPool2D(pool_size=3, strides=3)(structure_conv3)
     structure_flatten = keras.layers.Flatten()(structure_pool3)
 
-    bert_config = BertConfig(max_sequence_length=max_len)
-    token_input = keras.Input(shape=(max_len,), name="token")
-    segment_input = keras.Input(shape=(max_len,), name="segment")
+    bert_config = BertConfig(max_sequence_length=MAX_LEN)
+    token_input = keras.Input(shape=(MAX_LEN,), name="token")
+    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
     texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
     texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
     texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
@@ -547,9 +611,9 @@ def create_random_forest_classifier():
     structure_pool3 = keras.layers.MaxPool2D(pool_size=3, strides=3)(structure_conv3)
     structure_flatten = keras.layers.Flatten()(structure_pool3)
 
-    bert_config = BertConfig(max_sequence_length=max_len)
-    token_input = keras.Input(shape=(max_len,), name="token")
-    segment_input = keras.Input(shape=(max_len,), name="segment")
+    bert_config = BertConfig(max_sequence_length=MAX_LEN)
+    token_input = keras.Input(shape=(MAX_LEN,), name="token")
+    segment_input = keras.Input(shape=(MAX_LEN,), name="segment")
     texture_embedded = BertEmbedding(config=bert_config)([token_input, segment_input])
     texture_conv1 = keras.layers.Conv1D(32, 5, activation="relu")(texture_embedded)
     texture_pool1 = keras.layers.MaxPool1D(3)(texture_conv1)
@@ -605,7 +669,7 @@ def get_from_dict(dictionary, key_start: str):
 
 if __name__ == "__main__":
     data_set = preprocess_structure_data()
-    process_texture_data()
+    data_token, data_position, data_segment = process_texture_data()
     preprocess_picture_data()
     random_dataSet()
 
