@@ -258,14 +258,15 @@ class TexturePreprocessor:
     """
 
     @classmethod
-    def process(cls, texture_dir: str, max_len: int = MAX_LEN) -> tuple[
-        dict, dict, dict]:
+    def process(
+        cls, texture_dir: str, max_len: int = MAX_LEN
+    ) -> tuple[dict, dict, dict]:
         """
         Preprocess the texture data.
 
         :param texture_dir: The directory of the texture data.
         :param max_len: The maximum length of the text.
-        :return: The dictionary that stores the token, position, and segment information.
+        :return: The dictionary that stores the token, position, and segment information
         """
         data_token = {}
         data_position = {}
@@ -389,15 +390,33 @@ class PicturePreprocessor:
 
         for label_type in ["readable", "unreadable"]:
             dir_image_name = os.path.join(picture_dir, label_type)
-            for f_name in os.listdir(dir_image_name):
-                if not f_name.startswith("."):
-                    img_data = cv2.imread(os.path.join(dir_image_name, f_name))
-                    img_data = cv2.resize(img_data, (128, 128))
-                    result = img_data / 255.0
-                    data_picture[f_name.split(".")[0]] = result
-                    data_image.append(result)
+            picture_dict, image_list = PicturePreprocessor.process_images(
+                dir_image_name
+            )
+            data_picture.update(picture_dict)
+            data_image.extend(image_list)
 
         return data_picture, data_image
+
+    @staticmethod
+    def process_images(directory: str) -> tuple[dict, list]:
+        """
+        Process images within a directory.
+        :param directory: Path to the directory containing images.
+        :return: A dictionary containing processed images and a list of images.
+        """
+        picture_data = {}
+        image_data = []
+
+        for f_name in os.listdir(directory):
+            if not f_name.startswith("."):
+                img_data = cv2.imread(os.path.join(directory, f_name))
+                img_data = cv2.resize(img_data, (128, 128))
+                result = img_data / 255.0
+                picture_data[f_name.split(".")[0]] = result
+                image_data.append(result)
+
+        return picture_data, image_data
 
 
 def random_dataSet():
@@ -418,15 +437,13 @@ def random_dataSet():
 def recall(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    recall_1 = true_positives / (possible_positives + K.epsilon())
-    return recall_1
+    return true_positives / (possible_positives + K.epsilon())
 
 
 def precision(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision_1 = true_positives / (predicted_positives + K.epsilon())
-    return precision_1
+    return true_positives / (predicted_positives + K.epsilon())
 
 
 def create_NetT():
@@ -691,7 +708,7 @@ def get_from_dict(dictionary, key_start: str):
     for key, value in dictionary.items():
         if key.startswith(key_start):
             return value
-    raise 0
+    raise KeyError(f"Key {key_start} not found in dictionary")
 
 
 if __name__ == "__main__":
@@ -743,38 +760,38 @@ if __name__ == "__main__":
 
     for epoch in range(k_fold):
         print(f"Now is fold {epoch}")
-        x_val_structure = train_structure[epoch * num_sample: (epoch + 1) * num_sample]
-        x_val_token = train_token[epoch * num_sample: (epoch + 1) * num_sample]
-        x_val_segment = train_segment[epoch * num_sample: (epoch + 1) * num_sample]
-        x_val_image = train_image[epoch * num_sample: (epoch + 1) * num_sample]
-        y_val = train_label[epoch * num_sample: (epoch + 1) * num_sample]
+        x_val_structure = train_structure[epoch * num_sample : (epoch + 1) * num_sample]
+        x_val_token = train_token[epoch * num_sample : (epoch + 1) * num_sample]
+        x_val_segment = train_segment[epoch * num_sample : (epoch + 1) * num_sample]
+        x_val_image = train_image[epoch * num_sample : (epoch + 1) * num_sample]
+        y_val = train_label[epoch * num_sample : (epoch + 1) * num_sample]
 
         x_train_structure_part_1 = train_structure[: epoch * num_sample]
-        x_train_structure_part_2 = train_structure[(epoch + 1) * num_sample:]
+        x_train_structure_part_2 = train_structure[(epoch + 1) * num_sample :]
         x_train_structure = np.concatenate(
             [x_train_structure_part_1, x_train_structure_part_2], axis=0
         )
 
         x_train_token_part_1 = train_token[: epoch * num_sample]
-        x_train_token_part_2 = train_token[(epoch + 1) * num_sample:]
+        x_train_token_part_2 = train_token[(epoch + 1) * num_sample :]
         x_train_token = np.concatenate(
             [x_train_token_part_1, x_train_token_part_2], axis=0
         )
 
         x_train_segment_part_1 = train_segment[: epoch * num_sample]
-        x_train_segment_part_2 = train_segment[(epoch + 1) * num_sample:]
+        x_train_segment_part_2 = train_segment[(epoch + 1) * num_sample :]
         x_train_segment = np.concatenate(
             [x_train_segment_part_1, x_train_segment_part_2], axis=0
         )
 
         x_train_image_part_1 = train_image[: epoch * num_sample]
-        x_train_image_part_2 = train_image[(epoch + 1) * num_sample:]
+        x_train_image_part_2 = train_image[(epoch + 1) * num_sample :]
         x_train_image = np.concatenate(
             [x_train_image_part_1, x_train_image_part_2], axis=0
         )
 
         y_train_part_1 = train_label[: epoch * num_sample]
-        y_train_part_2 = train_label[(epoch + 1) * num_sample:]
+        y_train_part_2 = train_label[(epoch + 1) * num_sample :]
         y_train = np.concatenate([y_train_part_1, y_train_part_2], axis=0)
 
         # model training for VST, V, S, T
