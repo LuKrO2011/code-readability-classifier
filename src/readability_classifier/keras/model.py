@@ -151,8 +151,8 @@ class BertEmbedding(keras.layers.Layer):
 JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
 
 # Define the path of the data
-structure_dir = "../../res/keras/Dataset/Processed Dataset/Structure"
-texture_dir = "../../res/keras/Dataset/Processed Dataset/Texture"
+STRUCTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Structure"
+TEXTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Texture"
 picture_dir = "../../res/keras/Dataset/Processed Dataset/Image"
 
 # Use for texture data preprocessing
@@ -210,40 +210,46 @@ tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 print("Successfully load the BertTokenizer")
 
 
-def preprocess_structure_data(struc_dir: str = structure_dir) -> dict:
+class StructurePreprocessor:
     """
-    Preprocess the structure data.
-    :param struc_dir: The directory of the structure data.
-    :return: The dictionary that stores the data.
+    Preprocessor for the structure data.
     """
-    data = {}
 
-    for label_type in ["Readable", "Unreadable"]:
-        dir_name = os.path.join(struc_dir, label_type)
-        for f_name in os.listdir(dir_name):
-            with open(os.path.join(dir_name, f_name), errors="ignore") as f:
-                lines = []
-                if not f_name.startswith("."):
-                    file_name.append(f_name.split(".")[0])
-                    for line in f:
-                        line = line.strip(",\n")
-                        info = line.split(",")
-                        info_int = []
-                        count = 0
-                        for item in info:
-                            if count < 305:
-                                info_int.append(int(item))
-                                count += 1
-                        info_int = np.asarray(info_int)
-                        lines.append(info_int)
-            lines = np.asarray(lines)
-            if label_type == "Readable":
-                data[f_name.split(".")[0]] = 0
-            else:
-                data[f_name.split(".")[0]] = 1
-            data_structure[f_name.split(".")[0]] = lines
+    @classmethod
+    def process(cls, structure_dir: str) -> dict:
+        """
+        Preprocess the structure data.
+        :param structure_dir: The directory of the structure data.
+        :return: The dictionary that stores the data.
+        """
+        data = {}
 
-    return data
+        for label_type in ["Readable", "Unreadable"]:
+            dir_name = os.path.join(structure_dir, label_type)
+            for f_name in os.listdir(dir_name):
+                with open(os.path.join(dir_name, f_name), errors="ignore") as f:
+                    lines = []
+                    if not f_name.startswith("."):
+                        file_name.append(f_name.split(".")[0])
+                        for line in f:
+                            line = line.strip(",\n")
+                            info = line.split(",")
+                            info_int = []
+                            count = 0
+                            for item in info:
+                                if count < 305:
+                                    info_int.append(int(item))
+                                    count += 1
+                            info_int = np.asarray(info_int)
+                            lines.append(info_int)
+                lines = np.asarray(lines)
+                if label_type == "Readable":
+                    data[f_name.split(".")[0]] = 0
+                else:
+                    data[f_name.split(".")[0]] = 1
+                data_structure[f_name.split(".")[0]] = lines
+
+        return data
 
 
 class TexturePreprocessor:
@@ -252,8 +258,8 @@ class TexturePreprocessor:
     """
 
     @classmethod
-    def process(cls, texture_dir: str = texture_dir,
-                max_len: int = MAX_LEN) -> tuple[dict, dict, dict]:
+    def process(cls, texture_dir: str, max_len: int = MAX_LEN) -> tuple[
+        dict, dict, dict]:
         """
         Preprocess the texture data.
 
@@ -673,8 +679,8 @@ def get_from_dict(dictionary, key_start: str):
 
 
 if __name__ == "__main__":
-    data_set = preprocess_structure_data()
-    data_token, data_position, data_segment = TexturePreprocessor.process()
+    data_set = StructurePreprocessor.process(STRUCTURE_DIR)
+    data_token, data_position, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
     preprocess_picture_data()
     random_dataSet()
 
@@ -768,22 +774,22 @@ if __name__ == "__main__":
         checkpoint_vst = ModelCheckpoint(
             filepath_vst, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_vst_list = []  # checkpoint_vst
+        callbacks_vst_list = [checkpoint_vst]
 
         checkpoint_v = ModelCheckpoint(
             filepath_v, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_v_list = []  # checkpoint_v
+        callbacks_v_list = [checkpoint_v]
 
         checkpoint_s = ModelCheckpoint(
             filepath_s, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_s_list = []  # checkpoint_s
+        callbacks_s_list = [checkpoint_s]
 
         checkpoint_t = ModelCheckpoint(
             filepath_t, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
-        callbacks_t_list = []  # checkpoint_t
+        callbacks_t_list = [checkpoint_t]
 
         history_vst = VST_model.fit(
             [x_train_structure, x_train_token, x_train_segment, x_train_image],
