@@ -162,16 +162,6 @@ TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
 VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 
-# store the final data
-all_data = []
-train_data = []
-test_data = []
-structure = []
-image = []
-label = []
-token = []
-segment = []
-
 # load the tokenizer
 tokenizer_path = "bert-base-cased"
 tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
