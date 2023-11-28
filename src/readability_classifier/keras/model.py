@@ -166,7 +166,7 @@ VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
 MAX_WORDS = 1000
 TOKENIZER_NAME = "bert-base-cased"
 K_FOLD = 10
-EPOCHS = 20
+EPOCHS = 3
 
 # Default values
 DEFAULT_LEARNING_RATE = 0.0015
@@ -849,10 +849,18 @@ class Classifier:
         val_recall_value = get_from_dict(history_dict, "val_recall")
         val_precision_value = get_from_dict(history_dict, "val_precision")
         val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-        val_false_positives = get_from_dict(history_dict, "val_false_positives")
-        val_true_positives = get_from_dict(history_dict, "val_true_positives")
-        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
+        val_false_negatives = [
+            int(x) for x in get_from_dict(history_dict, "val_false_negatives")
+        ]
+        val_false_positives = [
+            int(x) for x in get_from_dict(history_dict, "val_false_positives")
+        ]
+        val_true_positives = [
+            int(x) for x in get_from_dict(history_dict, "val_true_positives")
+        ]
+        val_true_negatives = [
+            int(x) for x in get_from_dict(history_dict, "val_true_negatives")
+        ]
 
         mccs = []
         f1s = []
@@ -886,10 +894,10 @@ class Classifier:
     @staticmethod
     def evaluate_epoch(
         epoch_index: int,
-        false_negatives: list,
-        false_positives: list,
-        true_negatives: list,
-        true_positives: list,
+        false_negatives: list[int],
+        false_positives: list[int],
+        true_negatives: list[int],
+        true_positives: list[int],
     ) -> tuple[float, float]:
         """
         Evaluate an epoch of the model.
