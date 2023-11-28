@@ -153,7 +153,7 @@ JAVA_NAMING_REGEX = re.compile(r"([a-z]+)([A-Z]+)")
 # Define the path of the data
 STRUCTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Structure"
 TEXTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Texture"
-picture_dir = "../../res/keras/Dataset/Processed Dataset/Image"
+PICTURE_DIR = "../../res/keras/Dataset/Processed Dataset/Image"
 
 # Use for texture data preprocessing
 pattern = "[A-Z]"
@@ -372,16 +372,32 @@ class TexturePreprocessor:
             data_segment[sample] = list_segment
 
 
-def preprocess_picture_data():
-    for label_type in ["readable", "unreadable"]:
-        dir_image_name = os.path.join(picture_dir, label_type)
-        for f_name in os.listdir(dir_image_name):
-            if not f_name.startswith("."):
-                img_data = cv2.imread(os.path.join(dir_image_name, f_name))
-                img_data = cv2.resize(img_data, (128, 128))
-                result = img_data / 255.0
-                data_picture[f_name.split(".")[0]] = result
-                data_image.append(result)
+class PicturePreprocessor:
+    """
+    Preprocessor for the picture data.
+    """
+
+    @staticmethod
+    def process(picture_dir: str) -> tuple[dict, list]:
+        """
+        Preprocess the picture data.
+        :param picture_dir: The directory of the picture data.
+        :return: The dictionary that stores the picture information.
+        """
+        data_picture = {}
+        data_image = []
+
+        for label_type in ["readable", "unreadable"]:
+            dir_image_name = os.path.join(picture_dir, label_type)
+            for f_name in os.listdir(dir_image_name):
+                if not f_name.startswith("."):
+                    img_data = cv2.imread(os.path.join(dir_image_name, f_name))
+                    img_data = cv2.resize(img_data, (128, 128))
+                    result = img_data / 255.0
+                    data_picture[f_name.split(".")[0]] = result
+                    data_image.append(result)
+
+        return data_picture, data_image
 
 
 def random_dataSet():
@@ -681,7 +697,7 @@ def get_from_dict(dictionary, key_start: str):
 if __name__ == "__main__":
     data_set = StructurePreprocessor.process(STRUCTURE_DIR)
     data_token, data_position, data_segment = TexturePreprocessor.process(TEXTURE_DIR)
-    preprocess_picture_data()
+    data_picture, data_image = PicturePreprocessor.process(PICTURE_DIR)
     random_dataSet()
 
     # format the data
