@@ -774,13 +774,13 @@ if __name__ == "__main__":
             x_val_image,
             y_val,
         ) = get_validation_set(
-            fold_index,
-            num_sample,
-            train_structure,
-            train_token,
-            train_segment,
-            train_image,
-            train_label,
+            fold_index=fold_index,
+            num_sample=num_sample,
+            train_structure=train_structure,
+            train_token=train_token,
+            train_segment=train_segment,
+            train_image=train_image,
+            train_label=train_label,
         )
 
         (
@@ -790,13 +790,13 @@ if __name__ == "__main__":
             x_train_image,
             y_train,
         ) = get_training_set(
-            fold_index,
-            num_sample,
-            train_structure,
-            train_token,
-            train_segment,
-            train_image,
-            train_label,
+            fold_index=fold_index,
+            num_sample=num_sample,
+            train_structure=train_structure,
+            train_token=train_token,
+            train_segment=train_segment,
+            train_image=train_image,
+            train_label=train_label,
         )
 
         # model training for VST, V, S, T
