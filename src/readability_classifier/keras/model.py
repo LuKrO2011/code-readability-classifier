@@ -793,64 +793,108 @@ class Classifier:
             print(f"Now is fold {fold_index}")
             self.train_fold(fold_index=fold_index, num_sample=num_sample)
 
-        # data analyze
+        self.evaluate(history, train_acc)
+
+    def evaluate(self, history, train_acc):
+        """
+        Evaluate the model.
+        :param history: The training history.
+        :param train_acc: The training accuracy.
+        :return: None
+        """
         best_val_f1 = []
         best_val_auc = []
         best_val_mcc = []
-
         epoch_time_vst = 1
         for history_item in history:
-            MCC_vst = []
-            F1_vst = []
-            history_dict = history_item.fold_stats
-            val_acc_values = history_dict["val_acc"]
-            val_recall_value = get_from_dict(history_dict, "val_recall")
-            val_precision_value = get_from_dict(history_dict, "val_precision")
-            val_auc_value = get_from_dict(history_dict, "val_auc")
-            val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
-            val_false_positives = get_from_dict(history_dict, "val_false_positives")
-            val_true_positives = get_from_dict(history_dict, "val_true_positives")
-            val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
-            for i in range(20):
-                tp = val_true_positives[i]
-                tn = val_true_negatives[i]
-                fp = val_false_positives[i]
-                fn = val_false_negatives[i]
-                if tp > 0 and tn > 0 and fn > 0 and fp > 0:
-                    result_mcc = (tp * tn - fp * fn) / (
-                        math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
-                    )
-                    MCC_vst.append(result_mcc)
-                    result_precision = tp / (tp + fp)
-                    result_recall = tp / (tp + fn)
-                    result_f1 = (
-                        2
-                        * result_precision
-                        * result_recall
-                        / (result_precision + result_recall)
-                    )
-                    F1_vst.append(result_f1)
-            train_acc.append(np.max(val_acc_values))
-            best_val_f1.append(np.max(F1_vst))
-            best_val_auc.append(np.max(val_auc_value))
-            best_val_mcc.append(np.max(MCC_vst))
-            print("Processing fold #", epoch_time_vst)
-            print("------------------------------------------------")
-            print("best accuracy score is #", np.max(val_acc_values))
-            print("average recall score is #", np.mean(val_recall_value))
-            print("average precision score is #", np.mean(val_precision_value))
-            print("best f1 score is #", np.max(F1_vst))
-            print("best auc score is #", np.max(val_auc_value))
-            print("best mcc score is #", np.max(MCC_vst))
-            print()
-            print()
-            epoch_time_vst = epoch_time_vst + 1
-
+            self.evaluate_fold(
+                best_val_auc,
+                best_val_f1,
+                best_val_mcc,
+                epoch_time_vst,
+                history_item,
+                train_acc,
+            )
         print("Average vst model acc score", np.mean(train_acc))
         print("Average vst model f1 score", np.mean(best_val_f1))
         print("Average vst model auc score", np.mean(best_val_auc))
         print("Average vst model mcc score", np.mean(best_val_mcc))
         print()
+
+    def evaluate_fold(
+        self,
+        best_val_auc,
+        best_val_f1,
+        best_val_mcc,
+        epoch_time_vst,
+        history_item,
+        train_acc,
+    ):
+        MCC_vst = []
+        F1_vst = []
+        history_dict = history_item.fold_stats
+        val_acc_values = history_dict["val_acc"]
+        val_recall_value = get_from_dict(history_dict, "val_recall")
+        val_precision_value = get_from_dict(history_dict, "val_precision")
+        val_auc_value = get_from_dict(history_dict, "val_auc")
+        val_false_negatives = get_from_dict(history_dict, "val_false_negatives")
+        val_false_positives = get_from_dict(history_dict, "val_false_positives")
+        val_true_positives = get_from_dict(history_dict, "val_true_positives")
+        val_true_negatives = get_from_dict(history_dict, "val_true_negatives")
+        for i in range(20):
+            self.evaluate_epoch(
+                F1_vst,
+                MCC_vst,
+                i,
+                val_false_negatives,
+                val_false_positives,
+                val_true_negatives,
+                val_true_positives,
+            )
+        train_acc.append(np.max(val_acc_values))
+        best_val_f1.append(np.max(F1_vst))
+        best_val_auc.append(np.max(val_auc_value))
+        best_val_mcc.append(np.max(MCC_vst))
+        print("Processing fold #", epoch_time_vst)
+        print("------------------------------------------------")
+        print("best accuracy score is #", np.max(val_acc_values))
+        print("average recall score is #", np.mean(val_recall_value))
+        print("average precision score is #", np.mean(val_precision_value))
+        print("best f1 score is #", np.max(F1_vst))
+        print("best auc score is #", np.max(val_auc_value))
+        print("best mcc score is #", np.max(MCC_vst))
+        print()
+        print()
+        epoch_time_vst = epoch_time_vst + 1
+
+    def evaluate_epoch(
+        self,
+        F1_vst,
+        MCC_vst,
+        i,
+        val_false_negatives,
+        val_false_positives,
+        val_true_negatives,
+        val_true_positives,
+    ):
+        tp = val_true_positives[i]
+        tn = val_true_negatives[i]
+        fp = val_false_positives[i]
+        fn = val_false_negatives[i]
+        if tp > 0 and tn > 0 and fn > 0 and fp > 0:
+            result_mcc = (tp * tn - fp * fn) / (
+                math.sqrt(float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)))
+            )
+            MCC_vst.append(result_mcc)
+            result_precision = tp / (tp + fp)
+            result_recall = tp / (tp + fn)
+            result_f1 = (
+                2
+                * result_precision
+                * result_recall
+                / (result_precision + result_recall)
+            )
+            F1_vst.append(result_f1)
 
     def train_fold(self, fold_index: int, num_sample: int) -> keras.callbacks.History:
         # Get the validation set
