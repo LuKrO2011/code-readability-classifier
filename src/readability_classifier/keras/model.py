@@ -644,6 +644,79 @@ def get_from_dict(dictionary, key_start: str):
     raise KeyError(f"Key {key_start} not found in dictionary")
 
 
+def get_validation_set(
+    fold_index: int,
+    num_sample: int,
+    train_structure: np.ndarray,
+    train_token: np.ndarray,
+    train_segment: np.ndarray,
+    train_image: np.ndarray,
+    train_label: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Get the validation set.
+    :param fold_index: The index of the fold.
+    :param num_sample: The number of samples.
+    :param train_structure: The training structure data.
+    :param train_token: The training token data.
+    :param train_segment: The training segment data.
+    :param train_image: The training image data.
+    :param train_label: The training label data.
+    :return: The validation set.
+    """
+    val_indices = slice(fold_index * num_sample, (fold_index + 1) * num_sample)
+
+    x_val_structure = train_structure[val_indices]
+    x_val_token = train_token[val_indices]
+    x_val_segment = train_segment[val_indices]
+    x_val_image = train_image[val_indices]
+    y_val = train_label[val_indices]
+
+    return x_val_structure, x_val_token, x_val_segment, x_val_image, y_val
+
+
+def get_training_set(
+    fold_index: int,
+    num_sample: int,
+    train_structure: np.ndarray,
+    train_token: np.ndarray,
+    train_segment: np.ndarray,
+    train_image: np.ndarray,
+    train_label: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Get the training set.
+    :param fold_index: The index of the fold.
+    :param num_sample: The number of samples.
+    :param train_structure: The training structure data.
+    :param train_token: The training token data.
+    :param train_segment: The training segment data.
+    :param train_image: The training image data.
+    :param train_label: The training label data.
+    :return: The training set.
+    """
+    train_indices_1 = slice(0, fold_index * num_sample)
+    train_indices_2 = slice((fold_index + 1) * num_sample, None)
+
+    x_train_structure = np.concatenate(
+        [train_structure[train_indices_1], train_structure[train_indices_2]], axis=0
+    )
+    x_train_token = np.concatenate(
+        [train_token[train_indices_1], train_token[train_indices_2]], axis=0
+    )
+    x_train_segment = np.concatenate(
+        [train_segment[train_indices_1], train_segment[train_indices_2]], axis=0
+    )
+    x_train_image = np.concatenate(
+        [train_image[train_indices_1], train_image[train_indices_2]], axis=0
+    )
+    y_train = np.concatenate(
+        [train_label[train_indices_1], train_label[train_indices_2]], axis=0
+    )
+
+    return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
+
+
 if __name__ == "__main__":
     # TODO: Remove computation of those: data_position and data_image (unused)
     file_name, data_set, data_structure = StructurePreprocessor.process(STRUCTURE_DIR)
@@ -692,41 +765,39 @@ if __name__ == "__main__":
 
     svm_score = []
 
-    for epoch in range(k_fold):
-        print(f"Now is fold {epoch}")
-        x_val_structure = train_structure[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_token = train_token[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_segment = train_segment[epoch * num_sample : (epoch + 1) * num_sample]
-        x_val_image = train_image[epoch * num_sample : (epoch + 1) * num_sample]
-        y_val = train_label[epoch * num_sample : (epoch + 1) * num_sample]
-
-        x_train_structure_part_1 = train_structure[: epoch * num_sample]
-        x_train_structure_part_2 = train_structure[(epoch + 1) * num_sample :]
-        x_train_structure = np.concatenate(
-            [x_train_structure_part_1, x_train_structure_part_2], axis=0
+    for fold_index in range(k_fold):
+        print(f"Now is fold {fold_index}")
+        (
+            x_val_structure,
+            x_val_token,
+            x_val_segment,
+            x_val_image,
+            y_val,
+        ) = get_validation_set(
+            fold_index,
+            num_sample,
+            train_structure,
+            train_token,
+            train_segment,
+            train_image,
+            train_label,
         )
 
-        x_train_token_part_1 = train_token[: epoch * num_sample]
-        x_train_token_part_2 = train_token[(epoch + 1) * num_sample :]
-        x_train_token = np.concatenate(
-            [x_train_token_part_1, x_train_token_part_2], axis=0
+        (
+            x_train_structure,
+            x_train_token,
+            x_train_segment,
+            x_train_image,
+            y_train,
+        ) = get_training_set(
+            fold_index,
+            num_sample,
+            train_structure,
+            train_token,
+            train_segment,
+            train_image,
+            train_label,
         )
-
-        x_train_segment_part_1 = train_segment[: epoch * num_sample]
-        x_train_segment_part_2 = train_segment[(epoch + 1) * num_sample :]
-        x_train_segment = np.concatenate(
-            [x_train_segment_part_1, x_train_segment_part_2], axis=0
-        )
-
-        x_train_image_part_1 = train_image[: epoch * num_sample]
-        x_train_image_part_2 = train_image[(epoch + 1) * num_sample :]
-        x_train_image = np.concatenate(
-            [x_train_image_part_1, x_train_image_part_2], axis=0
-        )
-
-        y_train_part_1 = train_label[: epoch * num_sample]
-        y_train_part_2 = train_label[(epoch + 1) * num_sample :]
-        y_train = np.concatenate([y_train_part_1, y_train_part_2], axis=0)
 
         # model training for VST, V, S, T
         VST_model = create_towards_model()
