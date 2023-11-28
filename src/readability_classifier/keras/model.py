@@ -581,30 +581,48 @@ def create_semantic_model(learning_rate: float = 0.0015) -> keras.Model:
     return model
 
 
-def create_NetV():
-    image_input = keras.Input(shape=(128, 128, 3), name="image")
-    image_conv1 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_input)
-    image_pool1 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv1)
-    image_conv2 = keras.layers.Conv2D(
-        filters=32, kernel_size=3, padding="same", activation="relu"
-    )(image_pool1)
-    image_pool2 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv2)
-    image_conv3 = keras.layers.Conv2D(
-        filters=64, kernel_size=3, padding="same", activation="relu"
-    )(image_pool2)
-    image_pool3 = keras.layers.MaxPool2D(pool_size=2, strides=2)(image_conv3)
-    image_flatten = keras.layers.Flatten()(image_pool3)
-    dense1 = keras.layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(image_flatten)
-    drop = keras.layers.Dropout(0.5)(dense1)
-    dense2 = keras.layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    dense3 = keras.layers.Dense(1, activation="sigmoid")(dense2)
-    model = keras.Model(image_input, dense3)
-    rms = keras.optimizers.RMSprop(lr=0.0015)
-    # model.summary()
+def create_visual_extractor(
+    input_shape: tuple[int, int, int] = (128, 128, 3)
+) -> tuple[tf.Tensor, tf.Tensor]:
+    """
+    Create the visual extractor layers for the image encoding.
+    :param input_shape: The input shape of the model.
+    :return: The input layer and the flattened layer.
+    """
+    model_input = layers.Input(shape=input_shape, name="image")
+
+    conv1 = layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")(
+        model_input
+    )
+    pool1 = layers.MaxPooling2D(pool_size=2, strides=2)(conv1)
+
+    conv2 = layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")(
+        pool1
+    )
+    pool2 = layers.MaxPooling2D(pool_size=2, strides=2)(conv2)
+
+    conv3 = layers.Conv2D(filters=64, kernel_size=3, padding="same", activation="relu")(
+        pool2
+    )
+    pool3 = layers.MaxPooling2D(pool_size=2, strides=2)(conv3)
+
+    flattened = layers.Flatten()(pool3)
+    return model_input, flattened
+
+
+def create_visual_model(learning_rate: float = 0.0015) -> keras.Model:
+    """
+    Create the visual model for the image encoding.
+    :param learning_rate: The learning rate of the model.
+    :return: The model.
+    """
+    image_input, image_flatten = create_visual_extractor()
+    classification_output = create_classification_model(image_flatten)
+
+    model = models.Model(image_input, classification_output)
+
+    rms = optimizers.RMSprop(learning_rate=learning_rate)
+
     model.compile(
         optimizer=rms,
         loss="binary_crossentropy",
@@ -864,7 +882,7 @@ if __name__ == "__main__":
 
         # model training for VST, V, S, T
         VST_model = create_VST_model()
-        V_model = create_NetV()
+        V_model = create_visual_model()
         S_model = create_semantic_model()
         T_model = create_structural_model()
 
