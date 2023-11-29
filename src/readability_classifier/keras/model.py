@@ -159,13 +159,9 @@ UNDERSCORE = "[_]"
 
 # Define parameters
 MAX_LEN = 100
-TOTAL_SAMPLES = 210
-TRAINING_SAMPLES = int(TOTAL_SAMPLES * 0.7)
-VALIDATION_SAMPLES = TOTAL_SAMPLES - TRAINING_SAMPLES
-MAX_WORDS = 1000
 TOKENIZER_NAME = "bert-base-cased"
 K_FOLD = 10
-EPOCHS = 3
+EPOCHS = 20
 
 # Default values
 DEFAULT_LEARNING_RATE = 0.0015
@@ -843,7 +839,7 @@ class Classifier:
         num_sample = math.ceil(len(self.label) / K_FOLD)
         history = []
 
-        for fold_index in range(1):  # K_FOLD
+        for fold_index in range(K_FOLD):
             print(f"Now is fold {fold_index}")
             fold_history = self.train_fold(fold_index=fold_index, num_sample=num_sample)
             history.append(fold_history)
