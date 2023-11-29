@@ -23,7 +23,7 @@ TOKENIZER_NAME = "bert-base-cased"
 
 
 @dataclass
-class TowardsInput:
+class TowardsData:
     """
     Data class for the input of the TowardsModel.
     """
@@ -35,7 +35,7 @@ class TowardsInput:
     segment: np.ndarray
 
 
-def preprocess_data() -> list[TowardsInput]:
+def preprocess_data() -> list[dict]:
     """
     Load and preprocess the data.
     :return: The towards inputs.
@@ -46,13 +46,13 @@ def preprocess_data() -> list[TowardsInput]:
 
     # Combine the data into towards input
     return [
-        TowardsInput(
-            label=structure_input[key].score,
-            structure=structure_input[key].lines,
-            image=picture_input[key].image,
-            token=texture_input[key].token,
-            segment=texture_input[key].segment,
-        )
+        {
+            "label": structure_input[key].score,
+            "structure": structure_input[key].lines,
+            "image": picture_input[key].image,
+            "token": texture_input[key].token,
+            "segment": texture_input[key].segment,
+        }
         for key in structure_input
     ]
 

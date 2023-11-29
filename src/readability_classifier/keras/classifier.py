@@ -1,13 +1,16 @@
-import math
 import random
 
 import keras
 import numpy as np
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 
-from readability_classifier.keras.legacy_encoders import TowardsInput, preprocess_data
+from readability_classifier.keras.legacy_encoders import preprocess_data
 from readability_classifier.keras.model import create_towards_model
-from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+from readability_classifier.models.encoders.dataset_utils import (
+    Fold,
+    ReadabilityDataset,
+    split_k_fold,
+)
 from readability_classifier.utils.utils import (
     calculate_f1_score,
     calculate_mcc,
@@ -24,37 +27,6 @@ MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
 # Seed
 SEED = 42
 random.seed(SEED)
-
-
-def get_validation_set(
-    fold_index: int,
-    num_sample: int,
-    train_structure: np.ndarray,
-    train_token: np.ndarray,
-    train_segment: np.ndarray,
-    train_image: np.ndarray,
-    train_label: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Get the validation set.
-    :param fold_index: The index of the fold.
-    :param num_sample: The number of samples.
-    :param train_structure: The training structure data.
-    :param train_token: The training token data.
-    :param train_segment: The training segment data.
-    :param train_image: The training image data.
-    :param train_label: The training label data.
-    :return: The validation set.
-    """
-    val_indices = slice(fold_index * num_sample, (fold_index + 1) * num_sample)
-
-    x_val_structure = train_structure[val_indices]
-    x_val_token = train_token[val_indices]
-    x_val_segment = train_segment[val_indices]
-    x_val_image = train_image[val_indices]
-    y_val = train_label[val_indices]
-
-    return x_val_structure, x_val_token, x_val_segment, x_val_image, y_val
 
 
 def get_training_set(
@@ -99,22 +71,22 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
-def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[TowardsInput]:
+def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     """
     Convert the encoded data to towards input.
     :param encoded_data: The encoded data.
     :return: The towards input.
     """
     return [
-        TowardsInput(
-            label=x["score"],
-            structure=x["matrix"],
-            image=np.transpose(x["image"], (1, 2, 0)),
-            token=x["bert"]["input_ids"],
-            segment=x["bert"]["segment_ids"]
+        {
+            "structure": x["matrix"],
+            "image": np.transpose(x["image"], (1, 2, 0)),
+            "token": x["bert"]["input_ids"],
+            "segment": x["bert"]["segment_ids"]
             if "segment_ids" in x["bert"]
             else x["bert"]["token_type_ids"],
-        )
+            "label": x["score"],
+        }
         for x in encoded_data
     ]
 
@@ -156,11 +128,11 @@ class Classifier:
         random.shuffle(towards_inputs)
 
         # Extract the data from the towards inputs
-        self.label = np.asarray([x.label for x in towards_inputs])
-        self.structure = np.asarray([x.structure for x in towards_inputs])
-        self.image = np.asarray([x.image for x in towards_inputs])
-        self.token = np.asarray([x.token for x in towards_inputs])
-        self.segment = np.asarray([x.segment for x in towards_inputs])
+        self.label = np.asarray([x["label"] for x in towards_inputs])
+        self.structure = np.asarray([x["structure"] for x in towards_inputs])
+        self.image = np.asarray([x["image"] for x in towards_inputs])
+        self.token = np.asarray([x["token"] for x in towards_inputs])
+        self.segment = np.asarray([x["segment"] for x in towards_inputs])
 
         print("Shape of structure data tensor:", self.structure.shape)
         print("Shape of image data tensor:", self.image.shape)
@@ -168,12 +140,11 @@ class Classifier:
         print("Shape of segment tensor:", self.segment.shape)
         print("Shape of label tensor:", self.label.shape)
 
-        num_sample = math.ceil(len(self.label) / K_FOLD)
         history = []
-
-        for fold_index in range(K_FOLD):
+        folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=K_FOLD)
+        for fold_index, fold in enumerate(folds):
             print(f"Now is fold {fold_index}")
-            fold_history = self.train_fold(fold_index=fold_index, num_sample=num_sample)
+            fold_history = self.train_fold(fold)
             history.append(fold_history)
 
         return history
@@ -301,45 +272,12 @@ class Classifier:
         f1 = calculate_f1_score(precision=precision, recall=recall)
         return f1, mcc
 
-    def train_fold(self, fold_index: int, num_sample: int) -> keras.callbacks.History:
+    def train_fold(self, fold: Fold) -> keras.callbacks.History:
         """
         Train the model for a fold.
-        :param fold_index: The index of the fold.
-        :param num_sample: The number of samples.
+        :param fold: The fold.
         :return: The history of the fold.
         """
-        # Get the validation set
-        (
-            x_val_structure,
-            x_val_token,
-            x_val_segment,
-            x_val_image,
-            y_val,
-        ) = get_validation_set(
-            fold_index=fold_index,
-            num_sample=num_sample,
-            train_structure=self.structure,
-            train_token=self.token,
-            train_segment=self.segment,
-            train_image=self.image,
-            train_label=self.label,
-        )
-        # Get the training set
-        (
-            x_train_structure,
-            x_train_token,
-            x_train_segment,
-            x_train_image,
-            y_train,
-        ) = get_training_set(
-            fold_index=fold_index,
-            num_sample=num_sample,
-            train_structure=self.structure,
-            train_token=self.token,
-            train_segment=self.segment,
-            train_image=self.image,
-            train_label=self.label,
-        )
         # Train the model
         towards_model = create_towards_model()
         checkpoint = ModelCheckpoint(
@@ -347,17 +285,40 @@ class Classifier:
         )
         callbacks = [checkpoint]
         return towards_model.fit(
-            [x_train_structure, x_train_token, x_train_segment, x_train_image],
-            y_train,
+            x=self._dataset_to_input(fold.train_set),
+            y=self._dataset_to_label(fold.train_set),
             epochs=EPOCHS,
             batch_size=42,
             callbacks=callbacks,
             verbose=0,
             validation_data=(
-                [x_val_structure, x_val_token, x_val_segment, x_val_image],
-                y_val,
+                self._dataset_to_input(fold.val_set),
+                self._dataset_to_label(fold.val_set),
             ),
         )
+
+    def _dataset_to_input(
+        self, dataset: ReadabilityDataset
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Convert a dataset to numpy arrays:
+        structure_input, token_input, segment_input, image_input
+        :param dataset: The dataset.
+        :return: The input for the towards model.
+        """
+        structure = np.asarray([x["structure"] for x in dataset])
+        image = np.asarray([x["image"] for x in dataset])
+        token = np.asarray([x["token"] for x in dataset])
+        segment = np.asarray([x["segment"] for x in dataset])
+        return structure, token, segment, image
+
+    def _dataset_to_label(self, dataset: ReadabilityDataset) -> np.ndarray:
+        """
+        Convert a dataset to towards output/score.
+        :param dataset: The dataset.
+        :return: The towards output.
+        """
+        return np.asarray([x["label"] for x in dataset])
 
 
 def main():
