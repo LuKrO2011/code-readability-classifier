@@ -829,28 +829,26 @@ class Classifier:
         picture_input = PicturePreprocessor.process(PICTURE_DIR)
 
         # Combine the data into towards input
-        towards_input = {}
-        for key in structure_input:
-            towards_input[key] = TowardsInput(
+        towards_inputs = [
+            TowardsInput(
                 label=structure_input[key].score,
                 structure=structure_input[key].lines,
                 image=picture_input[key].image,
                 token=texture_input[key].token,
                 segment=texture_input[key].segment,
             )
-
-        # Remove the keys (names)
-        towards_input = list(towards_input.values())
+            for key in structure_input
+        ]
 
         # Shuffle the data
-        random.shuffle(towards_input)
+        random.shuffle(towards_inputs)
 
         # Extract the data from the towards inputs
-        self.label = np.asarray([x.label for x in towards_input])
-        self.structure = np.asarray([x.structure for x in towards_input])
-        self.image = np.asarray([x.image for x in towards_input])
-        self.token = np.asarray([x.token for x in towards_input])
-        self.segment = np.asarray([x.segment for x in towards_input])
+        self.label = np.asarray([x.label for x in towards_inputs])
+        self.structure = np.asarray([x.structure for x in towards_inputs])
+        self.image = np.asarray([x.image for x in towards_inputs])
+        self.token = np.asarray([x.token for x in towards_inputs])
+        self.segment = np.asarray([x.segment for x in towards_inputs])
 
         print("Shape of structure data tensor:", self.structure.shape)
         print("Shape of image data tensor:", self.image.shape)
