@@ -1,3 +1,4 @@
+import logging
 import random
 
 import keras
@@ -29,48 +30,6 @@ SEED = 42
 random.seed(SEED)
 
 
-def get_training_set(
-    fold_index: int,
-    num_sample: int,
-    train_structure: np.ndarray,
-    train_token: np.ndarray,
-    train_segment: np.ndarray,
-    train_image: np.ndarray,
-    train_label: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Get the training set.
-    :param fold_index: The index of the fold.
-    :param num_sample: The number of samples.
-    :param train_structure: The training structure data.
-    :param train_token: The training token data.
-    :param train_segment: The training segment data.
-    :param train_image: The training image data.
-    :param train_label: The training label data.
-    :return: The training set.
-    """
-    train_indices_1 = slice(0, fold_index * num_sample)
-    train_indices_2 = slice((fold_index + 1) * num_sample, None)
-
-    x_train_structure = np.concatenate(
-        [train_structure[train_indices_1], train_structure[train_indices_2]], axis=0
-    )
-    x_train_token = np.concatenate(
-        [train_token[train_indices_1], train_token[train_indices_2]], axis=0
-    )
-    x_train_segment = np.concatenate(
-        [train_segment[train_indices_1], train_segment[train_indices_2]], axis=0
-    )
-    x_train_image = np.concatenate(
-        [train_image[train_indices_1], train_image[train_indices_2]], axis=0
-    )
-    y_train = np.concatenate(
-        [train_label[train_indices_1], train_label[train_indices_2]], axis=0
-    )
-
-    return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
-
-
 def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     """
     Convert the encoded data to towards input.
@@ -91,17 +50,10 @@ def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     ]
 
 
-# TODO: Remove computation of those: data_position and data_image (unused)
 class Classifier:
     """
     A source code readability classifier.
     """
-
-    label: np.ndarray = None
-    structure: np.ndarray = None
-    image: np.ndarray = None
-    token: np.ndarray = None
-    segment: np.ndarray = None
 
     def __init__(
         self, towards_model: keras.Model, encoded_data: ReadabilityDataset = None
@@ -124,26 +76,22 @@ class Classifier:
             else preprocess_data()
         )
 
-        # Shuffle the data
         random.shuffle(towards_inputs)
 
-        # Extract the data from the towards inputs
-        self.label = np.asarray([x["label"] for x in towards_inputs])
-        self.structure = np.asarray([x["structure"] for x in towards_inputs])
-        self.image = np.asarray([x["image"] for x in towards_inputs])
-        self.token = np.asarray([x["token"] for x in towards_inputs])
-        self.segment = np.asarray([x["segment"] for x in towards_inputs])
-
-        print("Shape of structure data tensor:", self.structure.shape)
-        print("Shape of image data tensor:", self.image.shape)
-        print("Shape of token tensor:", self.token.shape)
-        print("Shape of segment tensor:", self.segment.shape)
-        print("Shape of label tensor:", self.label.shape)
+        logging.info(
+            f"Number of samples: {len(towards_inputs)}\n"
+            "Shapes:\n"
+            f"Structure: {towards_inputs[0]['structure'].shape}\n"
+            f"Image: {towards_inputs[0]['image'].shape}\n"
+            f"Token: {towards_inputs[0]['token'].shape}\n"
+            f"Segment: {towards_inputs[0]['segment'].shape}\n"
+            "Label: 1\n"
+        )
 
         history = []
         folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=K_FOLD)
         for fold_index, fold in enumerate(folds):
-            print(f"Now is fold {fold_index}")
+            logging.info(f"Starting fold {fold_index + 1}/{K_FOLD}")
             fold_history = self.train_fold(fold)
             history.append(fold_history)
 
@@ -175,11 +123,14 @@ class Classifier:
             f1s.append(f1)
             mccs.append(mcc)
             fold_index += 1
-        print("Average training acc score", np.mean(accs))
-        print("Average f1 score", np.mean(f1s))
-        print("Average auc score", np.mean(aucs))
-        print("Average mcc score", np.mean(mccs))
-        print()
+
+        logging.info(
+            "Overall results:\n"
+            f"Average training acc score: {np.mean(accs)}\n"
+            f"Average f1 score: {np.mean(f1s)}\n"
+            f"Average auc score: {np.mean(aucs)}\n"
+            f"Average mcc score: {np.mean(mccs)}\n"
+        )
 
     def evaluate_fold(
         self,
@@ -228,15 +179,15 @@ class Classifier:
         best_f1 = np.max(f1s)
         best_mcc = np.max(mccs)
 
-        print("Processing fold #", epoch_time)
-        print("------------------------------------------------")
-        print("best accuracy score is #", np.max(val_acc_values))
-        print("average recall score is #", np.mean(val_recall_value))
-        print("average precision score is #", np.mean(val_precision_value))
-        print("best f1 score is #", np.max(f1s))
-        print("best auc score is #", np.max(val_auc_value))
-        print("best mcc score is #", np.max(mccs))
-        print()
+        logging.info(
+            f"Fold {epoch_time} results:\n"
+            f"Best validation accuracy score: {best_train_acc}\n"
+            f"Average validation recall score: {np.mean(val_recall_value)}\n"
+            f"Average validation precision score: {np.mean(val_precision_value)}\n"
+            f"Best f1 score: {best_f1}\n"
+            f"Best auc score: {best_auc}\n"
+            f"Best mcc score: {best_mcc}\n"
+        )
 
         return (
             best_train_acc,
@@ -326,6 +277,16 @@ def main():
     Main function.
     :return: None
     """
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.FileHandler("towards.log"),
+            logging.StreamHandler(),
+        ],
+    )
+
     towards_model = create_towards_model()
     classifier = Classifier(towards_model)
     history = classifier.train()

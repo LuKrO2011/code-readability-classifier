@@ -22,6 +22,9 @@ MAX_LEN = 100
 TOKENIZER_NAME = "bert-base-cased"
 
 
+# TODO: Remove computation of those: data_position and data_image (unused)
+
+
 @dataclass
 class TowardsData:
     """
