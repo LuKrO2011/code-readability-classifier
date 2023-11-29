@@ -802,13 +802,24 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
+# TODO: Check that shapes are correct!
+# TODO: Export environment!
 def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[TowardsInput]:
     """
     Convert the encoded data to towards input.
     :param encoded_data: The encoded data.
     :return: The towards input.
     """
-    raise NotImplementedError("TODO: Implement this")
+    return [
+        TowardsInput(
+            label=x["score"],
+            structure=x["matrix"],
+            image=np.transpose(x["image"], (1, 2, 0)),
+            token=x["bert"]["input_ids"],
+            segment=x["bert"]["token_type_ids"],  # TODO: Use segment ids!
+        )
+        for x in encoded_data
+    ]
 
 
 def preprocess_data() -> list[TowardsInput]:

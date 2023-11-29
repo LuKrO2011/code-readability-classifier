@@ -1,4 +1,6 @@
-# from readability_classifier.keras.model import create_towards_model, Classifier
+import logging
+
+from readability_classifier.keras.model import Classifier, create_towards_model
 from readability_classifier.model_runner import ModelRunnerInterface
 from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
 
@@ -18,9 +20,8 @@ class KerasModelRunner(ModelRunnerInterface):
         :param encoded_data: The encoded dataset.
         :return: None
         """
-        raise NotImplementedError(
-            "Keras training without cross-validation is not implemented yet."
-        )
+        logging.warning("Keras only supports cross-validation.")
+        self._run_with_cross_validation(parsed_args, encoded_data)
 
     # TODO: Use parsed args
     def _run_with_cross_validation(self, parsed_args, encoded_data: ReadabilityDataset):
@@ -30,23 +31,20 @@ class KerasModelRunner(ModelRunnerInterface):
         :param encoded_data: The encoded dataset.
         :return: None
         """
-        # # Get the parsed arguments
+        # Get the parsed arguments
         # model = parsed_args.model
         # store_dir = parsed_args.save
         # batch_size = parsed_args.batch_size
         # num_epochs = parsed_args.epochs
         # learning_rate = parsed_args.learning_rate
-        #
-        # # Build the model
-        # towards_model = create_towards_model()
-        # classifier = Classifier(towards_model, encoded_data)
-        #
-        # # Train the model
-        # history = classifier.train()
-        # classifier.evaluate(history)
-        raise NotImplementedError(
-            "Keras training with cross-validation is not implemented yet."
-        )
+
+        # Build the model
+        towards_model = create_towards_model()
+        classifier = Classifier(towards_model, encoded_data)
+
+        # Train the model
+        history = classifier.train()
+        classifier.evaluate(history)
 
     def run_predict(self, parsed_args):
         """

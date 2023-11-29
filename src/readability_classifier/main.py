@@ -21,7 +21,7 @@ DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
 DEFAULT_MODEL_FILE = "model"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_SAVE_DIR = os.path.join(CURR_DIR, "../../models")
-KERAS = False
+KERAS = True
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
