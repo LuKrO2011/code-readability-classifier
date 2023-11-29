@@ -169,7 +169,7 @@ def main():
         pickle.dump(history, file)
 
     # Evaluate the model
-    HistoryProcessor().evaluate(history.fold_histories)
+    HistoryProcessor().evaluate(history)
 
 
 if __name__ == "__main__":

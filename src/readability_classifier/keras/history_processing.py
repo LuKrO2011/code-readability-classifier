@@ -201,14 +201,14 @@ class HistoryProcessor:
     A class for processing the history of a model.
     """
 
-    def evaluate(self, history: list) -> OverallStats:
+    def evaluate(self, history: HistoryList) -> OverallStats:
         """
         Evaluate the model.
         :param history: The training history.
         :return: The overall statistics.s
         """
         fold_stats = []
-        for epoch_time, fold_history in enumerate(history):
+        for epoch_time, fold_history in enumerate(history.fold_histories):
             fold_statum = self.evaluate_fold(
                 fold_index=epoch_time, fold_history=fold_history
             )
@@ -342,6 +342,6 @@ if __name__ == "__main__":
 
     # Load a history
     with open("history.pkl", "rb") as file:
-        loaded_history = pickle.load(file).fold_histories
+        loaded_history = pickle.load(file)
 
     HistoryProcessor().evaluate(loaded_history)

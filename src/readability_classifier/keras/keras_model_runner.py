@@ -46,7 +46,7 @@ class KerasModelRunner(ModelRunnerInterface):
 
         # Train the model
         history = classifier.train()
-        HistoryProcessor.evaluate(history.fold_histories)
+        HistoryProcessor().evaluate(history)
 
     def run_predict(self, parsed_args):
         """
