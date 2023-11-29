@@ -13,6 +13,8 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.util import tf_inspect
 from transformers import BertTokenizer
 
+from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+
 
 class BertConfig:
     """
@@ -800,6 +802,37 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
+def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[TowardsInput]:
+    """
+    Convert the encoded data to towards input.
+    :param encoded_data: The encoded data.
+    :return: The towards input.
+    """
+    raise NotImplementedError("TODO: Implement this")
+
+
+def preprocess_data() -> list[TowardsInput]:
+    """
+    Load and preprocess the data.
+    :return: The towards inputs.
+    """
+    structure_input = StructurePreprocessor.process(STRUCTURE_DIR)
+    texture_input = TexturePreprocessor().process(TEXTURE_DIR)
+    picture_input = PicturePreprocessor.process(PICTURE_DIR)
+
+    # Combine the data into towards input
+    return [
+        TowardsInput(
+            label=structure_input[key].score,
+            structure=structure_input[key].lines,
+            image=picture_input[key].image,
+            token=texture_input[key].token,
+            segment=texture_input[key].segment,
+        )
+        for key in structure_input
+    ]
+
+
 # TODO: Remove computation of those: data_position and data_image (unused)
 class Classifier:
     """
@@ -812,33 +845,26 @@ class Classifier:
     token: np.ndarray = None
     segment: np.ndarray = None
 
-    def __init__(self, towards_model: keras.Model) -> None:
+    def __init__(
+        self, towards_model: keras.Model, encoded_data: ReadabilityDataset = None
+    ):
         """
         Initializes the classifier.
         :param towards_model: The towards model.
         """
         self.towards_model = towards_model
+        self.encoded_data = encoded_data
 
     def train(self) -> list[keras.callbacks.History]:
         """
         Train the model.
         :return: The training history.
         """
-        structure_input = StructurePreprocessor.process(STRUCTURE_DIR)
-        texture_input = TexturePreprocessor().process(TEXTURE_DIR)
-        picture_input = PicturePreprocessor.process(PICTURE_DIR)
-
-        # Combine the data into towards input
-        towards_inputs = [
-            TowardsInput(
-                label=structure_input[key].score,
-                structure=structure_input[key].lines,
-                image=picture_input[key].image,
-                token=texture_input[key].token,
-                segment=texture_input[key].segment,
-            )
-            for key in structure_input
-        ]
+        towards_inputs = (
+            convert_to_towards_inputs(self.encoded_data)
+            if self.encoded_data is not None
+            else preprocess_data()
+        )
 
         # Shuffle the data
         random.shuffle(towards_inputs)

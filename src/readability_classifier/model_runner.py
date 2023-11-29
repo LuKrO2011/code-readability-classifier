@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from readability_classifier.model_buider import ClassifierBuilder
 from readability_classifier.models.encoders.dataset_utils import (
+    ReadabilityDataset,
     dataset_to_dataloader,
     load_encoded_dataset,
     split_train_test,
@@ -16,18 +17,23 @@ class ModelRunnerInterface(ABC):
     Interface for model runners.
     """
 
-    @abstractmethod
-    def run_train(self, parsed_args, encoded_data):
+    def run_train(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the training of the readability classifier.
         :param parsed_args: Parsed arguments.
         :param encoded_data: The encoded dataset.
         :return: None
         """
-        pass
+        k_fold = parsed_args.k_fold
+        if k_fold == 0:
+            self._run_without_cross_validation(parsed_args, encoded_data)
+        else:
+            self._run_with_cross_validation(parsed_args, encoded_data)
 
     @abstractmethod
-    def _run_without_cross_validation(self, parsed_args, encoded_data):
+    def _run_without_cross_validation(
+        self, parsed_args, encoded_data: ReadabilityDataset
+    ):
         """
         Runs the training of the readability classifier without cross-validation.
         :param parsed_args: Parsed arguments.
@@ -37,7 +43,7 @@ class ModelRunnerInterface(ABC):
         pass
 
     @abstractmethod
-    def _run_with_cross_validation(self, parsed_args, encoded_data):
+    def _run_with_cross_validation(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the training of the readability classifier with cross-validation.
         :param parsed_args: Parsed arguments.
@@ -71,14 +77,9 @@ class TorchModelRunner(ModelRunnerInterface):
     PyTorch readability classifier.
     """
 
-    def run_train(self, parsed_args, encoded_data):
-        k_fold = parsed_args.k_fold
-        if k_fold == 0:
-            self._run_without_cross_validation(parsed_args, encoded_data)
-        else:
-            self._run_with_cross_validation(parsed_args, encoded_data)
-
-    def _run_without_cross_validation(self, parsed_args, encoded_data):
+    def _run_without_cross_validation(
+        self, parsed_args, encoded_data: ReadabilityDataset
+    ):
         """
         Runs the training of the readability classifier without cross-validation.
         :param parsed_args: Parsed arguments.
@@ -116,7 +117,7 @@ class TorchModelRunner(ModelRunnerInterface):
         if evaluate:
             classifier.evaluate()
 
-    def _run_with_cross_validation(self, parsed_args, encoded_data):
+    def _run_with_cross_validation(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the training of the readability classifier with cross-validation.
         :param parsed_args: Parsed arguments.

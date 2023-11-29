@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from readability_classifier.keras.keras_model_runner import KerasModelRunner
 from readability_classifier.model_buider import Model
 from readability_classifier.model_runner import ModelRunnerInterface, TorchModelRunner
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
@@ -342,10 +343,7 @@ def main(args: list[str]) -> int:
     _setup_logging(logfile, overwrite=True)
 
     # Set up the model runner
-    if KERAS:
-        raise NotImplementedError("Keras is not supported yet!")
-
-    model_runner = TorchModelRunner()
+    model_runner = KerasModelRunner() if KERAS else TorchModelRunner()
 
     # Execute the task
     match task:
