@@ -1,6 +1,8 @@
+import json
 import logging
-import pickle
 import random
+from dataclasses import asdict
+from pathlib import Path
 
 import keras
 import numpy as np
@@ -22,6 +24,8 @@ from readability_classifier.models.encoders.dataset_utils import (
 K_FOLD = 10
 EPOCHS = 20
 MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
+STORE_DIR = "../../res/keras/Experimental output"
+STATS_FILE_NAME = "stats.json"
 
 # Seed
 SEED = 42
@@ -164,12 +168,11 @@ def main():
     classifier = Classifier(towards_model)
     history = classifier.train()
 
-    # Store the history
-    with open("history.pkl", "wb") as file:
-        pickle.dump(history, file)
-
-    # Evaluate the model
-    HistoryProcessor().evaluate(history)
+    # Save the history
+    processed_history = HistoryProcessor().evaluate(history)
+    store_path = Path(STORE_DIR) / STATS_FILE_NAME
+    with open(store_path, "w") as file:
+        json.dump(asdict(processed_history), file, indent=4)
 
 
 if __name__ == "__main__":

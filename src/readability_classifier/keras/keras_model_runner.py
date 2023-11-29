@@ -1,10 +1,15 @@
+import json
 import logging
+from dataclasses import asdict
+from pathlib import Path
 
 from readability_classifier.keras.classifier import Classifier
 from readability_classifier.keras.history_processing import HistoryProcessor
 from readability_classifier.keras.model import create_towards_model
 from readability_classifier.model_runner import ModelRunnerInterface
 from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+
+STATS_FILE_NAME = "stats.json"
 
 
 class KerasModelRunner(ModelRunnerInterface):
@@ -35,7 +40,7 @@ class KerasModelRunner(ModelRunnerInterface):
         """
         # Get the parsed arguments
         # model = parsed_args.model
-        # store_dir = parsed_args.save
+        store_dir = parsed_args.save
         # batch_size = parsed_args.batch_size
         # num_epochs = parsed_args.epochs
         # learning_rate = parsed_args.learning_rate
@@ -46,7 +51,12 @@ class KerasModelRunner(ModelRunnerInterface):
 
         # Train the model
         history = classifier.train()
-        HistoryProcessor().evaluate(history)
+        processed_history = HistoryProcessor().evaluate(history)
+
+        # Load the compare stats
+        store_path = Path(store_dir) / STATS_FILE_NAME
+        with open(store_path, "w") as file:
+            json.dump(asdict(processed_history), file, indent=4)
 
     def run_predict(self, parsed_args):
         """
