@@ -1,6 +1,7 @@
 import logging
 
-from readability_classifier.keras.model import Classifier, create_towards_model
+from readability_classifier.keras.classifier import Classifier
+from readability_classifier.keras.model import create_towards_model
 from readability_classifier.model_runner import ModelRunnerInterface
 from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
 
