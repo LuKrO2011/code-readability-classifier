@@ -99,7 +99,6 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
-# TODO: Export environment!
 def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[TowardsInput]:
     """
     Convert the encoded data to towards input.
