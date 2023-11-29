@@ -177,6 +177,10 @@ DEFAULT_METRICS = [
     "FalsePositives",
 ]
 
+# Seed
+SEED = 42
+random.seed(42)
+
 
 @dataclass
 class StructureInput:
@@ -451,46 +455,17 @@ class PicturePreprocessor:
         return picture_data, image_data
 
 
-def random_dataset(
-    file_name: list,
-    data_set: dict,
-    data_structure: dict,
-    data_picture: dict,
-    data_token: dict,
-    data_segment: dict,
-    num_samples: int = 210,
-) -> tuple[list, list, list, list, list, list]:
+@dataclass
+class TowardsInput:
     """
-    Randomly select num_samples samples from the dataset.
-    :param file_name: The list of file names.
-    :param data_set: The dictionary that stores the data.
-    :param data_structure: The dictionary that stores the structure information.
-    :param data_picture: The dictionary that stores the picture information.
-    :param data_token: The dictionary that stores the token information.
-    :param data_segment: The dictionary that stores the segment information.
-    :param num_samples: The number of samples to select.
-    :return: The randomly selected samples.
+    Data class for the input of the TowardsModel.
     """
-    count_id = 0
-    all_data = []
-    label = []
-    structure = []
-    image = []
-    token = []
-    segment = []
 
-    while count_id < num_samples and file_name:
-        index_id = random.randint(0, len(file_name) - 1)
-        item = file_name.pop(index_id)
-        all_data.append(item)
-        label.append(data_set[item])
-        structure.append(data_structure[item])
-        image.append(data_picture[item])
-        token.append(data_token[item])
-        segment.append(data_segment[item])
-        count_id += 1
-
-    return all_data, label, structure, image, token, segment
+    label: int
+    structure: np.ndarray
+    image: np.ndarray
+    token: np.ndarray
+    segment: np.ndarray
 
 
 def create_classification_model(input_layer: tf.Tensor) -> tf.Tensor:
@@ -825,19 +800,6 @@ def get_training_set(
     return x_train_structure, x_train_token, x_train_segment, x_train_image, y_train
 
 
-@dataclass
-class TowardsInput:
-    """
-    Data class for the input of the TowardsModel.
-    """
-
-    label: np.ndarray
-    structure: np.ndarray
-    image: np.ndarray
-    token: np.ndarray
-    segment: np.ndarray
-
-
 # TODO: Remove computation of those: data_position and data_image (unused)
 class Classifier:
     """
@@ -870,52 +832,25 @@ class Classifier:
         towards_input = {}
         for key in structure_input:
             towards_input[key] = TowardsInput(
-                label=np.asarray([structure_input[key].score]),
+                label=structure_input[key].score,
                 structure=structure_input[key].lines,
                 image=picture_input[key].image,
                 token=texture_input[key].token,
                 segment=texture_input[key].segment,
             )
 
-        # Convert towards input to numpy arrays
-        # file_name = np.asarray([x for x in towards_input.keys()])
-        # label = np.asarray([x.label for x in towards_input.values()])
-        # structure = np.asarray([x.structure for x in towards_input.values()])
-        # image = np.asarray([x.image for x in towards_input.values()])
-        # token = np.asarray([x.token for x in towards_input.values()])
-        # segment = np.asarray([x.segment for x in towards_input.values()])
+        # Remove the keys (names)
+        towards_input = list(towards_input.values())
 
-        # Convert towards input to dicts
-        file_name = list(towards_input)
-        label = {key: value.label for key, value in towards_input.items()}
-        structure = {key: value.structure for key, value in towards_input.items()}
-        image = {key: value.image for key, value in towards_input.items()}
-        token = {key: value.token for key, value in towards_input.items()}
-        segment = {key: value.segment for key, value in towards_input.items()}
+        # Shuffle the data
+        random.shuffle(towards_input)
 
-        # Randomly select samples
-        (
-            all_data,
-            label,
-            structure,
-            image,
-            token,
-            segment,
-        ) = random_dataset(
-            file_name=file_name,
-            data_set=label,
-            data_structure=structure,
-            data_picture=image,
-            data_token=token,
-            data_segment=segment,
-        )
-
-        # format the data
-        self.label = np.asarray(label)
-        self.structure = np.asarray(structure)
-        self.image = np.asarray(image)
-        self.token = np.asarray(token)
-        self.segment = np.asarray(segment)
+        # Extract the data from the towards inputs
+        self.label = np.asarray([x.label for x in towards_input])
+        self.structure = np.asarray([x.structure for x in towards_input])
+        self.image = np.asarray([x.image for x in towards_input])
+        self.token = np.asarray([x.token for x in towards_input])
+        self.segment = np.asarray([x.segment for x in towards_input])
 
         print("Shape of structure data tensor:", self.structure.shape)
         print("Shape of image data tensor:", self.image.shape)
