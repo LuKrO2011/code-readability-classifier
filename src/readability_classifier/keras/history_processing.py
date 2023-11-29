@@ -118,17 +118,34 @@ class FoldStats:
 
     fold_index: int
     epoch_stats: list[EpochStats]
+    bst_epoch: Stats | None = None
 
-    def best(self, metric: str = "acc") -> Stats:
+    def __init__(
+        self, fold_index: int, epoch_stats: list[EpochStats], metric: str = "acc"
+    ):
+        """
+        Initialize the FoldStats class.
+        :param fold_index: The index of the fold.
+        :param epoch_stats: The statistics of the epochs.
+        :param metric: The metric to use.
+        """
+        self.fold_index = fold_index
+        self.epoch_stats = epoch_stats
+        self.bst_epoch = self._best(metric=metric)
+
+    def get_best(self):
+        return self.bst_epoch
+
+    def _best(self, metric: str = "acc") -> Stats:
         """
         Get the best epoch.
         :param metric: The metric to use.
         :return: The best epoch.
         """
         if metric == "acc":
-            return max(self.epoch_stats, key=lambda x: x.val_stats.acc).to_stats()
+            return max(self.epoch_stats, key=lambda x: x.acc).to_stats()
         if metric == "loss":
-            return min(self.epoch_stats, key=lambda x: x.val_stats.loss).to_stats()
+            return min(self.epoch_stats, key=lambda x: x.loss).to_stats()
         if metric == "auc":
             return max(self.epoch_stats, key=lambda x: x.auc).to_stats()
         if metric == "f1":
@@ -146,45 +163,52 @@ class OverallStats:
     """
 
     fold_stats: list[FoldStats]
+    best_fold: Stats | None = None
+    average_fold: Stats | None = None
 
-    def best(self, metric: str = "acc") -> Stats:
+    def __init__(self, fold_stats: list[FoldStats], metric: str = "acc"):
+        """
+        Initialize the OverallStats class.
+        :param fold_stats: The statistics of the folds.
+        :param metric: The metric to use.
+        """
+        self.fold_stats = fold_stats
+        self.best_fold = self._best(metric=metric)
+        self.average_fold = self._average()
+
+    def get_best(self):
+        return self.best_fold
+
+    def get_average(self):
+        return self.average_fold
+
+    def _best(self, metric: str = "acc") -> Stats:
         """
         Get the best fold.
         :param metric: The metric to use.
         :return: The statistics of the best fold.
         """
         if metric == "acc":
-            return max(self.fold_stats, key=lambda x: x.best(metric=metric).acc).best(
-                metric=metric
-            )
+            return max(self.fold_stats, key=lambda x: x.get_best().acc).get_best()
         if metric == "loss":
-            return min(self.fold_stats, key=lambda x: x.best(metric=metric).loss).best(
-                metric=metric
-            )
+            return min(self.fold_stats, key=lambda x: x.get_best().loss).get_best()
         if metric == "auc":
-            return max(self.fold_stats, key=lambda x: x.best(metric=metric).auc).best(
-                metric=metric
-            )
+            return max(self.fold_stats, key=lambda x: x.get_best().auc).get_best()
         if metric == "f1":
-            return max(self.fold_stats, key=lambda x: x.best(metric=metric).f1).best(
-                metric=metric
-            )
+            return max(self.fold_stats, key=lambda x: x.get_best().f1).get_best()
         if metric == "mcc":
-            return max(self.fold_stats, key=lambda x: x.best(metric=metric).mcc).best(
-                metric=metric
-            )
+            return max(self.fold_stats, key=lambda x: x.get_best().mcc).get_best()
 
         raise ValueError(f"{metric} is not a valid metric.")
 
-    def average(self, metric: str = "acc") -> Stats:
+    def _average(self) -> Stats:
         """
         Get the average over all folds.
-        :param metric: The metric to use for selecting the best fold.
         :return: The average over all folds.
         """
         best_folds = []
         for fold in self.fold_stats:
-            best_folds.append(fold.best(metric=metric))
+            best_folds.append(fold.get_best())
 
         return Stats(
             acc=np.mean([fold.acc for fold in best_folds]),
@@ -214,9 +238,9 @@ class HistoryProcessor:
             )
             fold_stats.append(fold_statum)
 
-        overall_stats = OverallStats(fold_stats=fold_stats)
-        best_overall = overall_stats.best(metric="f1")
-        average_overall = overall_stats.average(metric="f1")
+        overall_stats = OverallStats(fold_stats=fold_stats, metric="acc")
+        best_overall = overall_stats.get_best()
+        average_overall = overall_stats.get_average()
 
         logging.info(
             "Overall results:\n"
@@ -271,8 +295,10 @@ class HistoryProcessor:
             )
             epoch_stats.append(epoch_statum)
 
-        fold_stats = FoldStats(epoch_stats=epoch_stats, fold_index=fold_index)
-        best_fold = fold_stats.best(metric="f1")
+        fold_stats = FoldStats(
+            epoch_stats=epoch_stats, fold_index=fold_index, metric="acc"
+        )
+        best_fold = fold_stats.get_best()
 
         logging.info(
             f"Fold {fold_index} results:\n"
