@@ -178,20 +178,30 @@ DEFAULT_METRICS = [
 ]
 
 
+@dataclass
+class StructureInput:
+    """
+    Data class for the input of the StructuralModel (matrix encoding).
+    """
+
+    score: int
+    lines: np.ndarray
+
+
 class StructurePreprocessor:
     """
     Preprocessor for the structure data.
     """
 
     @classmethod
-    def process(cls, structure_dir: str) -> tuple[list, dict, dict]:
+    def process(cls, structure_dir: str) -> dict[str, StructureInput]:
         """
         Preprocess the structure data.
         :param structure_dir: The directory of the structure data.
-        :return: The file names and the dictionary that stores the structure information
+        :return: The dictionary that stores the structure information.
         """
         file_name = []
-        data = {}
+        score = {}
         data_structure = {}
 
         for label_type in ["Readable", "Unreadable"]:
@@ -214,12 +224,30 @@ class StructurePreprocessor:
                             lines.append(info_int)
                 lines = np.asarray(lines)
                 if label_type == "Readable":
-                    data[f_name.split(".")[0]] = 0
+                    score[f_name.split(".")[0]] = 0
                 else:
-                    data[f_name.split(".")[0]] = 1
+                    score[f_name.split(".")[0]] = 1
                 data_structure[f_name.split(".")[0]] = lines
 
-        return file_name, data, data_structure
+        # Turn the data into a dictionary of StructureInput objects
+        data_structure = {
+            key: StructureInput(score=score[key], lines=np.asarray(lines))
+            for key, lines in data_structure.items()
+        }
+
+        return data_structure
+
+
+@dataclass
+class TextureInput:
+    """
+    Data class for the input of the SemanticModel (BERT encoding).
+    """
+
+    score: int
+    token: np.ndarray
+    position: np.ndarray
+    segment: np.ndarray
 
 
 class TexturePreprocessor:
@@ -232,13 +260,13 @@ class TexturePreprocessor:
 
     def process(
         self, texture_dir: str, max_len: int = MAX_LEN
-    ) -> tuple[dict, dict, dict]:
+    ) -> dict[str, TextureInput]:
         """
         Preprocess the texture data.
 
         :param texture_dir: The directory of the texture data.
         :param max_len: The maximum length of the text.
-        :return: The dictionary that stores the token, position, and segment information
+        :return: The dictionary that stores the texture information.
         """
         data_token = {}
         data_position = {}
@@ -253,7 +281,16 @@ class TexturePreprocessor:
                 string_content, data_token, data_position, data_segment, max_len
             )
 
-        return data_token, data_position, data_segment
+        # Turn the data into a dictionary of TextureInput objects
+        return {
+            key: TextureInput(
+                score=0 if key.startswith("Readable") else 1,
+                token=np.asarray(data_token[key]),
+                position=np.asarray(data_position[key]),
+                segment=np.asarray(data_segment[key]),
+            )
+            for key in data_token
+        }
 
     @classmethod
     def _process_files_in_directory(cls, directory: str, max_len: int) -> dict:
@@ -351,13 +388,23 @@ class TexturePreprocessor:
             data_segment[sample] = list_segment
 
 
+@dataclass
+class PictureInput:
+    """
+    Data class for the input of the VisualModel (image encoding).
+    """
+
+    score: int
+    image: np.ndarray
+
+
 class PicturePreprocessor:
     """
     Preprocessor for the picture data.
     """
 
     @staticmethod
-    def process(picture_dir: str) -> tuple[dict, list]:
+    def process(picture_dir: str) -> dict[str, PictureInput]:
         """
         Preprocess the picture data.
         :param picture_dir: The directory of the picture data.
@@ -374,7 +421,14 @@ class PicturePreprocessor:
             data_picture.update(picture_dict)
             data_image.extend(image_list)
 
-        return data_picture, data_image
+        # Turn the data into a dictionary of PictureInput objects
+        return {
+            key: PictureInput(
+                score=0 if key.startswith("readable") else 1,
+                image=np.asarray(data_picture[key]),
+            )
+            for key in data_picture
+        }
 
     @staticmethod
     def process_images(directory: str) -> tuple[dict, list]:
@@ -808,19 +862,52 @@ class Classifier:
         Train the model.
         :return: The training history.
         """
-        file_name, data_set, data_structure = StructurePreprocessor.process(
-            STRUCTURE_DIR
-        )
-        data_token, _, data_segment = TexturePreprocessor().process(TEXTURE_DIR)
-        data_picture, _ = PicturePreprocessor.process(PICTURE_DIR)
+        structure_input = StructurePreprocessor.process(STRUCTURE_DIR)
+        texture_input = TexturePreprocessor().process(TEXTURE_DIR)
+        picture_input = PicturePreprocessor.process(PICTURE_DIR)
 
-        all_data, label, structure, image, token, segment = random_dataset(
+        # Combine the data into towards input
+        towards_input = {}
+        for key in structure_input:
+            towards_input[key] = TowardsInput(
+                label=np.asarray([structure_input[key].score]),
+                structure=structure_input[key].lines,
+                image=picture_input[key].image,
+                token=texture_input[key].token,
+                segment=texture_input[key].segment,
+            )
+
+        # Convert towards input to numpy arrays
+        # file_name = np.asarray([x for x in towards_input.keys()])
+        # label = np.asarray([x.label for x in towards_input.values()])
+        # structure = np.asarray([x.structure for x in towards_input.values()])
+        # image = np.asarray([x.image for x in towards_input.values()])
+        # token = np.asarray([x.token for x in towards_input.values()])
+        # segment = np.asarray([x.segment for x in towards_input.values()])
+
+        # Convert towards input to dicts
+        file_name = list(towards_input)
+        label = {key: value.label for key, value in towards_input.items()}
+        structure = {key: value.structure for key, value in towards_input.items()}
+        image = {key: value.image for key, value in towards_input.items()}
+        token = {key: value.token for key, value in towards_input.items()}
+        segment = {key: value.segment for key, value in towards_input.items()}
+
+        # Randomly select samples
+        (
+            all_data,
+            label,
+            structure,
+            image,
+            token,
+            segment,
+        ) = random_dataset(
             file_name=file_name,
-            data_set=data_set,
-            data_structure=data_structure,
-            data_picture=data_picture,
-            data_token=data_token,
-            data_segment=data_segment,
+            data_set=label,
+            data_structure=structure,
+            data_picture=image,
+            data_token=token,
+            data_segment=segment,
         )
 
         # format the data
