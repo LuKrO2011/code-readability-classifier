@@ -244,3 +244,13 @@ def calculate_f1_score(precision: float, recall: float) -> float:
     if precision + recall == 0:
         return 0
     return 2 * (precision * recall) / (precision + recall)
+
+
+def calculate_auc(precision: float, recall: float) -> float:
+    """
+    Calculate the area under the curve.
+    :param precision: The precision.
+    :param recall: The recall.
+    :return: The area under the curve.
+    """
+    return (precision + recall) / 2

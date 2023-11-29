@@ -1,23 +1,21 @@
 import logging
+import pickle
 import random
 
 import keras
 import numpy as np
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 
+from readability_classifier.keras.history_processing import (
+    HistoryList,
+    HistoryProcessor,
+)
 from readability_classifier.keras.legacy_encoders import preprocess_data
 from readability_classifier.keras.model import create_towards_model
 from readability_classifier.models.encoders.dataset_utils import (
     Fold,
     ReadabilityDataset,
     split_k_fold,
-)
-from readability_classifier.utils.utils import (
-    calculate_f1_score,
-    calculate_mcc,
-    calculate_precision,
-    calculate_recall,
-    get_from_dict,
 )
 
 # Define parameters
@@ -65,7 +63,7 @@ class Classifier:
         self.towards_model = towards_model
         self.encoded_data = encoded_data
 
-    def train(self) -> list[keras.callbacks.History]:
+    def train(self) -> HistoryList:
         """
         Train the model.
         :return: The training history.
@@ -88,140 +86,14 @@ class Classifier:
             "Label: 1\n"
         )
 
-        history = []
+        history = HistoryList([])
         folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=K_FOLD)
         for fold_index, fold in enumerate(folds):
             logging.info(f"Starting fold {fold_index + 1}/{K_FOLD}")
             fold_history = self.train_fold(fold)
-            history.append(fold_history)
+            history.fold_histories.append(fold_history)
 
         return history
-
-    def evaluate(self, history: list) -> None:
-        """
-        Evaluate the model.
-        :param history: The training history.
-        :return: None
-        """
-        f1s = []
-        aucs = []
-        mccs = []
-        accs = []
-        fold_index = 1
-        for history_item in history:
-            (
-                train_acc,
-                auc,
-                f1,
-                mcc,
-            ) = self.evaluate_fold(
-                epoch_time=fold_index,
-                fold_history=history_item,
-            )
-            accs.append(train_acc)
-            aucs.append(auc)
-            f1s.append(f1)
-            mccs.append(mcc)
-            fold_index += 1
-
-        logging.info(
-            "Overall results:\n"
-            f"Average training acc score: {np.mean(accs)}\n"
-            f"Average f1 score: {np.mean(f1s)}\n"
-            f"Average auc score: {np.mean(aucs)}\n"
-            f"Average mcc score: {np.mean(mccs)}\n"
-        )
-
-    def evaluate_fold(
-        self,
-        epoch_time: int,
-        fold_history: keras.callbacks.History,
-    ) -> tuple[float, float, float, float]:
-        """
-        Evaluate the model for a fold.
-        :param epoch_time: The epoch time.
-        :param fold_history: The history of the fold.
-        :return: The training accuracy, f1, auc, and mcc of the fold.
-        """
-        history_dict = fold_history.history
-        val_acc_values = get_from_dict(history_dict, "val_acc")
-        val_recall_value = get_from_dict(history_dict, "val_recall")
-        val_precision_value = get_from_dict(history_dict, "val_precision")
-        val_auc_value = get_from_dict(history_dict, "val_auc")
-        val_false_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_negatives")
-        ]
-        val_false_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_positives")
-        ]
-        val_true_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_positives")
-        ]
-        val_true_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_negatives")
-        ]
-
-        mccs = []
-        f1s = []
-        for i in range(EPOCHS):
-            f1, mcc = self.evaluate_epoch(
-                epoch_index=i,
-                false_negatives=val_false_negatives,
-                false_positives=val_false_positives,
-                true_negatives=val_true_negatives,
-                true_positives=val_true_positives,
-            )
-            f1s.append(f1)
-            mccs.append(mcc)
-
-        best_train_acc = np.max(val_acc_values)
-        best_auc = np.max(val_auc_value)
-        best_f1 = np.max(f1s)
-        best_mcc = np.max(mccs)
-
-        logging.info(
-            f"Fold {epoch_time} results:\n"
-            f"Best validation accuracy score: {best_train_acc}\n"
-            f"Average validation recall score: {np.mean(val_recall_value)}\n"
-            f"Average validation precision score: {np.mean(val_precision_value)}\n"
-            f"Best f1 score: {best_f1}\n"
-            f"Best auc score: {best_auc}\n"
-            f"Best mcc score: {best_mcc}\n"
-        )
-
-        return (
-            best_train_acc,
-            best_auc,
-            best_f1,
-            best_mcc,
-        )
-
-    @staticmethod
-    def evaluate_epoch(
-        epoch_index: int,
-        false_negatives: list[int],
-        false_positives: list[int],
-        true_negatives: list[int],
-        true_positives: list[int],
-    ) -> tuple[float, float]:
-        """
-        Evaluate an epoch of the model.
-        :param epoch_index: The index of the epoch.
-        :param false_negatives: The list of false negatives.
-        :param false_positives: The list of false positives.
-        :param true_negatives: The list of true negatives.
-        :param true_positives: The list of true positives.
-        :return: The f1 and mcc of the epoch.
-        """
-        tp = true_positives[epoch_index]
-        tn = true_negatives[epoch_index]
-        fp = false_positives[epoch_index]
-        fn = false_negatives[epoch_index]
-        mcc = calculate_mcc(tp=tp, tn=tn, fp=fp, fn=fn)
-        precision = calculate_precision(tp=tp, fp=fp)
-        recall = calculate_recall(tp=tp, fn=fn)
-        f1 = calculate_f1_score(precision=precision, recall=recall)
-        return f1, mcc
 
     def train_fold(self, fold: Fold) -> keras.callbacks.History:
         """
@@ -287,10 +159,17 @@ def main():
         ],
     )
 
+    # Train the model
     towards_model = create_towards_model()
     classifier = Classifier(towards_model)
     history = classifier.train()
-    classifier.evaluate(history)
+
+    # Store the history
+    with open("history.pkl", "wb") as file:
+        pickle.dump(history, file)
+
+    # Evaluate the model
+    HistoryProcessor().evaluate(history.fold_histories)
 
 
 if __name__ == "__main__":

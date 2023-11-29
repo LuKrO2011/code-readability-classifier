@@ -1,6 +1,7 @@
 import logging
 
 from readability_classifier.keras.classifier import Classifier
+from readability_classifier.keras.history_processing import HistoryProcessor
 from readability_classifier.keras.model import create_towards_model
 from readability_classifier.model_runner import ModelRunnerInterface
 from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
@@ -45,7 +46,7 @@ class KerasModelRunner(ModelRunnerInterface):
 
         # Train the model
         history = classifier.train()
-        classifier.evaluate(history)
+        HistoryProcessor.evaluate(history.fold_histories)
 
     def run_predict(self, parsed_args):
         """
