@@ -14,6 +14,8 @@ from readability_classifier.utils.utils import (
     get_from_dict,
 )
 
+# TODO: Add TrainStats and ValidationStats to the history
+
 
 @dataclass
 class HistoryList:

@@ -4,6 +4,7 @@ import os
 import re
 from tempfile import TemporaryDirectory
 
+import cv2
 import imgkit
 import numpy as np
 import torch
@@ -130,20 +131,58 @@ def _remove_blur(
     return img
 
 
-def _code_to_image(
-    code: str,
-    output: str = DEFAULT_OUT,
-    css: str = DEFAULT_CSS,
-    width: int = 128,
-    height: int = 128,
-):
+def _change_padding(img: Image, new_padding: int = 6) -> Image:
+    """
+    Remove the padding from the image. The padding is white.
+    :param img: The image
+    :param new_padding: The new padding
+    :return: The image without padding
+    """
+    img = img.convert("RGB")  # Convert the image to RGB mode
+
+    # Get the dimensions of the image
+    width, height = img.size
+
+    # Get the image data as a list of tuples
+    img_data = list(img.getdata())
+
+    # Function to check if a pixel is white (RGB value of 255, 255, 255)
+    def is_white(pixel):
+        return pixel == (255, 255, 255)
+
+    # Find the bounding box of non-white pixels
+    left = width
+    right = 0
+    top = height
+    bottom = 0
+
+    for y in range(height):
+        for x in range(width):
+            pixel = img_data[y * width + x]
+            if not is_white(pixel):
+                left = min(left, x)
+                right = max(right, x)
+                top = min(top, y)
+                bottom = max(bottom, y)
+
+    # Add the new padding to the bounding box
+    left = max(0, left - new_padding)
+    right = min(width - 1, right + new_padding)
+    top = max(0, top - new_padding)
+    bottom = min(height - 1, bottom + new_padding)
+
+    # Crop the image based on the bounding box
+    img = img.crop((left, top, right + 1, bottom + 1))
+
+    return img
+
+
+def _code_to_image(code: str, output: str = DEFAULT_OUT, css: str = DEFAULT_CSS):
     """
     Convert the given Java code to a visualisation/image.
     :param code: The code
     :param output: The path to save the image
     :param css: The css to use for styling the code
-    :param width: The width of the image
-    :param height: The height of the image
     :return: The image
     """
     # Convert the code to html
@@ -155,15 +194,8 @@ def _code_to_image(
     options = {
         "format": "png",
         "quality": "100",
-        "crop-h": str(height),
-        "crop-w": str(width),
-        "crop-x": "0",
-        "crop-y": "0",
         "encoding": "UTF-8",
         "quiet": "",
-        "disable-smart-width": "",
-        "width": str(width),
-        "height": str(height),
     }
 
     # Convert the html code to image
@@ -172,10 +204,8 @@ def _code_to_image(
     # Open the image
     img = Image.open(output)
 
-    # Remove the blur from the image
-    allowed_colors = _load_colors_from_css(css)
-    allowed_colors = _convert_hex_to_rgba(allowed_colors)
-    img = _remove_blur(img, width, height, allowed_colors)
+    # Reduce the padding of the image
+    img = _change_padding(img)
 
     # Save the image
     img.save(output)
@@ -236,7 +266,7 @@ def _process_code_to_image(
     :return: None
     """
     filename = os.path.join(save_dir, f"{idx}.png")
-    _code_to_image(snippet, output=filename, css=css, width=width, height=height)
+    _code_to_image(snippet, output=filename, css=css)
 
 
 def dataset_to_image_tensors(
@@ -285,13 +315,15 @@ def dataset_to_image_tensors(
         # Create the visualisations
         for idx, snippet in enumerate(snippets):
             name = os.path.join(save_dir, f"{idx}.png")
-            _code_to_image(snippet, output=name, css=css, width=width, height=height)
+            _code_to_image(snippet, output=name, css=css)
 
     # Read the images
     images_as_tensors = []
     for idx in range(len(snippets)):
         image_file = os.path.join(save_dir, f"{idx}.png")
-        image_as_tensor = _open_image_as_tensor(image_file)
+        image_as_tensor = _open_image_as_tensor_2(
+            image_file, width=width, height=height
+        )
         images_as_tensors.append(image_as_tensor)
 
     # Delete the temporary directory
@@ -301,11 +333,11 @@ def dataset_to_image_tensors(
     return images_as_tensors
 
 
-# TODO: Remove blur (!= 0 or 255) from image
 def _open_image_as_tensor(image_path: str) -> Tensor:
     """
     Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
     to float32. The shape of the tensor is (3, height, width).
+    The images still have a blur or not 100% accurate colors.
     :param image_path: The path to the image
     :return: The image as a tensor
     """
@@ -322,4 +354,20 @@ def _open_image_as_tensor(image_path: str) -> Tensor:
     img_array = np.transpose(img_array, (2, 0, 1)) / 255
 
     # Convert NumPy array to tensor
+    return torch.tensor(img_array, dtype=torch.float32)
+
+
+def _open_image_as_tensor_2(image_path: str, width: int, height: int) -> Tensor:
+    """
+    Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
+    to float32. The shape of the tensor is (3, height, width).
+    The images still have a blur or not 100% accurate colors.
+    :param image_path: The path to the image
+    :param width: The width of the image
+    :param height: The height of the image
+    :return: The image as a tensor
+    """
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, (width, height))
+    img_array = np.transpose(img, (2, 0, 1)) / 255
     return torch.tensor(img_array, dtype=torch.float32)
