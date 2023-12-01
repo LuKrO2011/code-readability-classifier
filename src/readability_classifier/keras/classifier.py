@@ -40,13 +40,13 @@ def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     """
     return [
         {
-            "structure": x["matrix"],
-            "image": np.transpose(x["image"], (1, 2, 0)),
-            "token": x["bert"]["input_ids"],
-            "segment": x["bert"]["segment_ids"]
+            "structure": x["matrix"].numpy(),
+            "image": np.transpose(x["image"], (1, 2, 0)).numpy(),
+            "token": x["bert"]["input_ids"].numpy(),
+            "segment": x["bert"]["segment_ids"].numpy()
             if "segment_ids" in x["bert"]
-            else x["bert"]["token_type_ids"],
-            "label": x["score"],
+            else x["bert"]["position_ids"],
+            "label": x["score"].numpy(),
         }
         for x in encoded_data
     ]

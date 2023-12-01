@@ -81,6 +81,7 @@ def load_raw_dataset(data_dir: str) -> list[dict]:
     return dataset.to_list()
 
 
+# TODO: Move conversion to tensor to classifier (specific for pytorch)
 def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
     """
     Loads the encoded data (with DatasetEncoder) from a dataset in the given directory
@@ -118,6 +119,12 @@ def load_encoded_dataset(data_dir: str) -> ReadabilityDataset:
                 dtype=torch.long
                 # Why not int? Why long?
             )
+        if "position_ids" in sample["bert"]:
+            sample["bert"]["position_ids"] = torch.tensor(
+                sample["bert"]["position_ids"],
+                dtype=torch.long
+                # Why not int? Why long?
+            )
         sample["image"] = torch.tensor(sample["image"], dtype=torch.float32)
         sample["score"] = torch.tensor(sample["score"], dtype=torch.float32)
 
@@ -136,6 +143,12 @@ def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
     """
     # Convert the encoded data to Hugging faces format
     HFDataset.from_list(data.to_list()).save_to_disk(data_dir)
+
+    # Log the names of "Readable" and "Unreadable" files
+    readable = [sample["name"] for sample in data if sample["score"] == 1]
+    unreadable = [sample["name"] for sample in data if sample["score"] == 0]
+    logging.info(f"Readable: {readable}")
+    logging.info(f"Unreadable: {unreadable}")
 
     # Log the number of samples stored
     logging.info(f"Stored {len(data)} samples in {data_dir}")

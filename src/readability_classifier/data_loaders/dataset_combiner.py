@@ -46,7 +46,7 @@ def remove_ambiguous_samples(dataset: Dataset) -> Dataset:
 
 
 if __name__ == "__main__":
-    dataset_name = "dataset_not_splitted"
+    dataset_name = "dataset_with_names"
     dorn_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
         "DatasetDornJava/dataset/" + dataset_name
@@ -64,6 +64,6 @@ if __name__ == "__main__":
     )
 
     datasets = load_datasets([dorn_path, bw_path, scalabrio_path])
-    datasets = [remove_ambiguous_samples(dataset) for dataset in datasets]
+    # datasets = [remove_ambiguous_samples(dataset) for dataset in datasets]
     combined_dataset = concatenate_datasets(datasets)
     combined_dataset.save_to_disk(combined_path)

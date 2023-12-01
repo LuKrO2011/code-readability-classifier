@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import yaml
+from transformers import BertTokenizer
 from yaml import SafeLoader
 
 
@@ -254,3 +255,28 @@ def calculate_auc(precision: float, recall: float) -> float:
     :return: The area under the curve.
     """
     return (precision + recall) / 2
+
+
+def find_dict_by_code_snippet(
+    list_of_dicts: list[dict], search_snippet: str
+) -> dict or None:
+    """
+    Find a dict in a list of dicts by code_snippet.
+    :param list_of_dicts: The list of dicts to search in.
+    :param search_snippet: The code_snippet to search for.
+    :return: The dict with the code_snippet or None if not found.
+    """
+    for dictionary in list_of_dicts:
+        if dictionary.get("code_snippet") == search_snippet:
+            return dictionary
+    return None
+
+
+def decode_input_ids(list_of_input_ids: list[int]) -> str:
+    """
+    Decode a list of input ids to a string.
+    :param list_of_input_ids: The list of input ids.
+    :return: The decoded string.
+    """
+    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+    return tokenizer.decode(list_of_input_ids, skip_special_tokens=True)

@@ -6,6 +6,18 @@ import pandas as pd
 from datasets import Dataset
 
 
+def _get_snippet_name(file_name: str, prefix: str) -> str:
+    """
+    Returns the snippet name for the given file name.
+    :param file_name: The file name.
+    :return: The snippet name.
+    """
+    file_name = file_name.split(".")[0]
+    file_name = file_name.replace("Snippet", "")
+    file_name = f"{prefix}{file_name}"
+    return file_name
+
+
 class CodeLoader(ABC):
     """
     Loads the code snippets from the files.
@@ -18,6 +30,15 @@ class CodeLoader(ABC):
         as keys and the code snippets as values.
         :param data_dir: Path to the directory containing the code snippets.
         :return: The code snippets as a dictionary.
+        """
+        pass
+
+    @abstractmethod
+    def get_snippet_name(self, file_name: str) -> str:
+        """
+        Returns the snippet name for the given file name.
+        :param file_name: The file name.
+        :return: The snippet name.
         """
         pass
 
@@ -47,6 +68,14 @@ class ScalabrioCodeLoader(CodeLoader):
 
         return code_snippets
 
+    def get_snippet_name(self, file_name: str) -> str:
+        """
+        Returns the snippet name for the given file name.
+        :param file_name: The file name.
+        :return: The snippet name.
+        """
+        return _get_snippet_name(file_name, "Scalabrio")
+
 
 class BWCodeLoader(CodeLoader):
     """
@@ -71,6 +100,14 @@ class BWCodeLoader(CodeLoader):
 
         return code_snippets
 
+    def get_snippet_name(self, file_name: str) -> str:
+        """
+        Returns the snippet name for the given file name.
+        :param file_name: The file name.
+        :return: The snippet name.
+        """
+        return _get_snippet_name(file_name, "Buse")
+
 
 class DornCodeLoader(CodeLoader):
     """
@@ -94,6 +131,14 @@ class DornCodeLoader(CodeLoader):
                 logging.info(f"Loaded code snippet {file_name}")
 
         return code_snippets
+
+    def get_snippet_name(self, file_name: str) -> str:
+        """
+        Returns the snippet name for the given file name.
+        :param file_name: The file name.
+        :return: The snippet name.
+        """
+        return _get_snippet_name(file_name, "Dorn")
 
 
 class KrodCodeLoader(CodeLoader):
@@ -289,7 +334,13 @@ class CsvFolderToDataset:
         # Combine the scores and the code snippets into a list
         data = []
         for file_name, score in aggregated_scores.items():
-            data.append({"code_snippet": code_snippets[file_name], "score": score})
+            data.append(
+                {
+                    "name": self.code_loader.get_snippet_name(file_name),
+                    "code_snippet": code_snippets[file_name],
+                    "score": score,
+                }
+            )
 
         # Log the number of loaded code snippets
         logging.info(f"Loaded {len(data)} code snippets with scores")
@@ -364,7 +415,7 @@ DORN_DATA_DIR = (
     "DatasetDornJava/dataset"
 )
 KROD_DATA_DIR = r"D:\PyCharm_Projects_D\styler2.0"
-output_name = "dataset_1"
+output_name = "dataset_with_names"
 
 
 def scalabrio():
@@ -453,4 +504,4 @@ def krod():
 
 
 if __name__ == "__main__":
-    krod()
+    dorn()
