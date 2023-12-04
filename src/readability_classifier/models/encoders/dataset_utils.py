@@ -78,6 +78,8 @@ def load_raw_dataset(data_dir: str) -> list[dict]:
     :return: A list of dictionaries.
     """
     dataset = load_from_disk(data_dir)
+    if "train" in dataset:
+        dataset = dataset["train"]
     return dataset.to_list()
 
 
