@@ -293,3 +293,4 @@ tests/res/encoded_datasets/scalabrio/*
 
 # Ignore towards model output
 src/readability_classifier/Experimental output/*
+/tests/res/encoded_datasets/all/
