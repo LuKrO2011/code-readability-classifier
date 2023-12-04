@@ -45,7 +45,7 @@ def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
             "token": x["bert"]["input_ids"].numpy(),
             "segment": x["bert"]["segment_ids"].numpy()
             if "segment_ids" in x["bert"]
-            else x["bert"]["position_ids"],
+            else x["bert"]["position_ids"].numpy(),
             "label": x["score"].numpy(),
         }
         for x in encoded_data
