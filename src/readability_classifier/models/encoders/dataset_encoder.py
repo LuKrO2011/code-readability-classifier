@@ -63,11 +63,15 @@ class DatasetEncoder(EncoderInterface):
         scores = [sample["score"] for sample in unencoded_dataset]
         encoded_scores = self._encode_scores_class(scores)
 
+        # Get the names
+        names = [sample["name"] for sample in unencoded_dataset]
+
         # Combine the datasets
         encoded_dataset = []
         for i in range(len(matrix_dataset)):
             encoded_dataset.append(
                 {
+                    "name": names[i],
                     "matrix": matrix_dataset[i]["matrix"],
                     "bert": bert_dataset[i],
                     "image": image_dataset[i]["image"],

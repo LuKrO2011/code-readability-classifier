@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import shutil
 from pathlib import Path
@@ -6,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import yaml
+from transformers import BertTokenizer
 from yaml import SafeLoader
 
 
@@ -175,3 +177,106 @@ def save_content_to_file(content: str, file: Path) -> None:
     """
     with open(file, "w", encoding="utf-8") as file_stream:
         file_stream.write(content)
+
+
+def get_from_dict(dictionary, key_start: str):
+    """
+    Get a value from a dict by key_start. The first value of the dict where the key
+    starts with key_start is returned.
+    :param dictionary: The dict to search in.
+    :param key_start: The start of the key.
+    :return:
+    """
+    for key, value in dictionary.items():
+        if key.startswith(key_start):
+            return value
+    raise KeyError(f"Key {key_start} not found in dictionary")
+
+
+def calculate_precision(tp: int, fp: int) -> float:
+    """
+    Calculate the precision.
+    :param tp: The number of true positives.
+    :param fp: The number of false positives.
+    :return: The precision.
+    """
+    if tp + fp == 0:
+        return 0
+    return tp / (tp + fp)
+
+
+def calculate_recall(tp: int, fn: int) -> float:
+    """
+    Calculate the recall.
+    :param tp: The number of true positives.
+    :param fn: The number of false negatives.
+    :return: The recall.
+    """
+    if tp + fn == 0:
+        return 0
+    return tp / (tp + fn)
+
+
+def calculate_mcc(tp: int, tn: int, fp: int, fn: int) -> float:
+    """
+    Calculate the Matthews correlation coefficient.
+    :param tp: The number of true positives.
+    :param tn: The number of true negatives.
+    :param fp: The number of false positives.
+    :param fn: The number of false negatives.
+    :return: The Matthews correlation coefficient.
+    """
+    under_sqrt = float((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    if under_sqrt == 0:
+        return 0
+    sqrt = math.sqrt(under_sqrt)
+    if sqrt == 0:
+        return 0
+    return (tp * tn - fp * fn) / sqrt
+
+
+def calculate_f1_score(precision: float, recall: float) -> float:
+    """
+    Calculate the F1 score.
+    :param precision: The precision.
+    :param recall: The recall.
+    :return: The F1 score.
+    """
+    if precision + recall == 0:
+        return 0
+    return 2 * (precision * recall) / (precision + recall)
+
+
+def calculate_auc(precision: float, recall: float) -> float:
+    """
+    Calculate the area under the curve.
+    :param precision: The precision.
+    :param recall: The recall.
+    :return: The area under the curve.
+    """
+    return (precision + recall) / 2
+
+
+def find_dict_by_code_snippet(
+    list_of_dicts: list[dict], search_snippet: str
+) -> dict or None:
+    """
+    Find a dict in a list of dicts by code_snippet.
+    :param list_of_dicts: The list of dicts to search in.
+    :param search_snippet: The code_snippet to search for.
+    :return: The dict with the code_snippet or None if not found.
+    """
+    for dictionary in list_of_dicts:
+        if dictionary.get("code_snippet") == search_snippet:
+            return dictionary
+    return None
+
+
+def decode_input_ids(list_of_input_ids: list[int]) -> str:
+    """
+    Decode a list of input ids to a string.
+    :param list_of_input_ids: The list of input ids.
+    :return: The decoded string.
+    """
+    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+    return tokenizer.decode(list_of_input_ids, skip_special_tokens=True)

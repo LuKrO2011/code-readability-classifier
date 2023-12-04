@@ -19,6 +19,9 @@ torchvision = [{ url = "https://download.pytorch.org/whl/cu118/torchvision-0.15.
 datasets = "^2.14.5"
 pygments = "^2.16.1"
 imgkit = "^1.2.3"
+opencv-python = "^4.8.1.78"
+# tensorflow with pip
+
 
 
 [tool.poetry.group.dev.dependencies]

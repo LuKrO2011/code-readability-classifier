@@ -83,6 +83,10 @@ class BertEncoder(EncoderInterface):
                 )
                 sample["segment_ids"] = torch.Tensor(segment_ids).long()
 
+        # Calculate the position ids
+        for sample in encoded_dataset:
+            sample["position_ids"] = torch.arange(self.token_length).long()
+
         # Log the number of samples in the encoded dataset
         logging.info(f"Bert: Encoding done. Number of samples: {len(encoded_dataset)}")
 
@@ -123,6 +127,8 @@ class BertEncoder(EncoderInterface):
                 encoding["input_ids"].tolist()[0], newline_token_id
             )
             encoding["segment_ids"] = torch.Tensor(segment_ids).long().unsqueeze(0)
+
+        encoding["position_ids"] = torch.arange(self.token_length).long().unsqueeze(0)
 
         # Log successful encoding
         logging.info("Bert: Text encoded.")

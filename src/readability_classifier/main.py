@@ -6,23 +6,22 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.model_buider import ClassifierBuilder, Model
+from readability_classifier.keras.keras_model_runner import KerasModelRunner
+from readability_classifier.model_buider import Model
+from readability_classifier.model_runner import ModelRunnerInterface, TorchModelRunner
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
 from readability_classifier.models.encoders.dataset_utils import (
-    dataset_to_dataloader,
     load_encoded_dataset,
     load_raw_dataset,
-    split_train_test,
-    split_train_val,
     store_encoded_dataset,
 )
-from readability_classifier.models.towards_classifier import TowardsClassifier
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
 DEFAULT_MODEL_FILE = "model"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_SAVE_DIR = os.path.join(CURR_DIR, "../../models")
+KERAS = True
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
@@ -276,10 +275,11 @@ def _run_encode(parsed_args) -> None:
         store_encoded_dataset(encoded_data, intermediate_dir)
 
 
-def _run_train(parsed_args) -> None:
+def _run_train(parsed_args, model_runner: ModelRunnerInterface) -> None:
     """
     Runs the training of the readability classifier.
     :param parsed_args: Parsed arguments.
+    :param model_runner: The model runner.
     :return: None
     """
     # Get the parsed arguments
@@ -287,7 +287,6 @@ def _run_train(parsed_args) -> None:
     encoded = parsed_args.encoded
     store_dir = parsed_args.save
     intermediate_dir = parsed_args.intermediate
-    k_fold = parsed_args.k_fold
 
     # Create the store directory if it does not exist
     if not os.path.isdir(store_dir):
@@ -303,131 +302,26 @@ def _run_train(parsed_args) -> None:
     else:
         encoded_data = load_encoded_dataset(data_dir)
 
-    if k_fold == 0:
-        _run_without_cross_validation(parsed_args, encoded_data)
-    else:
-        _run_with_cross_validation(parsed_args, encoded_data)
+    # Run the training
+    model_runner.run_train(parsed_args, encoded_data)
 
 
-def _run_without_cross_validation(parsed_args, encoded_data):
-    """
-    Runs the training of the readability classifier without cross-validation.
-    :param parsed_args: Parsed arguments.
-    :param encoded_data: The encoded dataset.
-    :return: None
-    """
-    # Get the parsed arguments
-    model = parsed_args.model
-    store_dir = parsed_args.save
-    evaluate = parsed_args.evaluate
-    batch_size = parsed_args.batch_size
-    num_epochs = parsed_args.epochs
-    learning_rate = parsed_args.learning_rate
-
-    # Split the dataset
-    train_test = split_train_test(encoded_data)
-    train_dataset, test_dataset = train_test.train_set, train_test.test_set
-    train_val = split_train_val(train_dataset)
-    train_dataset, test_dataset = train_val.train_set, train_val.val_set
-    train_loader = dataset_to_dataloader(train_dataset, batch_size)
-    val_loader = dataset_to_dataloader(test_dataset, batch_size)
-    test_loader = dataset_to_dataloader(train_test.test_set, batch_size)
-
-    # Build the model
-    builder = ClassifierBuilder()
-    builder.set_model(model)
-    builder.set_dataloaders(train_loader, test_loader, val_loader)
-    builder.set_parameters(store_dir, batch_size, num_epochs, learning_rate)
-    classifier = builder.build()
-
-    # Train the model
-    classifier.fit()
-
-    # Evaluate the model
-    if evaluate:
-        classifier.evaluate()
-
-
-def _run_with_cross_validation(parsed_args, encoded_data):
-    """
-    Runs the training of the readability classifier with cross-validation.
-    :param parsed_args: Parsed arguments.
-    :param encoded_data: The encoded dataset.
-    :return: None
-    """
-    # Get the parsed arguments
-    model = parsed_args.model
-    store_dir = parsed_args.save
-    batch_size = parsed_args.batch_size
-    num_epochs = parsed_args.epochs
-    learning_rate = parsed_args.learning_rate
-
-    # Build the model
-    train_test = split_train_test(encoded_data)
-    train_dataset, test_dataset = train_test.train_set, train_test.test_set
-
-    # Build the model
-    builder = ClassifierBuilder()
-    builder.set_model(model)
-    builder.set_datasets(train_dataset, test_dataset)
-    builder.set_parameters(store_dir, batch_size, num_epochs, learning_rate)
-    classifier = builder.build()
-
-    # Train the model
-    classifier.k_fold_cv()
-
-
-def _run_predict(parsed_args):
+def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> None:
     """
     Runs the prediction of the readability classifier.
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    # Get the parsed arguments
-    model_path = parsed_args.model
-    snippet_path = parsed_args.input
-
-    # Load the model
-    classifier = TowardsClassifier()
-    classifier.load(model_path)
-
-    # Predict the readability of the snippet
-    with open(snippet_path) as snippet_file:
-        snippet = snippet_file.read()
-        readability = classifier.predict(snippet)
-        logging.info(f"Readability of snippet: {readability}")
+    model_runner.run_predict(parsed_args)
 
 
-def _run_evaluate(parsed_args):
+def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
     """
     Runs the evaluation of the readability classifier.
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    # Get the parsed arguments
-    model_path = parsed_args.load
-    data_dir = parsed_args.input
-    model = parsed_args.model
-    batch_size = parsed_args.batch_size
-
-    # Load the dataset
-    encoded_data = load_encoded_dataset(data_dir)
-
-    # TODO: Split once and store the split
-    logging.warning("The test set used is not unseen data!")
-    test_dataset = split_train_test(encoded_data).test_set
-    test_loader = dataset_to_dataloader(test_dataset, batch_size)
-
-    # Load the model
-    builder = ClassifierBuilder()
-    builder.set_model(model)
-    builder.set_evaluation_loader(test_loader)
-    builder.set_model_path(model_path)
-    builder.set_batch_size(batch_size)
-    classifier = builder.build()
-
-    # Evaluate the model
-    classifier.evaluate()
+    model_runner.run_evaluate(parsed_args)
 
 
 def main(args: list[str]) -> int:
@@ -448,16 +342,19 @@ def main(args: list[str]) -> int:
         logfile = folder_path / Path(f"{DEFAULT_LOG_FILE_NAME}-{folder_name}.log")
     _setup_logging(logfile, overwrite=True)
 
+    # Set up the model runner
+    model_runner = KerasModelRunner() if KERAS else TorchModelRunner()
+
     # Execute the task
     match task:
         case Tasks.ENCODE:
             _run_encode(parsed_args)
         case Tasks.TRAIN:
-            _run_train(parsed_args)
+            _run_train(parsed_args, model_runner)
         case Tasks.PREDICT:
-            _run_predict(parsed_args)
+            _run_predict(parsed_args, model_runner)
         case Tasks.EVALUATE:
-            _run_evaluate(parsed_args)
+            _run_evaluate(parsed_args, model_runner)
     return 0
 
 

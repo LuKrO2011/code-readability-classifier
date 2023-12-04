@@ -1,0 +1,129 @@
+/* background & default */
+* {
+  color: #ffffff;
+  background-color: #ffffff;
+  font-size: 2px;
+  padding: 0;
+  margin: 0;
+}
+
+/* comment */
+.c,
+.ch,
+.cm,
+.cp,
+.cpf,
+.c1,
+.cs {
+  background-color: #006200;
+  color: #006200;
+}
+
+/* keywords */
+.k,
+.kc,
+.kd,
+.kn,
+.kp,
+.kr,
+.kt {
+  background-color: #fa0200;
+  color: #fa0200;
+}
+
+/* parentheses & semicolon & braces */
+.p {
+  background-color: #fefa01;
+  color: #fefa01;
+}
+
+/* operator */
+.o,
+.ow {
+  background-color: #fefa01;
+  color: #fefa01;
+}
+
+/* whitespace */
+.w {
+  background-color: #ffffff;
+  color: #ffffff;
+}
+
+/* names/identifiers */
+.n,
+.na,
+.nb,
+.nc,
+.no,
+.nd,
+.ni,
+.ne,
+.nf,
+.nl,
+.nn,
+.nt,
+.nv {
+  background-color: #01ffff;
+  color: #01ffff;
+}
+
+/* literals */
+.m,
+.mb,
+.mf,
+.mh,
+.mi,
+.mo,
+.s,
+.sa,
+.sb,
+.sc,
+.dl,
+.sd,
+.s2,
+.se,
+.sh,
+.si,
+.sx,
+.sr,
+.s1,
+.ss,
+.b,
+.bp,
+.f,
+.fm,
+.v,
+.vc,
+.vg,
+.vi,
+.vm,
+.i,
+.il {
+  background-color: #01ffff;
+  color: #01ffff;
+}
+
+/* UNKNOWN */
+/* Error */
+.err {
+  background-color: #ffffff;
+  color: #ffffff;
+}
+
+/* Generics */
+.g,
+.gd,
+.ge,
+.ges,
+.gr,
+.gh,
+.gi,
+.go,
+.gp,
+.gs,
+.gu,
+.gt {
+  background-color: #fefa01;
+  color: #fefa01;
+}

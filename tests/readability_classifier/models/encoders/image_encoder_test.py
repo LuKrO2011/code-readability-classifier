@@ -92,6 +92,41 @@ def test_code_to_image():
     temp_dir.cleanup()
 
 
+def test_text_to_image():
+    # Create temporary directory
+    # temp_dir = TemporaryDirectory()
+    # output_file = os.path.join(temp_dir.name, "out.png")
+
+    output_file = "out.png"
+
+    # Sample Java code
+    buse_5 = """
+    /**
+     * Quits the application without any questions.
+     */
+    public void quit() {
+        getConnectController().quitGame(true);
+        if (!windowed) {
+            gd.setFullScreenWindow(null);
+        }
+        System.exit(0);
+    """
+
+    # Convert the code to an image
+    _code_to_image(buse_5, output=output_file)
+
+    # Check if the image was created successfully
+    assert os.path.exists(output_file)
+
+    # # Show the image
+    # from PIL import Image
+    # img = Image.open(output_file)
+    # img.show()
+
+    # Clean up temporary directories
+    # temp_dir.cleanup()
+
+
 def test_code_to_image_towards():
     # Create temporary directory
     temp_dir = TemporaryDirectory()

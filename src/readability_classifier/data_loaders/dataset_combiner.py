@@ -30,23 +30,21 @@ def remove_ambiguous_samples(dataset: Dataset) -> Dataset:
     num_samples = len(sorted_samples)
     num_to_remove = int(num_samples * 0.25)
 
-    # Get the indices of samples to be removed (lowest 25% and highest 25%)
-    indices_to_remove = set(range(num_to_remove)).union(
+    # Get the indices of samples to be kept (lowest 25% and highest 25%)
+    indices_to_keep = set(range(num_to_remove)).union(
         set(range(num_samples - num_to_remove, num_samples))
     )
 
     # Create a new dataset without the ambiguous samples
     filtered_samples = [
-        sample
-        for idx, sample in enumerate(sorted_samples)
-        if idx not in indices_to_remove
+        sample for i, sample in enumerate(sorted_samples) if i in indices_to_keep
     ]
 
     return dataset.from_list(filtered_samples)
 
 
 if __name__ == "__main__":
-    dataset_name = "dataset_not_splitted"
+    dataset_name = "dataset_with_names"
     dorn_path = (
         "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/"
         "DatasetDornJava/dataset/" + dataset_name
@@ -67,3 +65,7 @@ if __name__ == "__main__":
     datasets = [remove_ambiguous_samples(dataset) for dataset in datasets]
     combined_dataset = concatenate_datasets(datasets)
     combined_dataset.save_to_disk(combined_path)
+
+    # Print the name of the snippet with the lowest readability score
+    min_sample = min(combined_dataset, key=lambda x: x["score"])
+    print(f"Snippet with lowest readability score: {min_sample['name']}")
