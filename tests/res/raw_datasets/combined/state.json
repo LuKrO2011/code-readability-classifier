@@ -4,8 +4,12 @@
       "filename": "data-00000-of-00001.arrow"
     }
   ],
-  "_fingerprint": "3fafc972ce58195e",
-  "_format_columns": null,
+  "_fingerprint": "bc2bf813aba099e8",
+  "_format_columns": [
+    "name",
+    "code_snippet",
+    "score"
+  ],
   "_format_kwargs": {},
   "_format_type": null,
   "_output_all_columns": false,

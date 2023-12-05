@@ -2,24 +2,60 @@
   "citation": "",
   "description": "",
   "features": {
-    "input_ids": {
+    "name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "matrix": {
       "feature": {
-        "dtype": "int32",
-        "_type": "Value"
+        "feature": {
+          "dtype": "float32",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
       },
       "_type": "Sequence"
     },
-    "token_type_ids": {
-      "feature": {
-        "dtype": "int8",
-        "_type": "Value"
+    "bert": {
+      "attention_mask": {
+        "feature": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
       },
-      "_type": "Sequence"
+      "input_ids": {
+        "feature": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      },
+      "position_ids": {
+        "feature": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      },
+      "token_type_ids": {
+        "feature": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      }
     },
-    "attention_mask": {
+    "image": {
       "feature": {
-        "dtype": "int8",
-        "_type": "Value"
+        "feature": {
+          "feature": {
+            "dtype": "float32",
+            "_type": "Value"
+          },
+          "_type": "Sequence"
+        },
+        "_type": "Sequence"
       },
       "_type": "Sequence"
     },

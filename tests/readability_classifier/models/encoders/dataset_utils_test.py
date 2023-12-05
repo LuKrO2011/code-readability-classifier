@@ -1,8 +1,9 @@
 from readability_classifier.models.encoders.dataset_utils import load_encoded_dataset
+from tests.readability_classifier.utils.utils import ENCODED_SCALABRIO_DIR
 
 
 def test_load_encoded_dataset():
-    data_dir = "res/encoded_datasets/bw"
+    data_dir = ENCODED_SCALABRIO_DIR.absolute()
 
     # Load encoded data
     encoded_data = load_encoded_dataset(data_dir)

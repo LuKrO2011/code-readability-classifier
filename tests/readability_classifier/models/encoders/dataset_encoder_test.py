@@ -1,5 +1,3 @@
-from tempfile import TemporaryDirectory
-
 import pytest
 
 from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
@@ -7,49 +5,41 @@ from readability_classifier.models.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from tests.readability_classifier.utils.utils import RAW_COMBINED_DIR, DirTest
 
 
-@pytest.fixture()
-def encoder():
-    return DatasetEncoder()
+class TestDatasetEncoder(DirTest):
+    encoder = DatasetEncoder()
 
+    @pytest.mark.skip()  # Disabled, because it takes too long
+    def test_encode_dataset(self):
+        data_dir = RAW_COMBINED_DIR.absolute()
 
-@pytest.mark.skip()  # Disabled, because it takes too long
-def test_encode_dataset(encoder):
-    data_dir = "res/raw_datasets/scalabrio"
+        # Load raw data
+        raw_data = load_raw_dataset(data_dir)
 
-    # Create temporary directory
-    temp_dir = TemporaryDirectory()
+        # Encode raw data
+        encoded_data = self.encoder.encode_dataset(raw_data)
 
-    # Load raw data
-    raw_data = load_raw_dataset(data_dir)
+        # Store encoded data
+        store_encoded_dataset(encoded_data, self.output_dir)
 
-    # Encode raw data
-    encoded_data = encoder.encode_dataset(raw_data)
+        # Check if encoded data is not empty
+        assert len(encoded_data) > 0
 
-    # Store encoded data
-    store_encoded_dataset(encoded_data, temp_dir.name)
-
-    # Check if encoded data is not empty
-    assert len(encoded_data) > 0
-
-    # Clean up temporary directories
-    temp_dir.cleanup()
-
-
-def test_encode_text(encoder):
-    code = """
-    // A method for counting
-    public void getNumber(){
-        int count = 0;
-        while(count < 10){
-            count++;
+    def test_encode_text(self):
+        code = """
+        // A method for counting
+        public void getNumber(){
+            int count = 0;
+            while(count < 10){
+                count++;
+            }
         }
-    }
-    """
+        """
 
-    # Encode the code
-    encoded_code = encoder.encode_text(code)
+        # Encode the code
+        encoded_code = self.encoder.encode_text(code)
 
-    # Check if encoded code is not empty
-    assert len(encoded_code) > 0
+        # Check if encoded code is not empty
+        assert len(encoded_code) > 0

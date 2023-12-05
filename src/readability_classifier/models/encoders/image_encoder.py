@@ -164,12 +164,22 @@ def _change_padding(img: Image, new_padding: int = 6) -> Image:
     return img
 
 
-def _code_to_image(code: str, output: str = DEFAULT_OUT, css: str = DEFAULT_CSS):
+def _code_to_image(
+    code: str,
+    output: str = DEFAULT_OUT,
+    css: str = DEFAULT_CSS,
+    width: int = 128,
+    height: int = 128,
+    change_padding: bool = False,
+):
     """
     Convert the given Java code to a visualisation/image.
     :param code: The code
     :param output: The path to save the image
     :param css: The css to use for styling the code
+    :param width: The width of the image
+    :param height: The height of the image
+    :param change_padding: Whether to change the padding of the image
     :return: The image
     """
     # Convert the code to html
@@ -181,8 +191,15 @@ def _code_to_image(code: str, output: str = DEFAULT_OUT, css: str = DEFAULT_CSS)
     options = {
         "format": "png",
         "quality": "100",
+        "crop-h": str(height),
+        "crop-w": str(width),
+        "crop-x": "0",
+        "crop-y": "0",
         "encoding": "UTF-8",
         "quiet": "",
+        "disable-smart-width": "",
+        "width": str(width),
+        "height": str(height),
     }
 
     # Convert the html code to image
@@ -191,8 +208,13 @@ def _code_to_image(code: str, output: str = DEFAULT_OUT, css: str = DEFAULT_CSS)
     # Open the image
     img = Image.open(output)
 
-    # Reduce the padding of the image
-    img = _change_padding(img)
+    # Remove the blur from the image
+    allowed_colors = _load_colors_from_css(css)
+    allowed_colors = _convert_hex_to_rgba(allowed_colors)
+    img = _remove_blur(img, width, height, allowed_colors)
+
+    if change_padding:
+        img = _change_padding(img)
 
     # Save the image
     img.save(output)
@@ -227,7 +249,7 @@ def code_to_image_tensor(
 
     # Convert the code to an image
     image_file = os.path.join(out_dir, DEFAULT_OUT)
-    _code_to_image(text, output=image_file, css=css)
+    _code_to_image(text, output=image_file, css=css, width=width, height=height)
 
     # Return the image as tensor 128x128x3 (RGB)
     image_as_tensor = _open_image_as_tensor(image_file, width=width, height=height)
@@ -253,7 +275,7 @@ def _process_code_to_image(
     :return: None
     """
     filename = os.path.join(save_dir, f"{idx}.png")
-    _code_to_image(snippet, output=filename, css=css)
+    _code_to_image(snippet, output=filename, css=css, width=width, height=height)
 
 
 def dataset_to_image_tensors(
@@ -302,7 +324,7 @@ def dataset_to_image_tensors(
         # Create the visualisations
         for idx, snippet in enumerate(snippets):
             name = os.path.join(save_dir, f"{idx}.png")
-            _code_to_image(snippet, output=name, css=css)
+            _code_to_image(snippet, output=name, css=css, width=width, height=height)
 
     # Read the images
     images_as_tensors = []
@@ -322,13 +344,17 @@ def _open_image_as_tensor(image_path: str, width: int, height: int) -> Tensor:
     """
     Opens a png image as rgb tensor. Removes the alpha channel and transforms the values
     to float32. The shape of the tensor is (3, height, width).
-    The images still have a blur or not 100% accurate colors.
     :param image_path: The path to the image
-    :param width: The width of the image
-    :param height: The height of the image
     :return: The image as a tensor
     """
     img = cv2.imread(image_path)
     img = cv2.resize(img, (width, height))
-    img_array = np.transpose(img, (2, 0, 1)) / 255
+
+    # Remove the alpha channel
+    img_array = img[:, :, :3]
+
+    # Transpose the array to get the shape (3, height, width)
+    img_array = np.transpose(img_array, (2, 0, 1)) / 255
+
+    # Convert NumPy array to tensor
     return torch.tensor(img_array, dtype=torch.float32)

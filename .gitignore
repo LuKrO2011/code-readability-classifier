@@ -284,13 +284,5 @@ poetry.toml
 # Ignore models
 tests/res/models/*
 
-# Ignore raw krod dataset because its to large
-tests/res/raw_datasets/krod/*
-
-# Ignore endocded scalabrio and krod datasets because they are to large
-tests/res/encoded_datasets/krod/*
-tests/res/encoded_datasets/scalabrio/*
-
 # Ignore towards model output
 src/readability_classifier/Experimental output/*
-/tests/res/encoded_datasets/all/
