@@ -1,0 +1,42 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "krod",
+  "dataset_size": 43922715,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/LuKrO/krod@0da4f25104fefac22c2b7bddc533a15f859e3c09/data/train-00000-of-00001-27fc9394bdd6b31a.parquet": {
+      "num_bytes": 15905551,
+      "checksum": null
+    }
+  },
+  "download_size": 15905551,
+  "features": {
+    "code_snippet": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "score": {
+      "dtype": "float64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 59828266,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 43922715,
+      "num_examples": 63460,
+      "dataset_name": "krod"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

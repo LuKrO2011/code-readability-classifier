@@ -16,7 +16,7 @@ def encoder():
 
 @pytest.mark.skip()  # Disabled, because it takes too long
 def test_encode_dataset(encoder):
-    data_dir = "res/raw_datasets/scalabrio"
+    data_dir = "res/raw_datasets/scalabrio/"
 
     # Create temporary directory
     temp_dir = TemporaryDirectory()

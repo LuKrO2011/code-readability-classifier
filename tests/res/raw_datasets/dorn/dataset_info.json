@@ -2,6 +2,10 @@
   "citation": "",
   "description": "",
   "features": {
+    "name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
     "code_snippet": {
       "dtype": "string",
       "_type": "Value"

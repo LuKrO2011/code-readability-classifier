@@ -146,12 +146,6 @@ def store_encoded_dataset(data: ReadabilityDataset, data_dir: str) -> None:
     # Convert the encoded data to Hugging faces format
     HFDataset.from_list(data.to_list()).save_to_disk(data_dir)
 
-    # Log the names of "Readable" and "Unreadable" files
-    readable = [sample["name"] for sample in data if sample["score"] == 1]
-    unreadable = [sample["name"] for sample in data if sample["score"] == 0]
-    logging.info(f"Readable: {readable}")
-    logging.info(f"Unreadable: {unreadable}")
-
     # Log the number of samples stored
     logging.info(f"Stored {len(data)} samples in {data_dir}")
 
