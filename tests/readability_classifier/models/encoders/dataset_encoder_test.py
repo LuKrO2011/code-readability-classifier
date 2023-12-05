@@ -22,7 +22,7 @@ class TestDatasetEncoder(DirTest):
         encoded_data = self.encoder.encode_dataset(raw_data)
 
         # Store encoded data
-        store_encoded_dataset(encoded_data, self.output_dir.name)
+        store_encoded_dataset(encoded_data, self.output_dir)
 
         # Check if encoded data is not empty
         assert len(encoded_data) > 0

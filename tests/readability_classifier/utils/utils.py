@@ -20,17 +20,17 @@ ENCODED_COMBINED_DIR = ENCODED_DATASETS_DIR / "combined"
 
 
 class DirTest(unittest.TestCase):
-    # output_dir = "output"  # Set to "output" to generate output
+    output_dir_name = None  # Set to "output" to generate output
 
     def setUp(self):
         # Create temporary directories for testing if output directory is None
-        if self.output_dir is None:
+        if self.output_dir_name is None:
             self._temp_dir = TemporaryDirectory()
             self.output_dir = self._temp_dir.name
         else:
-            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+            Path(self.output_dir_name).mkdir(parents=True, exist_ok=True)
             self._temp_dir = None
-            self.output_dir = Path(self.output_dir)
+            self.output_dir = self.output_dir_name
 
     def tearDown(self):
         # Clean up temporary directories
