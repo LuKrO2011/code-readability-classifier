@@ -7,6 +7,7 @@ from readability_classifier.models.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from tests.readability_classifier.utils.utils import RAW_SCALABRIO_DIR
 
 
 @pytest.fixture()
@@ -15,7 +16,7 @@ def bert_encoder():
 
 
 def test_encode_bert(bert_encoder):
-    data_dir = "res/raw_datasets/scalabrio"
+    data_dir = RAW_SCALABRIO_DIR.absolute()
 
     # Create temporary directory
     temp_dir = TemporaryDirectory()
@@ -37,7 +38,7 @@ def test_encode_bert(bert_encoder):
 
 
 def test_encode_text(bert_encoder):
-    data_dir = "res/raw_datasets/scalabrio"
+    data_dir = RAW_SCALABRIO_DIR.absolute()
 
     # Load raw data
     raw_data = load_raw_dataset(data_dir)
