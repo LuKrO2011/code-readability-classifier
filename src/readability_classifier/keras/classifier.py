@@ -21,7 +21,6 @@ from src.readability_classifier.models.encoders.dataset_utils import (
 )
 
 # Define parameters
-EPOCHS = 20
 MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
 STORE_DIR = "../../res/keras/Experimental output"
 STATS_FILE_NAME = "stats.json"
@@ -57,19 +56,30 @@ class Classifier:
     """
 
     def __init__(
-        self, towards_model: keras.Model, encoded_data: ReadabilityDataset = None
+        self,
+        model: keras.Model,
+        encoded_data: ReadabilityDataset = None,
+        k_fold: int = 10,
+        epochs: int = 10,
+        batch_size: int = 42,
     ):
         """
         Initializes the classifier.
-        :param towards_model: The towards model.
+        :param model: The model.
+        :param encoded_data: The encoded data.
+        :param k_fold: The number of folds.
+        :param epochs: The number of epochs.
+        :param batch_size: The batch size.
         """
-        self.towards_model = towards_model
+        self.model = model
         self.encoded_data = encoded_data
+        self.k_fold = k_fold
+        self.epochs = epochs
+        self.batch_size = batch_size
 
-    def train(self, k_fold: int = 10) -> HistoryList:
+    def train(self) -> HistoryList:
         """
         Train the model.
-        :param k_fold: The number of folds.
         :return: The training history.
         """
         towards_inputs = (
@@ -91,9 +101,9 @@ class Classifier:
         )
 
         history = HistoryList([])
-        folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=k_fold)
+        folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=self.k_fold)
         for fold_index, fold in enumerate(folds):
-            logging.info(f"Starting fold {fold_index + 1}/{k_fold}")
+            logging.info(f"Starting fold {fold_index + 1}/{self.k_fold}")
             fold_history = self.train_fold(fold)
             history.fold_histories.append(fold_history)
 
@@ -105,17 +115,19 @@ class Classifier:
         :param fold: The fold.
         :return: The history of the fold.
         """
+        # Reset the model
+        self.model.reset_states()
+
         # Train the model
-        towards_model = create_towards_model()
         checkpoint = ModelCheckpoint(
             MODEL_OUTPUT, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
         callbacks = [checkpoint]
-        return towards_model.fit(
+        return self.model.fit(
             x=self._dataset_to_input(fold.train_set),
             y=self._dataset_to_label(fold.train_set),
-            epochs=EPOCHS,
-            batch_size=42,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
             callbacks=callbacks,
             verbose=0,
             validation_data=(
@@ -124,8 +136,9 @@ class Classifier:
             ),
         )
 
+    @staticmethod
     def _dataset_to_input(
-        self, dataset: ReadabilityDataset
+        dataset: ReadabilityDataset,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Convert a dataset to numpy arrays:
@@ -139,7 +152,8 @@ class Classifier:
         segment = np.asarray([x["segment"] for x in dataset])
         return structure, token, segment, image
 
-    def _dataset_to_label(self, dataset: ReadabilityDataset) -> np.ndarray:
+    @staticmethod
+    def _dataset_to_label(dataset: ReadabilityDataset) -> np.ndarray:
         """
         Convert a dataset to towards output/score.
         :param dataset: The dataset.
