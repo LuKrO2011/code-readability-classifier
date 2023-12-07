@@ -1,6 +1,5 @@
 import os
 import unittest
-from tempfile import TemporaryDirectory
 
 from src.readability_classifier.models.encoders.dataset_utils import load_raw_dataset
 from src.readability_classifier.models.encoders.image_encoder import (
@@ -8,11 +7,13 @@ from src.readability_classifier.models.encoders.image_encoder import (
     _code_to_image,
 )
 from src.readability_classifier.utils.utils import load_code
+from tests.readability_classifier.utils.utils import DirTest
 
-CODE_DIR = "res/code_snippets/"
+RES_DIR = os.path.join(os.path.dirname(__file__), "../../../res/")
+CODE_DIR = RES_DIR + "code_snippets/"
 
 
-class TestVisualEncoder(unittest.TestCase):
+class TestVisualEncoder(DirTest):
     visual_encoder = VisualEncoder()
 
     @unittest.skip("Takes too long.")
@@ -59,13 +60,9 @@ class TestVisualEncoder(unittest.TestCase):
         # img = Image.open("code.png")
         # img.show()
 
-    RES_DIR = os.path.join(os.path.dirname(__file__), "../../../res/")
-    CODE_DIR = RES_DIR + "code_snippets/"
-
     def test_code_to_image(self):
         # Create temporary directory
-        temp_dir = TemporaryDirectory()
-        output_file = os.path.join(temp_dir.name, "out.png")
+        output_file = os.path.join(self.output_dir, "out.png")
 
         # Load the code
         filename = "AreaShop/AddCommand.java/execute.java"
@@ -84,15 +81,8 @@ class TestVisualEncoder(unittest.TestCase):
         # img = Image.open(output_file)
         # img.show()
 
-        # Clean up temporary directories
-        temp_dir.cleanup()
-
     def test_text_to_image(self):
-        # Create temporary directory
-        # temp_dir = TemporaryDirectory()
-        # output_file = os.path.join(temp_dir.name, "out.png")
-
-        output_file = "out.png"
+        output_file = os.path.join(self.output_dir, "out.png")
 
         # Sample Java code
         buse_5 = """
@@ -118,13 +108,8 @@ class TestVisualEncoder(unittest.TestCase):
         # img = Image.open(output_file)
         # img.show()
 
-        # Clean up temporary directories
-        # temp_dir.cleanup()
-
     def test_code_to_image_towards(self):
-        # Create temporary directory
-        temp_dir = TemporaryDirectory()
-        output_file = os.path.join(temp_dir.name, "out.png")
+        output_file = os.path.join(self.output_dir, "out.png")
 
         # Load the code
         filename = "towards.java"
@@ -142,6 +127,3 @@ class TestVisualEncoder(unittest.TestCase):
         # from PIL import Image
         # img = Image.open(output_file)
         # img.show()
-
-        # Clean up temporary directories
-        temp_dir.cleanup()
