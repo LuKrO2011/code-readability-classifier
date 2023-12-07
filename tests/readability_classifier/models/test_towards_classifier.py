@@ -15,6 +15,7 @@ class TestTowardsModel(unittest.TestCase):
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(towards_model.parameters(), lr=LEARNING_RATE)
 
+    # TODO: Does not work
     def test_backward_pass(self):
         # Create test input data
         input_data = create_test_data()
@@ -32,6 +33,7 @@ class TestTowardsModel(unittest.TestCase):
         # Check if gradients are updated
         assert any(param.grad is not None for param in self.towards_model.parameters())
 
+    # TODO: Does not work
     def test_update_weights(self):
         # Create test input data
         input_data = create_test_data()

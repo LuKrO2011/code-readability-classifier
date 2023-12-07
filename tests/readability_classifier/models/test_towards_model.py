@@ -15,20 +15,20 @@ from tests.readability_classifier.models.extractors.test_visual_extractor import
 
 def create_test_data():
     structural_input_data = create_structural_test_data()
-    token_input, segment_input = create_semantic_test_data()
+    semantic_input = create_semantic_test_data()
     visual_input_data = create_visual_test_data()
 
     return TowardsInput(
-        structural_input_data,
-        token_input,
-        segment_input,
-        visual_input_data,
+        character_matrix=structural_input_data,
+        bert=semantic_input,
+        image=visual_input_data,
     )
 
 
 class TestTowardsModel(unittest.TestCase):
     readability_model = TowardsModel.build_from_config()
 
+    # TODO: Does not work
     def test_forward_pass(self):
         # Create test input data
         input_data = create_test_data()

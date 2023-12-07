@@ -6,6 +6,7 @@ import torch
 from src.readability_classifier.models.extractors.semantic_extractor import (
     SemanticExtractor,
 )
+from src.readability_classifier.utils.config import SemanticInput
 
 EMBEDDED_MIN = 1
 EMBEDDED_MAX = 299
@@ -15,9 +16,17 @@ SHAPE = (BATCH_SIZE, TOKEN_LENGTH)
 
 
 def create_test_data():
-    token_input = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-    segment_input = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
-    return token_input, segment_input
+    input_ids = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
+    token_type_ids = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
+    attention_mask = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
+    segment_ids = torch.randint(EMBEDDED_MIN, EMBEDDED_MAX, SHAPE).long()
+
+    return SemanticInput(
+        input_ids=input_ids,
+        token_type_ids=token_type_ids,
+        attention_mask=attention_mask,
+        segment_ids=segment_ids,
+    )
 
 
 class TestSemanticExtractor(unittest.TestCase):
@@ -25,10 +34,10 @@ class TestSemanticExtractor(unittest.TestCase):
 
     def test_forward_pass(self):
         # Create test input data
-        token_input, segment_input = create_test_data()
+        semantic_input = create_test_data()
 
         # Perform a forward pass
-        output = self.semantic_extractor(token_input, segment_input)
+        output = self.semantic_extractor(semantic_input)
 
         # Check if the output has the expected shape
         assert output.shape == (1, 1792)

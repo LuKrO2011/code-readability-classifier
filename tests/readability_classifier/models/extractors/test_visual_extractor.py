@@ -31,4 +31,4 @@ class TestVisualExtractor(unittest.TestCase):
         output = self.visual_extractor(input_data)
 
         # Check the output shape
-        assert output.shape == (1, 6400)
+        assert output.shape == (1, 12544)

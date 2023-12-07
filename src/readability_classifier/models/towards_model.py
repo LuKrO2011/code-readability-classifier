@@ -12,8 +12,6 @@ from src.readability_classifier.models.extractors.visual_extractor import (
 from src.readability_classifier.models.semantic_model import SemanticExtractorEnum
 from src.readability_classifier.utils.config import BaseModelConfig, TowardsInput
 
-EXTRACTOR = SemanticExtractorEnum.KROD
-
 
 class TowardsModelConfig(BaseModelConfig):
     """
@@ -42,7 +40,11 @@ class TowardsModel(BaseModel):
     representing the readability of the code snippet.
     """
 
-    def __init__(self, config: TowardsModelConfig) -> None:
+    def __init__(
+        self,
+        config: TowardsModelConfig,
+        extractor: SemanticExtractorEnum = SemanticExtractorEnum.TOWARDS,
+    ) -> None:
         """
         Initialize the model.
         :param config: The config for the model.
@@ -51,7 +53,7 @@ class TowardsModel(BaseModel):
 
         # Feature extractors
         self.structural_extractor = StructuralExtractor.build_from_config()
-        self.semantic_extractor = EXTRACTOR.build_from_config()
+        self.semantic_extractor = extractor.build_from_config()
         self.visual_extractor = VisualExtractor.build_from_config()
 
         # Define own layers

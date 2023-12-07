@@ -25,9 +25,6 @@ class SemanticExtractorEnum:
     OWN_SEGMENT_IDS = OwnSemanticExtractor
 
 
-EXTRACTOR = SemanticExtractorEnum.KROD
-
-
 class SemanticModelConfig(BaseModelConfig):
     """
     The config for the SemanticModel.
@@ -51,7 +48,11 @@ class SemanticModel(BaseModel):
     The output is a single value representing the readability of the code snippet.
     """
 
-    def __init__(self, config: SemanticModelConfig) -> None:
+    def __init__(
+        self,
+        config: SemanticModelConfig,
+        extractor: SemanticExtractorEnum = SemanticExtractorEnum.KROD,
+    ) -> None:
         """
         Initialize the model.
         :param config: The config for the model.
@@ -59,7 +60,7 @@ class SemanticModel(BaseModel):
         super().__init__()
 
         # Feature extractors
-        self.semantic_extractor = EXTRACTOR.build_from_config()
+        self.semantic_extractor = extractor.build_from_config()
 
         # Define own layers
         self._build_classification_layers(config)
