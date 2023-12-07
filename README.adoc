@@ -45,6 +45,12 @@ Activate the virtual environment:
 poetry shell
 ----
 
+Install tensorflow manually:
+
+----
+pip install tensorflow
+----
+
 Now you're ready to use the source code readability prediction tool.
 
 [[Usage]]
@@ -104,9 +110,12 @@ python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/b
 
 The datasets used for training and evaluation are from the following sources:
 
-* BW: Raymond PL Buse and Westley R Weimer. ‘Learning a metric for code readability’
-* Dorn: Jonathan Dorn. ‘A general software readability model’.
-* Scalabrio: Simone Scalabrino et al. ‘Improving code readability models with textual features’.
+* BW: Raymond PL Buse and Westley R Weimer.
+‘Learning a metric for code readability’
+* Dorn: Jonathan Dorn.
+‘A general software readability model’.
+* Scalabrio: Simone Scalabrino et al.
+‘Improving code readability models with textual features’.
 * Krod: TODO
 
 In order to use the datasets with the model, they need to be converted into link:https://huggingface.co/docs/datasets/index[Hugging Face's Dataset format].
@@ -114,22 +123,26 @@ This can be done using the dataset_converter.py script.
 Datasets can be combined arbitrarily using the dataset_combiner.py script.
 A command line interface for those will come soon.
 
-
 [[Podman]]
 == Podman
+
 To build the podman container, run the following command:
+
 [source,bash]
 ----
 podman build -t readability-classifier .
 ----
+
 - t : name of the container
 - . : path to the Dockerfile
 
 To run the podman container, run the following command:
+
 [source,bash]
 ----
 podman run -it --rm -v $(pwd):/app readability-classifier
 ----
+
 - it : interactive mode
 - rm : remove container after exit
 - v $(pwd):/app : mount current directory to /app in container
