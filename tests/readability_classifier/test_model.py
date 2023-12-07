@@ -17,7 +17,7 @@ class TestModel(unittest.TestCase):
     Test the model.
     """
 
-    @unittest.skip("Model training takes too long and requires a dataset.")
+    @unittest.skip("Takes too long.")
     def test_train(self) -> None:
         """
         Test the training of the model. After training, the model is stored
@@ -39,7 +39,7 @@ class TestModel(unittest.TestCase):
         # Store the model
         classifier.store("model.pt")
 
-    @unittest.skip("Test requires a model, which is too large for GitHub.")
+    @unittest.skip("Requires a model.")
     def test_predict(self) -> None:
         """
         Test the prediction of the model. Therefore, the model must be loaded
