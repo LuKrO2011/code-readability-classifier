@@ -4,10 +4,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from readability_classifier.models.base_classifier import BaseClassifier
-from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
-from readability_classifier.models.structural_model import StructuralModel
-from readability_classifier.utils.config import (
+from src.readability_classifier.models.base_classifier import BaseClassifier
+from src.readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+from src.readability_classifier.models.structural_model import StructuralModel
+from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
     StructuralInput,

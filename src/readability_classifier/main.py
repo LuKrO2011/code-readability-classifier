@@ -6,11 +6,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from readability_classifier.keras.keras_model_runner import KerasModelRunner
-from readability_classifier.model_buider import Model
-from readability_classifier.model_runner import ModelRunnerInterface, TorchModelRunner
-from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.keras.keras_model_runner import KerasModelRunner
+from src.readability_classifier.model_buider import Model
+from src.readability_classifier.model_runner import (
+    ModelRunnerInterface,
+    TorchModelRunner,
+)
+from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.models.encoders.dataset_utils import (
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,

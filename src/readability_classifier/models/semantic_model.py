@@ -2,17 +2,17 @@ from pathlib import Path
 
 import torch
 
-from readability_classifier.models.base_model import BaseModel
-from readability_classifier.models.extractors.semantic_extractor import (
+from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.models.extractors.semantic_extractor import (
     SemanticExtractor,
 )
-from readability_classifier.models.extractors.semantic_extractor_krod import (
+from src.readability_classifier.models.extractors.semantic_extractor_krod import (
     KrodSemanticExtractor,
 )
-from readability_classifier.models.extractors.semantic_extractor_own import (
+from src.readability_classifier.models.extractors.semantic_extractor_own import (
     OwnSemanticExtractor,
 )
-from readability_classifier.utils.config import BaseModelConfig, SemanticInput
+from src.readability_classifier.utils.config import BaseModelConfig, SemanticInput
 
 
 class SemanticExtractorEnum:

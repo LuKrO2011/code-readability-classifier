@@ -1,12 +1,12 @@
 import os
 import unittest
 
-from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.models.towards_classifier import TowardsClassifier
+from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.models.towards_classifier import TowardsClassifier
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESOURCES_DIR = os.path.join(CURRENT_DIR, "res")
-MODEL_PATH = os.path.join(RESOURCES_DIR, "res/models/model.pt")
+RESOURCES_DIR = os.path.join(CURRENT_DIR, "../../src/res")
+MODEL_PATH = os.path.join(RESOURCES_DIR, "../res/models/model.pt")
 DATA_DIR = (
     "C:/Users/lukas/Meine Ablage/Uni/{SoSe23/Masterarbeit/Datasets/Dataset/Dataset/"
 )

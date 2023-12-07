@@ -7,7 +7,7 @@ from datasets import load_from_disk
 from sklearn.model_selection import KFold, train_test_split
 from torch.utils.data import DataLoader, Dataset
 
-from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
+from src.readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
 
 
 class ReadabilityDataset(Dataset):

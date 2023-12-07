@@ -3,11 +3,11 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
-from readability_classifier.keras.classifier import Classifier
-from readability_classifier.keras.history_processing import HistoryProcessor
-from readability_classifier.keras.model import create_towards_model
-from readability_classifier.model_runner import ModelRunnerInterface
-from readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+from src.readability_classifier.keras.classifier import Classifier
+from src.readability_classifier.keras.history_processing import HistoryProcessor
+from src.readability_classifier.keras.model import create_towards_model
+from src.readability_classifier.model_runner import ModelRunnerInterface
+from src.readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
 
 STATS_FILE_NAME = "stats.json"
 

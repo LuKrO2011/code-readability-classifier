@@ -8,20 +8,19 @@ import keras
 import numpy as np
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 
-from readability_classifier.keras.history_processing import (
+from src.readability_classifier.keras.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
-from readability_classifier.keras.legacy_encoders import preprocess_data
-from readability_classifier.keras.model import create_towards_model
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.keras.legacy_encoders import preprocess_data
+from src.readability_classifier.keras.model import create_towards_model
+from src.readability_classifier.models.encoders.dataset_utils import (
     Fold,
     ReadabilityDataset,
     split_k_fold,
 )
 
 # Define parameters
-K_FOLD = 10
 EPOCHS = 20
 MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
 STORE_DIR = "../../res/keras/Experimental output"
@@ -67,9 +66,10 @@ class Classifier:
         self.towards_model = towards_model
         self.encoded_data = encoded_data
 
-    def train(self) -> HistoryList:
+    def train(self, k_fold: int = 10) -> HistoryList:
         """
         Train the model.
+        :param k_fold: The number of folds.
         :return: The training history.
         """
         towards_inputs = (
@@ -91,9 +91,9 @@ class Classifier:
         )
 
         history = HistoryList([])
-        folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=K_FOLD)
+        folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=k_fold)
         for fold_index, fold in enumerate(folds):
-            logging.info(f"Starting fold {fold_index + 1}/{K_FOLD}")
+            logging.info(f"Starting fold {fold_index + 1}/{k_fold}")
             fold_history = self.train_fold(fold)
             history.fold_histories.append(fold_history)
 

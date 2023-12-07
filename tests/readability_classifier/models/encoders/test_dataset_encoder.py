@@ -1,7 +1,7 @@
-import pytest
+import unittest
 
-from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.models.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
@@ -11,7 +11,7 @@ from tests.readability_classifier.utils.utils import RAW_COMBINED_DIR, DirTest
 class TestDatasetEncoder(DirTest):
     encoder = DatasetEncoder()
 
-    @pytest.mark.skip()  # Disabled, because it takes too long
+    @unittest.skip("Takes too long.")
     def test_encode_dataset(self):
         data_dir = RAW_COMBINED_DIR.absolute()
 

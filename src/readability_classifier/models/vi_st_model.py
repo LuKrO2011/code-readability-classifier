@@ -2,12 +2,14 @@ from pathlib import Path
 
 import torch
 
-from readability_classifier.models.base_model import BaseModel
-from readability_classifier.models.extractors.structural_extractor import (
+from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
-from readability_classifier.models.extractors.visual_extractor import VisualExtractor
-from readability_classifier.utils.config import BaseModelConfig, ViStModelInput
+from src.readability_classifier.models.extractors.visual_extractor import (
+    VisualExtractor,
+)
+from src.readability_classifier.utils.config import BaseModelConfig, ViStModelInput
 
 
 class ViStModelConfig(BaseModelConfig):

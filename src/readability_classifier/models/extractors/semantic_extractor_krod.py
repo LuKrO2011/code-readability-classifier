@@ -5,10 +5,12 @@ import torch
 from torch import nn as nn
 from transformers import BertConfig, BertModel
 
-from readability_classifier.models.base_model import BaseModel
-from readability_classifier.models.encoders.bert_encoder import DEFAULT_OWN_SEGMENT_IDS
-from readability_classifier.utils.config import SemanticInput
-from readability_classifier.utils.utils import load_yaml_file
+from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.models.encoders.bert_encoder import (
+    DEFAULT_OWN_SEGMENT_IDS,
+)
+from src.readability_classifier.utils.config import SemanticInput
+from src.readability_classifier.utils.utils import load_yaml_file
 
 CURR_DIR = Path(os.path.dirname(os.path.relpath(__file__)))
 DEFAULT_SAVE_PATH = CURR_DIR / Path("../../../models/")

@@ -1,6 +1,6 @@
 import pytest
 
-from readability_classifier.keras.history_processing import HistoryProcessor
+from src.readability_classifier.keras.history_processing import HistoryProcessor
 
 
 @pytest.fixture()

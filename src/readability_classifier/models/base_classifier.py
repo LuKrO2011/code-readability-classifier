@@ -20,14 +20,14 @@ from sklearn.metrics import (
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.models.encoders.dataset_utils import (
     ReadabilityDataset,
     dataset_to_dataloader,
     split_k_fold,
 )
-from readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, ModelInput
-from readability_classifier.utils.utils import save_content_to_file
+from src.readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE, ModelInput
+from src.readability_classifier.utils.utils import save_content_to_file
 
 
 @dataclass(frozen=True, eq=True)

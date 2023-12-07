@@ -5,9 +5,9 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from readability_classifier.models.fc_model import FullyConnectedModel
-from readability_classifier.utils.config import BaseModelConfig, ModelInput
-from readability_classifier.utils.utils import load_yaml_file
+from src.readability_classifier.models.fc_model import FullyConnectedModel
+from src.readability_classifier.utils.config import BaseModelConfig, ModelInput
+from src.readability_classifier.utils.utils import load_yaml_file
 
 CURR_DIR = Path(os.path.dirname(os.path.relpath(__file__)))
 DEFAULT_SAVE_PATH = CURR_DIR / Path("../../../models/")

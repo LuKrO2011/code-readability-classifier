@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import keras
 import numpy as np
 
-from readability_classifier.utils.utils import (
+from src.readability_classifier.utils.utils import (
     calculate_auc,
     calculate_f1_score,
     calculate_mcc,

@@ -3,11 +3,11 @@ from pathlib import Path
 import torch
 from torch import nn as nn
 
-from readability_classifier.models.base_model import BaseModel
-from readability_classifier.models.extractors.structural_extractor import (
+from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
-from readability_classifier.utils.config import BaseModelConfig, StructuralInput
+from src.readability_classifier.utils.config import BaseModelConfig, StructuralInput
 
 
 class StructuralModelConfig(BaseModelConfig):

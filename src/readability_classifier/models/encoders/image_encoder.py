@@ -14,7 +14,7 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import JavaLexer
 from torch import Tensor
 
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.models.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )

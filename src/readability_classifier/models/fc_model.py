@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from readability_classifier.utils.config import BaseModelConfig, ViStModelInput
+from src.readability_classifier.utils.config import BaseModelConfig, ViStModelInput
 
 
 class FullyConnectedModel(nn.Module):

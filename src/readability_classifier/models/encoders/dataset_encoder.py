@@ -3,13 +3,13 @@ import logging
 import torch
 from torch import Tensor
 
-from readability_classifier.models.encoders.bert_encoder import BertEncoder
-from readability_classifier.models.encoders.dataset_utils import (
+from src.readability_classifier.models.encoders.bert_encoder import BertEncoder
+from src.readability_classifier.models.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )
-from readability_classifier.models.encoders.image_encoder import VisualEncoder
-from readability_classifier.models.encoders.matrix_encoder import MatrixEncoder
+from src.readability_classifier.models.encoders.image_encoder import VisualEncoder
+from src.readability_classifier.models.encoders.matrix_encoder import MatrixEncoder
 
 
 class DatasetEncoder(EncoderInterface):
