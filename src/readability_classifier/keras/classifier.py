@@ -60,7 +60,7 @@ class Classifier:
         model: keras.Model,
         encoded_data: ReadabilityDataset = None,
         k_fold: int = 10,
-        epochs: int = 10,
+        epochs: int = 20,
         batch_size: int = 42,
     ):
         """
@@ -72,6 +72,7 @@ class Classifier:
         :param batch_size: The batch size.
         """
         self.model = model
+        self.initial_weights = model.get_weights()
         self.encoded_data = encoded_data
         self.k_fold = k_fold
         self.epochs = epochs
@@ -115,15 +116,18 @@ class Classifier:
         :param fold: The fold.
         :return: The history of the fold.
         """
-        # Reset the model
-        self.model.reset_states()
+        # Clone the untrained model
+        # model = clone_model(self.model)
+        # model = create_towards_model()
+        model = self.model
+        model.set_weights(self.initial_weights)
 
         # Train the model
         checkpoint = ModelCheckpoint(
             MODEL_OUTPUT, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
         callbacks = [checkpoint]
-        return self.model.fit(
+        return model.fit(
             x=self._dataset_to_input(fold.train_set),
             y=self._dataset_to_label(fold.train_set),
             epochs=self.epochs,
