@@ -12,7 +12,6 @@ from src.readability_classifier.keras.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
-from src.readability_classifier.keras.legacy_encoders import preprocess_data
 from src.readability_classifier.keras.model import create_towards_model
 from src.readability_classifier.models.encoders.dataset_utils import (
     Fold,
@@ -86,8 +85,13 @@ class Classifier:
         towards_inputs = (
             convert_to_towards_inputs(self.encoded_data)
             if self.encoded_data is not None
-            else preprocess_data()
+            else None
         )
+
+        if towards_inputs is None:
+            raise NotImplementedError(
+                "Keras training with old data encoders is not supported anymore."
+            )
 
         random.shuffle(towards_inputs)
 
@@ -166,7 +170,7 @@ class Classifier:
 
 def main():
     """
-    Main function.
+    Deprecated: Uses the old data encoders.
     :return: None
     """
     # Setup logging
@@ -189,9 +193,3 @@ def main():
     store_path = Path(STORE_DIR) / STATS_FILE_NAME
     with open(store_path, "w") as file:
         json.dump(asdict(processed_history), file, indent=4)
-
-
-if __name__ == "__main__":
-    seed = 42
-    random.seed(seed)
-    main()

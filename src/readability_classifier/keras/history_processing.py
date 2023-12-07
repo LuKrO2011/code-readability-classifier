@@ -1,5 +1,4 @@
 import logging
-import pickle
 from dataclasses import dataclass
 
 import keras
@@ -120,7 +119,7 @@ class FoldStats:
 
     fold_index: int
     epoch_stats: list[EpochStats]
-    bst_epoch: Stats | None = None
+    best_epoch: Stats | None = None
 
     def __init__(
         self, fold_index: int, epoch_stats: list[EpochStats], metric: str = "acc"
@@ -133,10 +132,10 @@ class FoldStats:
         """
         self.fold_index = fold_index
         self.epoch_stats = epoch_stats
-        self.bst_epoch = self._best(metric=metric)
+        self.best_epoch = self._best(metric=metric)
 
     def get_best(self):
-        return self.bst_epoch
+        return self.best_epoch
 
     def _best(self, metric: str = "acc") -> Stats:
         """
@@ -355,21 +354,3 @@ class HistoryProcessor:
             f1=f1,
             mcc=mcc,
         )
-
-
-if __name__ == "__main__":
-    # Setup logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler("history_processing.log"),
-            logging.StreamHandler(),
-        ],
-    )
-
-    # Load a history
-    with open("history.pkl", "rb") as file:
-        loaded_history = pickle.load(file)
-
-    HistoryProcessor().evaluate(loaded_history)

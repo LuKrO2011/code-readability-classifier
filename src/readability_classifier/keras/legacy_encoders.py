@@ -23,19 +23,7 @@ TOKENIZER_NAME = "bert-base-cased"
 
 
 # TODO: Remove computation of those: data_position and data_image (unused)
-
-
-@dataclass
-class TowardsData:
-    """
-    Data class for the input of the TowardsModel.
-    """
-
-    label: int
-    structure: np.ndarray
-    image: np.ndarray
-    token: np.ndarray
-    segment: np.ndarray
+# WARNING: THIS CODE IS NOT USED ANYMORE
 
 
 def preprocess_data() -> list[dict]:
