@@ -19,7 +19,7 @@ DEFAULT_METRICS = [
 ]
 
 
-def create_classification_model(input_layer: tf.Tensor) -> tf.Tensor:
+def create_classification_layers(input_layer: tf.Tensor) -> tf.Tensor:
     """
     Create the classification model.
     :param input_layer: The input layer of the model.
@@ -66,7 +66,7 @@ def create_structural_model(
     """
 
     structure_input, structure_flatten = create_structural_extractor()
-    classification_output = create_classification_model(structure_flatten)
+    classification_output = create_classification_layers(structure_flatten)
 
     model = models.Model(structure_input, classification_output)
 
@@ -113,7 +113,7 @@ def create_semantic_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras
     :return: The model.
     """
     token_input, segment_input, gru = create_semantic_extractor()
-    classification_output = create_classification_model(gru)
+    classification_output = create_classification_layers(gru)
 
     model = models.Model([token_input, segment_input], classification_output)
 
@@ -163,7 +163,7 @@ def create_visual_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras.M
     :return: The model.
     """
     image_input, image_flatten = create_visual_extractor()
-    classification_output = create_classification_model(image_flatten)
+    classification_output = create_classification_layers(image_flatten)
 
     model = models.Model(image_input, classification_output)
 
@@ -188,12 +188,7 @@ def create_towards_model(learning_rate: float = DEFAULT_LEARNING_RATE) -> keras.
 
     concatenated = layers.concatenate([structure_flatten, gru, image_flatten], axis=-1)
 
-    dense1 = layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
-    )(concatenated)
-    drop = layers.Dropout(0.5)(dense1)
-    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    classification_output = layers.Dense(1, activation="sigmoid")(dense2)
+    classification_output = create_classification_layers(concatenated)
 
     model = models.Model(
         [structure_input, token_input, segment_input, image_input],
@@ -217,6 +212,7 @@ class BertConfig:
 
     def __init__(self, **kwargs):
         super().__init__()
+        self.name = kwargs.pop("name", "BertEmbedding")
         self.vocab_size = kwargs.pop("vocab_size", 30000)
         self.type_vocab_size = kwargs.pop("type_vocab_size", 300)
         self.hidden_size = kwargs.pop("hidden_size", 768)
@@ -238,18 +234,15 @@ class BertEmbedding(keras.layers.Layer):
 
     config = None
 
-    def __init__(self, config, **kwargs):
-        super().__init__(name="BertEmbedding")
+    def __init__(self, config):
+        super().__init__(name=config.name)
         self.config = config
-        self.vocab_size = config.vocab_size
-        self.hidden_size = config.hidden_size
+
         self.token_embedding = self.add_weight(
             "weight",
-            shape=[self.vocab_size, self.hidden_size],
+            shape=[self.config.vocab_size, self.config.hidden_size],
             initializer=keras.initializers.TruncatedNormal(stddev=0.02),
         )
-        self.type_vocab_size = config.type_vocab_size
-
         self.position_embedding = keras.layers.Embedding(
             config.max_position_embeddings,
             config.hidden_size,
@@ -299,15 +292,7 @@ class BertEmbedding(keras.layers.Layer):
         :return: The configuration.
         """
         config = super().get_config()
-        config.update(
-            {
-                "vocab_size": self.vocab_size,
-                "hidden_size": self.hidden_size,
-                "type_vocab_size": self.type_vocab_size,
-                "max_position_embeddings": self.config.max_position_embeddings,
-                "max_sequence_length": self.config.max_sequence_length,
-            }
-        )
+        config.update(self.config.__dict__)
         return config
 
     @classmethod

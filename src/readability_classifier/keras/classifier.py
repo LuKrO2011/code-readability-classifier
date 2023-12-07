@@ -116,9 +116,7 @@ class Classifier:
         :param fold: The fold.
         :return: The history of the fold.
         """
-        # Clone the untrained model
-        # model = clone_model(self.model)
-        # model = create_towards_model()
+        # Reset the model
         model = self.model
         model.set_weights(self.initial_weights)
 
