@@ -54,7 +54,7 @@ class StructuralModel(BaseModel):
         :return: The output of the model.
         """
         # Feature extractors
-        structural_features = self.structural_extractor(x.character_matrix)
+        structural_features = self.structural_extractor(x)
 
         # Update the input length of the forward classification layers
         self._update_input_length(structural_features.shape[1])

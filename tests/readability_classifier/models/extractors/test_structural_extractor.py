@@ -2,6 +2,7 @@ import unittest
 
 import torch
 
+from readability_classifier.utils.config import StructuralInput
 from src.readability_classifier.models.extractors.structural_extractor import (
     StructuralExtractor,
 )
@@ -15,7 +16,7 @@ SHAPE = (BATCH_SIZE, HEIGHT, WIDTH)
 
 
 def create_test_data():
-    return torch.randint(MIN, MAX, SHAPE).float()
+    return StructuralInput(torch.randint(MIN, MAX, SHAPE).float())
 
 
 class TestStructuralExtractor(unittest.TestCase):

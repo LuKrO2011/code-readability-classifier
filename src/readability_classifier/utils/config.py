@@ -64,9 +64,9 @@ class TowardsInput(ModelInput):
     Data class for the input of the TowardsModel.
     """
 
-    character_matrix: torch.Tensor
+    character_matrix: StructuralInput
     bert: SemanticInput
-    image: torch.Tensor
+    image: VisualInput
 
 
 @dataclass(frozen=True)

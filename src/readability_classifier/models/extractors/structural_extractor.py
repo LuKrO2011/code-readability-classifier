@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 from torch import nn as nn
 
+from readability_classifier.utils.config import StructuralInput
 from src.readability_classifier.models.base_model import BaseModel
 
 
@@ -56,12 +57,14 @@ class StructuralExtractor(BaseModel):
         # Same as in paper
         self.flatten = nn.Flatten()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: StructuralInput) -> torch.Tensor:
         """
         Forward pass of the model.
         :param x: The input tensor.
         :return: The output tensor.
         """
+        x = x.character_matrix
+
         # Apply convolutional and pooling layers
         x = x.unsqueeze(1)
         x = self.relu(self.conv1(x))

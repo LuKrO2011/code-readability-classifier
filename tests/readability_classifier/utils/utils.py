@@ -18,6 +18,10 @@ ENCODED_BW_DIR = ENCODED_DATASETS_DIR / "bw"
 ENCODED_DORN_DIR = ENCODED_DATASETS_DIR / "dorn"
 ENCODED_COMBINED_DIR = ENCODED_DATASETS_DIR / "combined"
 
+MI_DIR = RES_DIR / "mi"
+MI_RAW_DIR = MI_DIR / "raw"
+MI_STRUCTURAL_DIR = MI_DIR / "structural"
+
 
 class DirTest(unittest.TestCase):
     output_dir_name = None  # Set to "output" to generate output

@@ -2,6 +2,7 @@ import unittest
 
 import torch
 
+from readability_classifier.utils.config import VisualInput
 from src.readability_classifier.models.extractors.visual_extractor import (
     VisualExtractor,
 )
@@ -17,7 +18,7 @@ SHAPE = (BATCH_SIZE, CHANNELS, IMG_WIDTH, IMG_HEIGHT)
 
 
 def create_test_data():
-    return torch.randint(RGB_MIN, RGB_MAX, SHAPE).float()
+    return VisualInput(torch.randint(RGB_MIN, RGB_MAX, SHAPE).float())
 
 
 class TestVisualExtractor(unittest.TestCase):

@@ -1,6 +1,3 @@
-import unittest
-from tempfile import TemporaryDirectory
-
 import numpy as np
 
 from src.readability_classifier.models.encoders.dataset_utils import (
@@ -16,32 +13,29 @@ from src.readability_classifier.utils.utils import (
     read_matrix_from_file,
     save_matrix_to_file,
 )
-from tests.readability_classifier.utils.utils import DirTest
+from tests.readability_classifier.utils.utils import (
+    MI_RAW_DIR,
+    MI_STRUCTURAL_DIR,
+    RAW_SCALABRIO_DIR,
+    DirTest,
+)
 
 
-class TestMatrixEncoder(unittest.TestCase):
+class TestMatrixEncoder(DirTest):
     matrix_encoder = MatrixEncoder()
 
     def test_encode_matrix_dataset(self):
-        data_dir = "res/raw_datasets/scalabrio"
-
-        # Create temporary directory
-        temp_dir = TemporaryDirectory()
-
         # Load raw data
-        raw_data = load_raw_dataset(data_dir)
+        raw_data = load_raw_dataset(RAW_SCALABRIO_DIR)
 
         # Encode raw data
         encoded_data = self.matrix_encoder.encode_dataset(raw_data)
 
         # Store encoded data
-        store_encoded_dataset(encoded_data, temp_dir.name)
+        store_encoded_dataset(encoded_data, self.output_dir)
 
         # Check if encoded data is not empty
         assert len(encoded_data) > 0
-
-        # Clean up temporary directories
-        temp_dir.cleanup()
 
     def test_encode_matrix_text(self):
         code = """
@@ -62,14 +56,11 @@ class TestMatrixEncoder(unittest.TestCase):
 
 
 class TestStructural(DirTest):
-    java_dir = "res/mi/raw/"
-    matrix_dir = "res/mi/structural/"
-
     def template_structural(self, name):
         java_name = name + ".java"
-        java_path = self.java_dir + java_name
+        java_path = str(MI_RAW_DIR) + "/" + java_name
         matrix_name = name + ".java.matrix"
-        matrix_path = self.matrix_dir + matrix_name
+        matrix_path = str(MI_STRUCTURAL_DIR) + "/" + matrix_name
 
         # Convert java to matrix
         java_code = read_java_code_from_file(java_path)

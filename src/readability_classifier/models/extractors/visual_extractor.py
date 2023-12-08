@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 from torch import nn as nn
 
+from readability_classifier.utils.config import VisualInput
 from src.readability_classifier.models.base_model import BaseModel
 
 
@@ -57,12 +58,14 @@ class VisualExtractor(BaseModel):
         # Same as in paper
         self.flatten = nn.Flatten()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: VisualInput) -> torch.Tensor:
         """
         Forward pass of the model.
         :param x: The input tensor, which is an image.
         :return: The output tensor.
         """
+        x = x.image
+
         # Apply convolutional and pooling layers
         x = self.relu(self.conv1(x))
         x = self.pool1(x)
