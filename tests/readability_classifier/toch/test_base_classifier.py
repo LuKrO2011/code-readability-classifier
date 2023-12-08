@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from src.readability_classifier.models.towards_classifier import TowardsClassifier
+from src.readability_classifier.toch.towards_classifier import TowardsClassifier
 from tests.readability_classifier.utils.utils import DirTest
 
 BATCH_SIZE = 1

@@ -1,7 +1,7 @@
 import unittest
 
-from src.readability_classifier.models.structural_model import StructuralModel
-from tests.readability_classifier.models.extractors.test_structural_extractor import (
+from src.readability_classifier.toch.structural_model import StructuralModel
+from tests.readability_classifier.toch.extractors.test_structural_extractor import (
     create_test_data,
 )
 

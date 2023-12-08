@@ -2,7 +2,7 @@ import os
 import unittest
 
 from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from src.readability_classifier.models.towards_classifier import TowardsClassifier
+from src.readability_classifier.toch.towards_classifier import TowardsClassifier
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(CURRENT_DIR, "../../src/res")

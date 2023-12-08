@@ -3,7 +3,7 @@ import unittest
 import torch
 
 # TODO: Use transformers library instead of local copy
-from src.readability_classifier.models.extractors.semantic_extractor import (
+from src.readability_classifier.toch.extractors.semantic_extractor import (
     SemanticExtractor,
 )
 from src.readability_classifier.utils.config import SemanticInput

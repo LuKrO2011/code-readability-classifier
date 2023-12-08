@@ -2,14 +2,15 @@ from pathlib import Path
 
 import torch
 
-from src.readability_classifier.models.base_model import BaseModel
-from src.readability_classifier.models.extractors.visual_extractor import (
-    VisualExtractor,
+from src.readability_classifier.toch.base_model import BaseModel
+from src.readability_classifier.toch.extractors.structural_extractor import (
+    StructuralExtractor,
 )
-from src.readability_classifier.utils.config import BaseModelConfig, VisualInput
+from src.readability_classifier.toch.extractors.visual_extractor import VisualExtractor
+from src.readability_classifier.utils.config import BaseModelConfig, ViStModelInput
 
 
-class VisualModelConfig(BaseModelConfig):
+class ViStModelConfig(BaseModelConfig):
     """
     The config for the VisualModel.
     """
@@ -24,15 +25,17 @@ class VisualModelConfig(BaseModelConfig):
         self.dropout = kwargs.get("dropout", 0.5)
 
 
-class VisualModel(BaseModel):
+class ViStModel(BaseModel):
     """
-    A code readability model based on the visual features of the code.
-    The model consists of a visual feature extractor plus own layers.
-    The input consists of an RGB image. The image is a tensor of size (3, 128, 128).
-    The output is a single value representing the readability of the code snippet.
+    A code readability model based on the visual and structural features of a code
+    snippet.
+    The model consists of a visual feature extractor, a structural feature extractor and
+    multiple dense layers.
+    The input consists of an image and a character matrix. The output is a vector of
+    size 1.
     """
 
-    def __init__(self, config: VisualModelConfig) -> None:
+    def __init__(self, config: ViStModelConfig) -> None:
         """
         Initialize the model.
         :param config: The config for the model.
@@ -41,11 +44,12 @@ class VisualModel(BaseModel):
 
         # Feature extractors
         self.visual_extractor = VisualExtractor.build_from_config()
+        self.structural_extractor = StructuralExtractor.build_from_config()
 
         # Define own layers
         self._build_classification_layers(config)
 
-    def forward(self, x: VisualInput) -> torch.Tensor:
+    def forward(self, x: ViStModelInput) -> torch.Tensor:
         """
         Forward pass of the model.
         :param x: The input of the model containing the image.
@@ -53,12 +57,16 @@ class VisualModel(BaseModel):
         """
         # Feature extractors
         visual_features = self.visual_extractor(x.image)
+        structural_features = self.structural_extractor(x.matrix)
+
+        # Concatenate features
+        features = torch.cat((visual_features, structural_features), dim=1)
 
         # Update the input length of the forward classification layers
-        self._update_input_length(visual_features.shape[1])
+        self._update_input_length(features.shape[1])
 
         # Pass through dense layers
-        return self._forward_classification_layers(visual_features)
+        return self._forward_classification_layers(features)
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":
@@ -68,4 +76,4 @@ class VisualModel(BaseModel):
         :param save: The path to save the model.
         :return: Returns the model.
         """
-        return cls(VisualModelConfig(**params))
+        return cls(ViStModelConfig(**params))

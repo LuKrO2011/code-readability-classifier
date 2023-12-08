@@ -5,26 +5,21 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.models.base_classifier import BaseClassifier
-from src.readability_classifier.models.towards_model import TowardsModel
+from src.readability_classifier.toch.base_classifier import BaseClassifier
+from src.readability_classifier.toch.visual_model import VisualModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
-    SemanticInput,
-    TowardsInput,
+    VisualInput,
 )
 
 
-class TowardsClassifier(BaseClassifier):
+class VisualClassifier(BaseClassifier):
     """
     A code readability classifier based on a CNN model. The model can be used to predict
     the readability of a code snippet.
-    The model is trained on code snippets and their corresponding scores.
-    The model uses the following features:
-    - Structural features (ASCII matrix)
-    - Semantic features (Bert embedding)
-    - Visual features (Image of the code, where words are replaced by color bars
-    depending on their token type)
+    The model is trained on code snippets and their corresponding scores. The model uses
+    the visual features (RGB image) of the code snippets.
     """
 
     def __init__(
@@ -51,9 +46,9 @@ class TowardsClassifier(BaseClassifier):
         :param learning_rate: The learning rate.
         """
         if model_path is None:
-            model = TowardsModel.build_from_config()
+            model = VisualModel.build_from_config()
         else:
-            model = TowardsModel.load_from_checkpoint(model_path)
+            model = VisualModel.load_from_checkpoint(model_path)
 
         criterion = nn.BCELoss()
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -79,24 +74,6 @@ class TowardsClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, bert, image, _ = self._extract(batch)
-        matrix = self._to_device(matrix)
+        _, _, image, _ = self._extract(batch)
         image = self._to_device(image)
-
-        input_ids, token_type_ids, attention_mask, segment_ids = self._extract_bert(
-            bert
-        )
-        input_ids = input_ids.to(self.device)
-        token_type_ids = token_type_ids.to(self.device)
-        attention_mask = attention_mask.to(self.device)
-        if segment_ids is not None:
-            segment_ids = segment_ids.to(self.device)
-
-        semantic_input = SemanticInput(
-            input_ids=input_ids,
-            token_type_ids=token_type_ids,
-            attention_mask=attention_mask,
-            segment_ids=segment_ids,
-        )
-
-        return TowardsInput(matrix, semantic_input, image)
+        return VisualInput(image)

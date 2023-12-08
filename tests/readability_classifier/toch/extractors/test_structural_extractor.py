@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from readability_classifier.utils.config import StructuralInput
-from src.readability_classifier.models.extractors.structural_extractor import (
+from src.readability_classifier.toch.extractors.structural_extractor import (
     StructuralExtractor,
 )
 

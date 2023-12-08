@@ -6,11 +6,11 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.models.semantic_classifier import SemanticClassifier
-from src.readability_classifier.models.structural_classifier import StructuralClassifier
-from src.readability_classifier.models.towards_classifier import TowardsClassifier
-from src.readability_classifier.models.vi_st_classifier import ViStClassifier
-from src.readability_classifier.models.visual_classifier import VisualClassifier
+from src.readability_classifier.toch.semantic_classifier import SemanticClassifier
+from src.readability_classifier.toch.structural_classifier import StructuralClassifier
+from src.readability_classifier.toch.towards_classifier import TowardsClassifier
+from src.readability_classifier.toch.vi_st_classifier import ViStClassifier
+from src.readability_classifier.toch.visual_classifier import VisualClassifier
 from src.readability_classifier.utils.config import DEFAULT_MODEL_BATCH_SIZE
 
 

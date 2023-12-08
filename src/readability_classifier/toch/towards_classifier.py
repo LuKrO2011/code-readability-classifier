@@ -5,21 +5,26 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.models.base_classifier import BaseClassifier
-from src.readability_classifier.models.semantic_model import SemanticModel
+from src.readability_classifier.toch.base_classifier import BaseClassifier
+from src.readability_classifier.toch.towards_model import TowardsModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
     SemanticInput,
+    TowardsInput,
 )
 
 
-class SemanticClassifier(BaseClassifier):
+class TowardsClassifier(BaseClassifier):
     """
     A code readability classifier based on a CNN model. The model can be used to predict
     the readability of a code snippet.
-    The model is trained on code snippets and their corresponding scores. The model uses
-    the semantic features (RGB image) of the code snippets.
+    The model is trained on code snippets and their corresponding scores.
+    The model uses the following features:
+    - Structural features (ASCII matrix)
+    - Semantic features (Bert embedding)
+    - Visual features (Image of the code, where words are replaced by color bars
+    depending on their token type)
     """
 
     def __init__(
@@ -46,9 +51,9 @@ class SemanticClassifier(BaseClassifier):
         :param learning_rate: The learning rate.
         """
         if model_path is None:
-            model = SemanticModel.build_from_config()
+            model = TowardsModel.build_from_config()
         else:
-            model = SemanticModel.load_from_checkpoint(model_path)
+            model = TowardsModel.load_from_checkpoint(model_path)
 
         criterion = nn.BCELoss()
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -74,7 +79,10 @@ class SemanticClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        _, bert, _, _ = self._extract(batch)
+        matrix, bert, image, _ = self._extract(batch)
+        matrix = self._to_device(matrix)
+        image = self._to_device(image)
+
         input_ids, token_type_ids, attention_mask, segment_ids = self._extract_bert(
             bert
         )
@@ -83,9 +91,12 @@ class SemanticClassifier(BaseClassifier):
         attention_mask = attention_mask.to(self.device)
         if segment_ids is not None:
             segment_ids = segment_ids.to(self.device)
-        return SemanticInput(
+
+        semantic_input = SemanticInput(
             input_ids=input_ids,
             token_type_ids=token_type_ids,
             attention_mask=attention_mask,
             segment_ids=segment_ids,
         )
+
+        return TowardsInput(matrix, semantic_input, image)

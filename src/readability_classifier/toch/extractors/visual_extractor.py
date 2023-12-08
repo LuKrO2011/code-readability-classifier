@@ -4,7 +4,7 @@ import torch
 from torch import nn as nn
 
 from readability_classifier.utils.config import VisualInput
-from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.toch.base_model import BaseModel
 
 
 class VisualExtractorConfig:

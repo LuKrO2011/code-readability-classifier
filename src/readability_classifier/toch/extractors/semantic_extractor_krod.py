@@ -6,7 +6,7 @@ from torch import nn as nn
 from transformers import BertConfig, BertModel
 
 from readability_classifier.encoders.bert_encoder import DEFAULT_OWN_SEGMENT_IDS
-from src.readability_classifier.models.base_model import BaseModel
+from src.readability_classifier.toch.base_model import BaseModel
 from src.readability_classifier.utils.config import SemanticInput
 from src.readability_classifier.utils.utils import load_yaml_file
 

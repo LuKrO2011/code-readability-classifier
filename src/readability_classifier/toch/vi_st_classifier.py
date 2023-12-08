@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.models.base_classifier import BaseClassifier
-from src.readability_classifier.models.vi_st_model import ViStModel
+from src.readability_classifier.toch.base_classifier import BaseClassifier
+from src.readability_classifier.toch.vi_st_model import ViStModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,

@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from src.readability_classifier.models.fc_model import FullyConnectedModel
+from src.readability_classifier.toch.fc_model import FullyConnectedModel
 from src.readability_classifier.utils.config import BaseModelConfig, ModelInput
 from src.readability_classifier.utils.utils import load_yaml_file
 

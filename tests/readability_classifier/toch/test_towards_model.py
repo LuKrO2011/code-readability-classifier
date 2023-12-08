@@ -1,14 +1,14 @@
 import unittest
 
-from src.readability_classifier.models.towards_model import TowardsModel
+from src.readability_classifier.toch.towards_model import TowardsModel
 from src.readability_classifier.utils.config import TowardsInput
-from tests.readability_classifier.models.extractors.test_semantic_extractor import (
+from tests.readability_classifier.toch.extractors.test_semantic_extractor import (
     create_test_data as create_semantic_test_data,
 )
-from tests.readability_classifier.models.extractors.test_structural_extractor import (
+from tests.readability_classifier.toch.extractors.test_structural_extractor import (
     create_test_data as create_structural_test_data,
 )
-from tests.readability_classifier.models.extractors.test_visual_extractor import (
+from tests.readability_classifier.toch.extractors.test_visual_extractor import (
     create_test_data as create_visual_test_data,
 )
 

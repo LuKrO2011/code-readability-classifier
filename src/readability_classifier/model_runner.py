@@ -9,7 +9,7 @@ from readability_classifier.encoders.dataset_utils import (
     split_train_val,
 )
 from src.readability_classifier.model_buider import ClassifierBuilder
-from src.readability_classifier.models.towards_classifier import TowardsClassifier
+from src.readability_classifier.toch.towards_classifier import TowardsClassifier
 
 
 class ModelRunnerInterface(ABC):
