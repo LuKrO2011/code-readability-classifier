@@ -13,11 +13,11 @@ from readability_classifier.encoders.dataset_utils import (
     ReadabilityDataset,
     split_k_fold,
 )
-from src.readability_classifier.keras.history_processing import (
+from src.readability_classifier.keas.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
-from src.readability_classifier.keras.model import create_towards_model
+from src.readability_classifier.keas.model import create_towards_model
 
 # Define parameters
 MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"

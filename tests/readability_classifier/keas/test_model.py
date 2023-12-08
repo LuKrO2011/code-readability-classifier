@@ -4,8 +4,8 @@ import keras
 from keras import layers, models
 from keras.src.engine.keras_tensor import KerasTensor
 
-from src.readability_classifier.keras.legacy_encoders import MAX_LEN
-from src.readability_classifier.keras.model import (
+from src.readability_classifier.keas.legacy_encoders import MAX_LEN
+from src.readability_classifier.keas.model import (
     BertConfig,
     BertEmbedding,
     create_classification_layers,

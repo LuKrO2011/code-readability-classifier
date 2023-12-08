@@ -5,11 +5,11 @@ import keras
 import numpy as np
 
 from readability_classifier.encoders.dataset_utils import load_encoded_dataset
-from src.readability_classifier.keras.classifier import (
+from src.readability_classifier.keas.classifier import (
     Classifier,
     convert_to_towards_inputs,
 )
-from src.readability_classifier.keras.history_processing import HistoryList
+from src.readability_classifier.keas.history_processing import HistoryList
 
 RES_DIR = os.path.join(os.path.dirname(__file__), "../../res/")
 DATASET_DIR = RES_DIR + "encoded_datasets/bw/"

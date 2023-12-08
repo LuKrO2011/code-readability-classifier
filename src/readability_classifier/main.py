@@ -12,7 +12,7 @@ from readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
-from src.readability_classifier.keras.keras_model_runner import KerasModelRunner
+from src.readability_classifier.keas.keras_model_runner import KerasModelRunner
 from src.readability_classifier.model_buider import Model
 from src.readability_classifier.model_runner import (
     ModelRunnerInterface,

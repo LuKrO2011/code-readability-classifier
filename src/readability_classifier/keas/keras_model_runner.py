@@ -4,9 +4,9 @@ from dataclasses import asdict
 from pathlib import Path
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.keras.classifier import Classifier
-from src.readability_classifier.keras.history_processing import HistoryProcessor
-from src.readability_classifier.keras.model import create_towards_model
+from src.readability_classifier.keas.classifier import Classifier
+from src.readability_classifier.keas.history_processing import HistoryProcessor
+from src.readability_classifier.keas.model import create_towards_model
 from src.readability_classifier.model_runner import ModelRunnerInterface
 
 STATS_FILE_NAME = "stats.json"

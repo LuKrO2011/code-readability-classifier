@@ -2,7 +2,7 @@ import unittest
 
 import keras
 
-from src.readability_classifier.keras.history_processing import (
+from src.readability_classifier.keas.history_processing import (
     HistoryList,
     HistoryProcessor,
 )

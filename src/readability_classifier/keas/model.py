@@ -2,7 +2,7 @@ import keras
 import tensorflow as tf
 from keras import layers, models, optimizers, regularizers
 
-from src.readability_classifier.keras.legacy_encoders import MAX_LEN
+from src.readability_classifier.keas.legacy_encoders import MAX_LEN
 
 # Default values
 DEFAULT_LEARNING_RATE = 0.0015
