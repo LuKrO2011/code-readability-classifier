@@ -2,8 +2,10 @@ import unittest
 
 import torch
 
-from src.readability_classifier.toch.structural_model import StructuralModel
-from tests.readability_classifier.toch.test_structural_model import create_test_data
+from readability_classifier.toch.models.structural_model import StructuralModel
+from tests.readability_classifier.toch.models.test_structural_model import (
+    create_test_data,
+)
 
 BATCH_SIZE = 1
 LEARNING_RATE = 0.0015

@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from src.readability_classifier.keas.keras_model_runner import KerasModelRunner
+from src.readability_classifier.keas.model_runner import KerasModelRunner
 from src.readability_classifier.main import _run_encode, _run_train
 from tests.readability_classifier.utils.utils import ENCODED_BW_DIR, RAW_BW_DIR, DirTest
 

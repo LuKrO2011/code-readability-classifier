@@ -5,21 +5,22 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
+from readability_classifier.toch.models.vi_st_model import ViStModel
 from src.readability_classifier.toch.base_classifier import BaseClassifier
-from src.readability_classifier.toch.visual_model import VisualModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
-    VisualInput,
+    ViStModelInput,
 )
 
 
-class VisualClassifier(BaseClassifier):
+class ViStClassifier(BaseClassifier):
     """
     A code readability classifier based on a CNN model. The model can be used to predict
     the readability of a code snippet.
     The model is trained on code snippets and their corresponding scores. The model uses
-    the visual features (RGB image) of the code snippets.
+    the visual features (RGB image) and the structural features (character matrix) of
+    the code snippet to predict the readability.
     """
 
     def __init__(
@@ -46,9 +47,9 @@ class VisualClassifier(BaseClassifier):
         :param learning_rate: The learning rate.
         """
         if model_path is None:
-            model = VisualModel.build_from_config()
+            model = ViStModel.build_from_config()
         else:
-            model = VisualModel.load_from_checkpoint(model_path)
+            model = ViStModel.load_from_checkpoint(model_path)
 
         criterion = nn.BCELoss()
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -74,6 +75,7 @@ class VisualClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        _, _, image, _ = self._extract(batch)
+        matrix, _, image, _ = self._extract(batch)
         image = self._to_device(image)
-        return VisualInput(image)
+        matrix = self._to_device(matrix)
+        return ViStModelInput(image=image, matrix=matrix)

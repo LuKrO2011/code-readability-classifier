@@ -12,12 +12,12 @@ from readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
-from src.readability_classifier.keas.keras_model_runner import KerasModelRunner
-from src.readability_classifier.model_buider import Model
-from src.readability_classifier.model_runner import (
+from readability_classifier.toch.model_buider import Model
+from readability_classifier.toch.model_runner import (
     ModelRunnerInterface,
     TorchModelRunner,
 )
+from src.readability_classifier.keas.model_runner import KerasModelRunner
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"

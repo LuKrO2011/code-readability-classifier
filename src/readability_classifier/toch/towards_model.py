@@ -2,12 +2,12 @@ from pathlib import Path
 
 import torch
 
+from readability_classifier.toch.models.semantic_model import SemanticExtractorEnum
 from src.readability_classifier.toch.base_model import BaseModel
 from src.readability_classifier.toch.extractors.structural_extractor import (
     StructuralExtractor,
 )
 from src.readability_classifier.toch.extractors.visual_extractor import VisualExtractor
-from src.readability_classifier.toch.semantic_model import SemanticExtractorEnum
 from src.readability_classifier.utils.config import BaseModelConfig, TowardsInput
 
 

@@ -5,22 +5,21 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
+from readability_classifier.toch.models.semantic_model import SemanticModel
 from src.readability_classifier.toch.base_classifier import BaseClassifier
-from src.readability_classifier.toch.vi_st_model import ViStModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,
     ModelInput,
-    ViStModelInput,
+    SemanticInput,
 )
 
 
-class ViStClassifier(BaseClassifier):
+class SemanticClassifier(BaseClassifier):
     """
     A code readability classifier based on a CNN model. The model can be used to predict
     the readability of a code snippet.
     The model is trained on code snippets and their corresponding scores. The model uses
-    the visual features (RGB image) and the structural features (character matrix) of
-    the code snippet to predict the readability.
+    the semantic features (RGB image) of the code snippets.
     """
 
     def __init__(
@@ -47,9 +46,9 @@ class ViStClassifier(BaseClassifier):
         :param learning_rate: The learning rate.
         """
         if model_path is None:
-            model = ViStModel.build_from_config()
+            model = SemanticModel.build_from_config()
         else:
-            model = ViStModel.load_from_checkpoint(model_path)
+            model = SemanticModel.load_from_checkpoint(model_path)
 
         criterion = nn.BCELoss()
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -75,7 +74,18 @@ class ViStClassifier(BaseClassifier):
         :param batch: The batch to convert.
         :return: The model input.
         """
-        matrix, _, image, _ = self._extract(batch)
-        image = self._to_device(image)
-        matrix = self._to_device(matrix)
-        return ViStModelInput(image=image, matrix=matrix)
+        _, bert, _, _ = self._extract(batch)
+        input_ids, token_type_ids, attention_mask, segment_ids = self._extract_bert(
+            bert
+        )
+        input_ids = input_ids.to(self.device)
+        token_type_ids = token_type_ids.to(self.device)
+        attention_mask = attention_mask.to(self.device)
+        if segment_ids is not None:
+            segment_ids = segment_ids.to(self.device)
+        return SemanticInput(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            segment_ids=segment_ids,
+        )
