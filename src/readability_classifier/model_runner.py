@@ -1,14 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
 
-from src.readability_classifier.model_buider import ClassifierBuilder
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_utils import (
     ReadabilityDataset,
     dataset_to_dataloader,
     load_encoded_dataset,
     split_train_test,
     split_train_val,
 )
+from src.readability_classifier.model_buider import ClassifierBuilder
 from src.readability_classifier.models.towards_classifier import TowardsClassifier
 
 

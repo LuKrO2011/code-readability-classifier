@@ -6,17 +6,17 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from readability_classifier.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.encoders.dataset_utils import (
+    load_encoded_dataset,
+    load_raw_dataset,
+    store_encoded_dataset,
+)
 from src.readability_classifier.keras.keras_model_runner import KerasModelRunner
 from src.readability_classifier.model_buider import Model
 from src.readability_classifier.model_runner import (
     ModelRunnerInterface,
     TorchModelRunner,
-)
-from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from src.readability_classifier.models.encoders.dataset_utils import (
-    load_encoded_dataset,
-    load_raw_dataset,
-    store_encoded_dataset,
 )
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"

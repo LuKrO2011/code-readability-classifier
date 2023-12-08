@@ -20,8 +20,8 @@ from sklearn.metrics import (
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.encoders.dataset_utils import (
     ReadabilityDataset,
     dataset_to_dataloader,
     split_k_fold,

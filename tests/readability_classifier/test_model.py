@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from src.readability_classifier.models.encoders.dataset_encoder import DatasetEncoder
+from readability_classifier.encoders.dataset_encoder import DatasetEncoder
 from src.readability_classifier.models.towards_classifier import TowardsClassifier
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))

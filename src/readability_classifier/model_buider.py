@@ -5,7 +5,7 @@ from typing import Any
 from torch import nn
 from torch.utils.data import DataLoader
 
-from src.readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
+from readability_classifier.encoders.dataset_utils import ReadabilityDataset
 from src.readability_classifier.models.semantic_classifier import SemanticClassifier
 from src.readability_classifier.models.structural_classifier import StructuralClassifier
 from src.readability_classifier.models.towards_classifier import TowardsClassifier

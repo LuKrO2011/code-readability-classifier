@@ -4,7 +4,7 @@ import re
 import torch
 from transformers import BertTokenizer
 
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )

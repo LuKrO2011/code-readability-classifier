@@ -8,16 +8,16 @@ import keras
 import numpy as np
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 
+from readability_classifier.encoders.dataset_utils import (
+    Fold,
+    ReadabilityDataset,
+    split_k_fold,
+)
 from src.readability_classifier.keras.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
 from src.readability_classifier.keras.model import create_towards_model
-from src.readability_classifier.models.encoders.dataset_utils import (
-    Fold,
-    ReadabilityDataset,
-    split_k_fold,
-)
 
 # Define parameters
 MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"

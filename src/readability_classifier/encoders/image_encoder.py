@@ -14,7 +14,7 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import JavaLexer
 from torch import Tensor
 
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )
@@ -74,7 +74,7 @@ class VisualEncoder(EncoderInterface):
 
 DEFAULT_OUT = "code.png"
 DEFAULT_IN = "code.java"
-DEFAULT_CSS = os.path.join(os.path.dirname(__file__), "../../../res/css/towards.css")
+DEFAULT_CSS = os.path.join(os.path.dirname(__file__), "../../res/css/towards.css")
 HEX_REGEX = r"#[0-9a-fA-F]{6}"
 
 

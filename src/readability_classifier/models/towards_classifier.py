@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from readability_classifier.encoders.dataset_utils import ReadabilityDataset
 from src.readability_classifier.models.base_classifier import BaseClassifier
-from src.readability_classifier.models.encoders.dataset_utils import ReadabilityDataset
 from src.readability_classifier.models.towards_model import TowardsModel
 from src.readability_classifier.utils.config import (
     DEFAULT_MODEL_BATCH_SIZE,

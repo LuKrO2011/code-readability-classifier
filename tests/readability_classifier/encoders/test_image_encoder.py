@@ -1,15 +1,12 @@
 import os
 import unittest
 
-from src.readability_classifier.models.encoders.dataset_utils import load_raw_dataset
-from src.readability_classifier.models.encoders.image_encoder import (
-    VisualEncoder,
-    _code_to_image,
-)
+from readability_classifier.encoders.dataset_utils import load_raw_dataset
+from readability_classifier.encoders.image_encoder import VisualEncoder, _code_to_image
 from src.readability_classifier.utils.utils import load_code
 from tests.readability_classifier.utils.utils import DirTest
 
-RES_DIR = os.path.join(os.path.dirname(__file__), "../../../res/")
+RES_DIR = os.path.join(os.path.dirname(__file__), "../../res/")
 CODE_DIR = RES_DIR + "code_snippets/"
 
 

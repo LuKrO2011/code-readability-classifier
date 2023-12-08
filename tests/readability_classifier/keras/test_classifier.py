@@ -4,14 +4,12 @@ import unittest
 import keras
 import numpy as np
 
+from readability_classifier.encoders.dataset_utils import load_encoded_dataset
 from src.readability_classifier.keras.classifier import (
     Classifier,
     convert_to_towards_inputs,
 )
 from src.readability_classifier.keras.history_processing import HistoryList
-from src.readability_classifier.models.encoders.dataset_utils import (
-    load_encoded_dataset,
-)
 
 RES_DIR = os.path.join(os.path.dirname(__file__), "../../res/")
 DATASET_DIR = RES_DIR + "encoded_datasets/bw/"

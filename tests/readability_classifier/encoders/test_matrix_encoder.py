@@ -1,10 +1,10 @@
 import numpy as np
 
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
-from src.readability_classifier.models.encoders.matrix_encoder import (
+from readability_classifier.encoders.matrix_encoder import (
     MatrixEncoder,
     java_to_structural_representation,
 )

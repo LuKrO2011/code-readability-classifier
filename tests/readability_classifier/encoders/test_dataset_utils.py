@@ -1,8 +1,6 @@
 import unittest
 
-from src.readability_classifier.models.encoders.dataset_utils import (
-    load_encoded_dataset,
-)
+from readability_classifier.encoders.dataset_utils import load_encoded_dataset
 from tests.readability_classifier.utils.utils import ENCODED_SCALABRIO_DIR
 
 

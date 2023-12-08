@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import torch
 
-from src.readability_classifier.models.encoders.dataset_utils import (
+from readability_classifier.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )
