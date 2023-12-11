@@ -30,7 +30,6 @@ class KerasModelRunner(ModelRunnerInterface):
         logging.warning("Keras only supports cross-validation.")
         self._run_with_cross_validation(parsed_args, encoded_data)
 
-    # TODO: Use parsed args
     def _run_with_cross_validation(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the training of the readability classifier with cross-validation.
@@ -39,15 +38,20 @@ class KerasModelRunner(ModelRunnerInterface):
         :return: None
         """
         # Get the parsed arguments
-        # model = parsed_args.model
         store_dir = parsed_args.save
-        # batch_size = parsed_args.batch_size
-        # num_epochs = parsed_args.epochs
-        # learning_rate = parsed_args.learning_rate
+        batch_size = parsed_args.batch_size
+        epochs = parsed_args.epochs
+        learning_rate = parsed_args.learning_rate
 
         # Build the model
-        towards_model = create_towards_model()
-        classifier = Classifier(towards_model, encoded_data)
+        towards_model = create_towards_model(learning_rate=learning_rate)
+        classifier = Classifier(
+            model=towards_model,
+            encoded_data=encoded_data,
+            store_dir=store_dir,
+            batch_size=batch_size,
+            epochs=epochs,
+        )
 
         # Train the model
         history = classifier.train()
@@ -57,6 +61,15 @@ class KerasModelRunner(ModelRunnerInterface):
         store_path = Path(store_dir) / STATS_FILE_NAME
         with open(store_path, "w") as file:
             json.dump(asdict(processed_history), file, indent=4)
+
+    def _run_fine_tuning(self, parsed_args, encoded_data: ReadabilityDataset):
+        """
+        Runs the fine-tuning of the readability classifier.
+        :param parsed_args: Parsed arguments.
+        :param encoded_data: The encoded dataset.
+        :return: None
+        """
+        raise NotImplementedError("Keras fine-tuning is not implemented yet.")
 
     def run_predict(self, parsed_args):
         """

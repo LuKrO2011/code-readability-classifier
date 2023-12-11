@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 import sys
 from argparse import ArgumentParser
 from enum import Enum
@@ -25,6 +26,7 @@ DEFAULT_MODEL_FILE = "model"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_SAVE_DIR = os.path.join(CURR_DIR, "../../models")
 KERAS = True
+SEED = 42
 
 
 def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) -> None:
@@ -79,6 +81,7 @@ class Tasks(Enum):
 
     ENCODE = "ENCODE"
     TRAIN = "TRAIN"
+    FINE_TUNE = "FINE_TUNE"
     EVALUATE = "EVALUATE"
     PREDICT = "PREDICT"
 
@@ -344,6 +347,9 @@ def main(args: list[str]) -> int:
         folder_name = Path(parsed_args.save).name
         logfile = folder_path / Path(f"{DEFAULT_LOG_FILE_NAME}-{folder_name}.log")
     _setup_logging(logfile, overwrite=True)
+
+    # Set the seed
+    random.seed(SEED)
 
     # Set up the model runner
     model_runner = KerasModelRunner() if KERAS else TorchModelRunner()

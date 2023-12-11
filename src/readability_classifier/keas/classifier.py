@@ -1,7 +1,5 @@
-import json
 import logging
 import random
-from dataclasses import asdict
 from pathlib import Path
 
 import keras
@@ -13,20 +11,17 @@ from readability_classifier.encoders.dataset_utils import (
     ReadabilityDataset,
     split_k_fold,
 )
-from src.readability_classifier.keas.history_processing import (
-    HistoryList,
-    HistoryProcessor,
-)
-from src.readability_classifier.keas.model import create_towards_model
+from src.readability_classifier.keas.history_processing import HistoryList
 
 # Define parameters
-MODEL_OUTPUT = "../../res/keras/Experimental output/towards_best.h5"
-STORE_DIR = "../../res/keras/Experimental output"
 STATS_FILE_NAME = "stats.json"
+DEFAULT_STORE_DIR = "output"
 
-# Seed
-SEED = 42
-random.seed(SEED)
+
+# TODO : UserWarning: You are saving your model as an HDF5 file via `model.save()`.
+#  This file format is considered legacy. We recommend using instead the native Keras
+#  format, e.g. `model.save('my_model.keras')`. But: For checkpoint ".keras" is not
+#  working
 
 
 def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
@@ -61,6 +56,8 @@ class Classifier:
         k_fold: int = 10,
         epochs: int = 20,
         batch_size: int = 42,
+        layer_names_to_freeze: list[str] = None,
+        store_dir: str = DEFAULT_STORE_DIR,
     ):
         """
         Initializes the classifier.
@@ -69,6 +66,8 @@ class Classifier:
         :param k_fold: The number of folds.
         :param epochs: The number of epochs.
         :param batch_size: The batch size.
+        :param layer_names_to_freeze: The layer names to freeze.
+        :param store_dir: The store directory.
         """
         self.model = model
         self.initial_weights = model.get_weights()
@@ -76,6 +75,8 @@ class Classifier:
         self.k_fold = k_fold
         self.epochs = epochs
         self.batch_size = batch_size
+        self.layer_names_to_freeze = layer_names_to_freeze or []
+        self.store_dir = store_dir
 
     def train(self) -> HistoryList:
         """
@@ -109,24 +110,31 @@ class Classifier:
         folds = split_k_fold(ReadabilityDataset(towards_inputs), k_fold=self.k_fold)
         for fold_index, fold in enumerate(folds):
             logging.info(f"Starting fold {fold_index + 1}/{self.k_fold}")
-            fold_history = self.train_fold(fold)
+            fold_history = self.train_fold(fold, fold_index + 1)
             history.fold_histories.append(fold_history)
 
         return history
 
-    def train_fold(self, fold: Fold) -> keras.callbacks.History:
+    def train_fold(self, fold: Fold, fold_index: int = -1) -> keras.callbacks.History:
         """
         Train the model for a fold.
         :param fold: The fold.
+        :param fold_index: The fold index.
         :return: The history of the fold.
         """
         # Reset the model
         model = self.model
         model.set_weights(self.initial_weights)
 
+        # Freeze layers
+        for layer in model.layers:
+            if layer.name in self.layer_names_to_freeze:
+                layer.trainable = False
+
         # Train the model
+        store_path = str(Path(self.store_dir) / f"model_{fold_index}.h5")
         checkpoint = ModelCheckpoint(
-            MODEL_OUTPUT, monitor="val_acc", verbose=1, save_best_only=True, model="max"
+            store_path, monitor="val_acc", verbose=1, save_best_only=True, model="max"
         )
         callbacks = [checkpoint]
         return model.fit(
@@ -166,30 +174,3 @@ class Classifier:
         :return: The towards output.
         """
         return np.asarray([x["label"] for x in dataset])
-
-
-def main():
-    """
-    Deprecated: Uses the old data encoders.
-    :return: None
-    """
-    # Setup logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler("towards.log"),
-            logging.StreamHandler(),
-        ],
-    )
-
-    # Train the model
-    towards_model = create_towards_model()
-    classifier = Classifier(towards_model)
-    history = classifier.train()
-
-    # Save the history
-    processed_history = HistoryProcessor().evaluate(history)
-    store_path = Path(STORE_DIR) / STATS_FILE_NAME
-    with open(store_path, "w") as file:
-        json.dump(asdict(processed_history), file, indent=4)
