@@ -81,7 +81,6 @@ class Tasks(Enum):
 
     ENCODE = "ENCODE"
     TRAIN = "TRAIN"
-    FINE_TUNE = "FINE_TUNE"
     EVALUATE = "EVALUATE"
     PREDICT = "PREDICT"
 
@@ -205,6 +204,22 @@ def _set_up_arg_parser() -> ArgumentParser:
         type=float,
         default=0.0015,
         help="The learning rate for training.",
+    )
+    train_parser.add_argument(
+        "--fine-tune",
+        required=False,
+        default=None,
+        type=Path,
+        help="Path to the model to fine-tune. If not specified, no fine-tuning is "
+        "performed and the model is trained from scratch.",
+    )
+    train_parser.add_argument(
+        "--freeze",
+        required=False,
+        default=[],
+        nargs="+",
+        type=str,
+        help="The layer names to freeze.",
     )
 
     # Parser for the evaluation task

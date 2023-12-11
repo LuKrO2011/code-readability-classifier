@@ -22,6 +22,9 @@ MI_DIR = RES_DIR / "mi"
 MI_RAW_DIR = MI_DIR / "raw"
 MI_STRUCTURAL_DIR = MI_DIR / "structural"
 
+MODELS_DIR = RES_DIR / "models"
+TOWARDS_MODEL = MODELS_DIR / "towards.h5"
+
 
 class DirTest(unittest.TestCase):
     output_dir_name = None  # Set to "output" to generate output

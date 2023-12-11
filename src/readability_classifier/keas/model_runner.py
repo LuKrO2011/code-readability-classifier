@@ -3,11 +3,13 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
+import keras.models
+
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
 from readability_classifier.toch.model_runner import ModelRunnerInterface
 from src.readability_classifier.keas.classifier import Classifier
 from src.readability_classifier.keas.history_processing import HistoryProcessor
-from src.readability_classifier.keas.model import create_towards_model
+from src.readability_classifier.keas.model import BertEmbedding, create_towards_model
 
 STATS_FILE_NAME = "stats.json"
 
@@ -40,17 +42,31 @@ class KerasModelRunner(ModelRunnerInterface):
         # Get the parsed arguments
         store_dir = parsed_args.save
         batch_size = parsed_args.batch_size
+        num_folds = parsed_args.k_fold
         epochs = parsed_args.epochs
         learning_rate = parsed_args.learning_rate
+        fine_tune = parsed_args.fine_tune
+        layer_names_to_freeze = parsed_args.freeze
 
         # Build the model
         towards_model = create_towards_model(learning_rate=learning_rate)
+
+        # Load the pretrained model if available
+        if fine_tune is not None:
+            pretrained_model = keras.models.load_model(
+                fine_tune, custom_objects={"BertEmbedding": BertEmbedding}
+            )
+            towards_model.set_weights(pretrained_model.get_weights())
+
+        # Create the classifier
         classifier = Classifier(
             model=towards_model,
             encoded_data=encoded_data,
             store_dir=store_dir,
             batch_size=batch_size,
+            k_fold=num_folds,
             epochs=epochs,
+            layer_names_to_freeze=layer_names_to_freeze,
         )
 
         # Train the model
