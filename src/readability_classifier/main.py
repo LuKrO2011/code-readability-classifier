@@ -177,9 +177,8 @@ def _set_up_arg_parser() -> ArgumentParser:
         "-k",
         required=False,
         type=int,
-        default=0,
-        help="The number of folds for k-fold cross-validation. "
-        "If 0, no cross-validation is performed.",
+        default=10,
+        help="The number of folds for k-fold cross-validation.",
     )
     train_parser.add_argument(
         "--batch-size",

@@ -1,5 +1,6 @@
 import json
 import logging
+import pickle
 from dataclasses import asdict
 from pathlib import Path
 
@@ -75,6 +76,12 @@ class KerasModelRunner(ModelRunnerInterface):
 
         # Train the model
         history = classifier.train()
+
+        # Store the history as pkl
+        store_path = Path(store_dir) / "history.pkl"
+        with open(store_path, "wb") as file:
+            pickle.dump(history, file)
+
         processed_history = HistoryProcessor().evaluate(history)
 
         # Load the compare stats

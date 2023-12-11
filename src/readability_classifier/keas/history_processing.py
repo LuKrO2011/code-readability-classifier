@@ -49,6 +49,7 @@ class Stats:
     A class for storing the statistics of a model.
     """
 
+    epoch: int | None
     acc: float
     precision: float
     recall: float
@@ -83,6 +84,7 @@ class EpochStats:
     A class for storing the statistics of an epoch.
     """
 
+    epoch: int
     train_stats: TrainStats | None
     val_stats: ValidationStats | None
     tp: int
@@ -102,6 +104,7 @@ class EpochStats:
         :return: The statistics.
         """
         return Stats(
+            epoch=self.epoch,
             acc=self.acc,
             precision=self.precision,
             recall=self.recall,
@@ -212,6 +215,7 @@ class OverallStats:
             best_folds.append(fold.get_best())
 
         return Stats(
+            epoch=None,
             acc=np.mean([fold.acc for fold in best_folds]),
             precision=np.mean([fold.precision for fold in best_folds]),
             recall=np.mean([fold.recall for fold in best_folds]),
@@ -272,6 +276,10 @@ class HistoryProcessor:
         :return: The training accuracy, f1, auc, and mcc of the fold.
         """
         history_dict = fold_history.history
+        train_loss = [float(x) for x in get_from_dict(history_dict, "loss")]
+        train_acc = [float(x) for x in get_from_dict(history_dict, "acc")]
+        val_loss = [float(x) for x in get_from_dict(history_dict, "val_loss")]
+        val_acc = [float(x) for x in get_from_dict(history_dict, "val_acc")]
         val_false_negatives = [
             int(x) for x in get_from_dict(history_dict, "val_false_negatives")
         ]
@@ -289,6 +297,10 @@ class HistoryProcessor:
         for i in range(len(val_false_negatives)):
             epoch_statum = self.evaluate_epoch(
                 epoch_index=i,
+                train_loss=train_loss,
+                train_acc=train_acc,
+                val_loss=val_loss,
+                val_acc=val_acc,
                 false_negatives=val_false_negatives,
                 false_positives=val_false_positives,
                 true_negatives=val_true_negatives,
@@ -316,6 +328,10 @@ class HistoryProcessor:
     @staticmethod
     def evaluate_epoch(
         epoch_index: int,
+        train_loss: list[float],
+        train_acc: list[float],
+        val_loss: list[float],
+        val_acc: list[float],
         false_negatives: list[int],
         false_positives: list[int],
         true_negatives: list[int],
@@ -324,12 +340,25 @@ class HistoryProcessor:
         """
         Evaluate an epoch of the model.
         :param epoch_index: The index of the epoch.
+        :param train_loss: The list of training losses.
+        :param train_acc: The list of training accuracies.
+        :param val_loss: The list of validation losses.
+        :param val_acc: The list of validation accuracies.
         :param false_negatives: The list of false negatives.
         :param false_positives: The list of false positives.
         :param true_negatives: The list of true negatives.
         :param true_positives: The list of true positives.
         :return: The statistics of the epoch.
         """
+        # Format train and validation stats
+        train_stats = TrainStats(
+            acc=train_acc[epoch_index], loss=train_loss[epoch_index]
+        )
+        val_stats = ValidationStats(
+            acc=val_acc[epoch_index], loss=val_loss[epoch_index]
+        )
+
+        # Calculate the statistics
         tp = true_positives[epoch_index]
         tn = true_negatives[epoch_index]
         fp = false_positives[epoch_index]
@@ -341,8 +370,9 @@ class HistoryProcessor:
         f1 = calculate_f1_score(precision=precision, recall=recall)
         auc = calculate_auc(precision=precision, recall=recall)
         return EpochStats(
-            train_stats=None,
-            val_stats=None,
+            epoch=epoch_index,
+            train_stats=train_stats,
+            val_stats=val_stats,
             tp=tp,
             tn=tn,
             fp=fp,

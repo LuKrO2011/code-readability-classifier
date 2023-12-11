@@ -1,3 +1,4 @@
+import pickle
 import unittest
 
 import keras
@@ -6,10 +7,15 @@ from src.readability_classifier.keas.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
+from tests.readability_classifier.utils.utils import HISTORY_FILE
 
 
 class TestHistoryProcessor(unittest.TestCase):
     def test_evaluate_epoch(self):
+        train_loss = [0.1, 0.2, 0.3]
+        train_acc = [0.9, 0.8, 0.7]
+        val_loss = [0.4, 0.5, 0.6]
+        val_acc = [0.6, 0.5, 0.4]
         false_negatives = [0, 1, 2]
         false_positives = [1, 2, 3]
         true_negatives = [3, 2, 1]
@@ -17,12 +23,21 @@ class TestHistoryProcessor(unittest.TestCase):
 
         epoch_stats = HistoryProcessor.evaluate_epoch(
             epoch_index=1,
+            train_loss=train_loss,
+            train_acc=train_acc,
+            val_loss=val_loss,
+            val_acc=val_acc,
             false_negatives=false_negatives,
             false_positives=false_positives,
             true_negatives=true_negatives,
             true_positives=true_positives,
         )
 
+        assert epoch_stats.epoch == 1
+        assert epoch_stats.train_stats.loss == 0.2
+        assert epoch_stats.train_stats.acc == 0.8
+        assert epoch_stats.val_stats.loss == 0.5
+        assert epoch_stats.val_stats.acc == 0.5
         assert epoch_stats.acc == 0.625
         assert epoch_stats.precision == 0.6
         assert epoch_stats.recall == 0.75
@@ -32,6 +47,10 @@ class TestHistoryProcessor(unittest.TestCase):
 
     def test_evaluate_fold(self):
         fake_history = keras.callbacks.History()
+        fake_history.history["loss"] = [0.1, 0.2, 0.3]
+        fake_history.history["acc"] = [0.9, 0.8, 0.7]
+        fake_history.history["val_loss"] = [0.1, 0.2, 0.3]
+        fake_history.history["val_acc"] = [0.9, 0.8, 0.7]
         fake_history.history["val_false_negatives"] = [0, 1, 2]
         fake_history.history["val_false_positives"] = [1, 2, 3]
         fake_history.history["val_true_positives"] = [3, 2, 1]
@@ -57,6 +76,10 @@ class TestHistoryProcessor(unittest.TestCase):
 
     def test_evaluate(self):
         fake_history = keras.callbacks.History()
+        fake_history.history["loss"] = [0.1, 0.2, 0.3]
+        fake_history.history["acc"] = [0.9, 0.8, 0.7]
+        fake_history.history["val_loss"] = [0.1, 0.2, 0.3]
+        fake_history.history["val_acc"] = [0.9, 0.8, 0.7]
         fake_history.history["val_false_negatives"] = [0, 1, 2]
         fake_history.history["val_false_positives"] = [1, 2, 3]
         fake_history.history["val_true_positives"] = [3, 2, 1]
@@ -75,3 +98,12 @@ class TestHistoryProcessor(unittest.TestCase):
         assert best_fold.auc == average_fold.auc == 0.875
         assert best_fold.f1 == average_fold.f1 == 0.8571428571428571
         assert best_fold.mcc == average_fold.mcc == 0.7071067811865476
+
+    def test_evaluate_from_pkl(self):
+        with open(HISTORY_FILE, "rb") as file:
+            history = pickle.load(file)
+
+        overall_stats = HistoryProcessor().evaluate(history)
+        assert len(overall_stats.fold_stats) == 10
+
+        # TODO: Use correct pkl
