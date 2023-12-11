@@ -19,6 +19,9 @@ DEFAULT_METRICS = [
 ]
 
 
+# TODO:  The name tf.nn.max_pool is deprecated. Please use tf.nn.max_pool2d instead.
+
+
 def create_classification_layers(input_layer: tf.Tensor) -> tf.Tensor:
     """
     Create the classification model.
@@ -26,11 +29,14 @@ def create_classification_layers(input_layer: tf.Tensor) -> tf.Tensor:
     :return: The output layer of the model.
     """
     dense1 = layers.Dense(
-        units=64, activation="relu", kernel_regularizer=regularizers.l2(0.001)
+        units=64,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(0.001),
+        name="class_dense1",
     )(input_layer)
-    drop = layers.Dropout(0.5)(dense1)
-    dense2 = layers.Dense(units=16, activation="relu", name="random_detail")(drop)
-    return layers.Dense(1, activation="sigmoid")(dense2)
+    drop = layers.Dropout(0.5, name="class_dropout")(dense1)
+    dense2 = layers.Dense(units=16, activation="relu", name="class_dense2")(drop)
+    return layers.Dense(1, activation="sigmoid", name="class_dense3")(dense2)
 
 
 def create_structural_extractor(
@@ -41,17 +47,25 @@ def create_structural_extractor(
     :param input_shape: The input shape of the model.
     :return: The input layer and the flattened layer.
     """
-    model_input = layers.Input(shape=input_shape, name="structure")
-    reshaped_input = layers.Reshape((*input_shape, 1))(model_input)
+    model_input = layers.Input(shape=input_shape, name="struc_input")
+    reshaped_input = layers.Reshape((*input_shape, 1), name="struc_reshape")(
+        model_input
+    )
 
-    conv1 = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(reshaped_input)
-    pool1 = layers.MaxPooling2D(pool_size=2, strides=2)(conv1)
+    conv1 = layers.Conv2D(
+        filters=32, kernel_size=3, activation="relu", name="struc_conv1"
+    )(reshaped_input)
+    pool1 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool1")(conv1)
 
-    conv2 = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(pool1)
-    pool2 = layers.MaxPooling2D(pool_size=2, strides=2)(conv2)
+    conv2 = layers.Conv2D(
+        filters=32, kernel_size=3, activation="relu", name="struc_conv2"
+    )(pool1)
+    pool2 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool2")(conv2)
 
-    conv3 = layers.Conv2D(filters=64, kernel_size=3, activation="relu")(pool2)
-    pool3 = layers.MaxPooling2D(pool_size=3, strides=3)(conv3)
+    conv3 = layers.Conv2D(
+        filters=64, kernel_size=3, activation="relu", name="struc_conv3"
+    )(pool2)
+    pool3 = layers.MaxPooling2D(pool_size=3, strides=3, name="struc_pool3")(conv3)
 
     flattened = layers.Flatten()(pool3)
     return model_input, flattened
@@ -89,19 +103,19 @@ def create_semantic_extractor(
     :param input_shape: The input shape of the model.
     :return: The input layer, the token embedding layer, and the segment embedding layer
     """
-    token_input = layers.Input(shape=input_shape, name="token")
-    segment_input = layers.Input(shape=input_shape, name="segment")
+    token_input = layers.Input(shape=input_shape, name="seman_input_token")
+    segment_input = layers.Input(shape=input_shape, name="seman_input_segment")
 
-    embedding = BertEmbedding(config=BertConfig(max_sequence_length=MAX_LEN))(
-        [token_input, segment_input]
-    )
+    embedding = BertEmbedding(
+        config=BertConfig(max_sequence_length=MAX_LEN, name="seman_bert")
+    )([token_input, segment_input])
 
-    conv1 = layers.Conv1D(32, 5, activation="relu")(embedding)
-    pool1 = layers.MaxPooling1D(3)(conv1)
+    conv1 = layers.Conv1D(32, 5, activation="relu", name="seman_conv1")(embedding)
+    pool1 = layers.MaxPooling1D(3, name="seman_pool1")(conv1)
 
-    conv2 = layers.Conv1D(32, 5, activation="relu")(pool1)
+    conv2 = layers.Conv1D(32, 5, activation="relu", name="seman_conv2")(pool1)
 
-    gru = layers.Bidirectional(layers.LSTM(32))(conv2)
+    gru = layers.Bidirectional(layers.LSTM(32, name="seman_gru"))(conv2)
 
     return token_input, segment_input, gru
 
@@ -135,22 +149,22 @@ def create_visual_extractor(
     :param input_shape: The input shape of the model.
     :return: The input layer and the flattened layer.
     """
-    model_input = layers.Input(shape=input_shape, name="image")
+    model_input = layers.Input(shape=input_shape, name="vis_input")
 
-    conv1 = layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")(
-        model_input
-    )
-    pool1 = layers.MaxPooling2D(pool_size=2, strides=2)(conv1)
+    conv1 = layers.Conv2D(
+        filters=32, kernel_size=3, padding="same", activation="relu", name="vis_conv1"
+    )(model_input)
+    pool1 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool1")(conv1)
 
-    conv2 = layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")(
-        pool1
-    )
-    pool2 = layers.MaxPooling2D(pool_size=2, strides=2)(conv2)
+    conv2 = layers.Conv2D(
+        filters=32, kernel_size=3, padding="same", activation="relu", name="vis_conv2"
+    )(pool1)
+    pool2 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool2")(conv2)
 
-    conv3 = layers.Conv2D(filters=64, kernel_size=3, padding="same", activation="relu")(
-        pool2
-    )
-    pool3 = layers.MaxPooling2D(pool_size=2, strides=2)(conv3)
+    conv3 = layers.Conv2D(
+        filters=64, kernel_size=3, padding="same", activation="relu", name="vis_conv3"
+    )(pool2)
+    pool3 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool3")(conv3)
 
     flattened = layers.Flatten()(pool3)
     return model_input, flattened
