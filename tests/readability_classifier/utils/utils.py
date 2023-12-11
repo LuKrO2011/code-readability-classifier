@@ -25,6 +25,9 @@ MI_STRUCTURAL_DIR = MI_DIR / "structural"
 MODELS_DIR = RES_DIR / "models"
 TOWARDS_MODEL = MODELS_DIR / "towards.h5"
 
+RAW_DATA_DIR = RES_DIR / "raw_data"
+BW_SNIPPET_1 = RAW_DATA_DIR / "bw/Snippets/1.jsnp"
+
 
 class DirTest(unittest.TestCase):
     output_dir_name = None  # Set to "output" to generate output

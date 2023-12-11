@@ -11,6 +11,8 @@ from readability_classifier.encoders.dataset_utils import (
 from readability_classifier.encoders.image_encoder import VisualEncoder
 from readability_classifier.encoders.matrix_encoder import MatrixEncoder
 
+TOWARDS_SCORE_MEDIAN = 3.6809815950920246  # Median of the scores of the Towards dataset
+
 
 class DatasetEncoder(EncoderInterface):
     """
@@ -27,7 +29,7 @@ class DatasetEncoder(EncoderInterface):
         self.bert_encoder = BertEncoder()
         self.visual_encoder = VisualEncoder()
 
-    def encode_text(self, code_text: str) -> dict[str, torch.Tensor]:
+    def encode_text(self, code_text: str) -> ReadabilityDataset:
         """
         Encodes the given code snippet as a matrix, bert and image.
         :param code_text: The code snippet to encode.
@@ -37,17 +39,12 @@ class DatasetEncoder(EncoderInterface):
         bert = self.bert_encoder.encode_text(code_text)
         image = self.visual_encoder.encode_text(code_text)
 
-        # TODO: Add score normalization and encoding
-
         # Log successful encoding
         logging.info("All: Encoding done.")
 
-        return {
-            "matrix": matrix["matrix"],
-            "input_ids": bert["input_ids"],
-            "token_type_ids": bert["token_type_ids"],
-            "image": image["image"],
-        }
+        return ReadabilityDataset(
+            [{"matrix": matrix["matrix"], "bert": bert, "image": image["image"]}]
+        )
 
     def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
         """
@@ -162,3 +159,13 @@ class DatasetEncoder(EncoderInterface):
         :return: The encoded scores.
         """
         return torch.tensor(scores)
+
+
+def decode_score(score: Tensor) -> tuple[str, float]:
+    """
+    Decodes the given score to a tuple with class and score.
+    :param score: The score to decode.
+    :return: The decoded score.
+    """
+    score = score.item()
+    return "Readable" if score > 0.5 else "Unreadable", score

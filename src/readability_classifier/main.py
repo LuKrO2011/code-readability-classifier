@@ -263,14 +263,6 @@ def _set_up_arg_parser() -> ArgumentParser:
     predict_parser.add_argument(
         "--input", "-i", required=True, type=Path, help="Path to the snippet."
     )
-    predict_parser.add_argument(
-        "--token-length",
-        "-l",
-        required=False,
-        type=int,
-        default=512,
-        help="The token length of the snippet (cutting/padding applied).",
-    )
 
     return arg_parser
 
@@ -327,13 +319,30 @@ def _run_train(parsed_args, model_runner: ModelRunnerInterface) -> None:
     model_runner.run_train(parsed_args, encoded_data)
 
 
-def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> None:
+def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> tuple[str, float]:
     """
     Runs the prediction of the readability classifier.
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    model_runner.run_predict(parsed_args)
+    data_input = parsed_args.input
+
+    # Load the snippet
+    if not os.path.isfile(data_input):
+        raise FileNotFoundError(f"{data_input} does not exist.")
+
+    with open(data_input) as file:
+        data_input = file.read()
+
+    logging.info("Loaded Snippet: \n %s", data_input)
+
+    # Encode the snippet
+    logging.info("Encoding Snippet...")
+    encoded_snippet = DatasetEncoder().encode_text(data_input)
+
+    # Run the prediction
+    logging.info("Predicting Readability...")
+    return model_runner.run_predict(parsed_args, encoded_snippet)
 
 
 def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:

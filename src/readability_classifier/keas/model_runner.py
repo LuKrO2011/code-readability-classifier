@@ -5,9 +5,13 @@ from pathlib import Path
 
 import keras.models
 
+from readability_classifier.encoders.dataset_encoder import decode_score
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
 from readability_classifier.toch.model_runner import ModelRunnerInterface
-from src.readability_classifier.keas.classifier import Classifier
+from src.readability_classifier.keas.classifier import (
+    Classifier,
+    convert_to_towards_input_without_score,
+)
 from src.readability_classifier.keas.history_processing import HistoryProcessor
 from src.readability_classifier.keas.model import BertEmbedding, create_towards_model
 
@@ -78,22 +82,28 @@ class KerasModelRunner(ModelRunnerInterface):
         with open(store_path, "w") as file:
             json.dump(asdict(processed_history), file, indent=4)
 
-    def _run_fine_tuning(self, parsed_args, encoded_data: ReadabilityDataset):
-        """
-        Runs the fine-tuning of the readability classifier.
-        :param parsed_args: Parsed arguments.
-        :param encoded_data: The encoded dataset.
-        :return: None
-        """
-        raise NotImplementedError("Keras fine-tuning is not implemented yet.")
-
-    def run_predict(self, parsed_args):
+    def run_predict(
+        self, parsed_args, encoded_data: ReadabilityDataset
+    ) -> tuple[str, float]:
         """
         Runs the prediction of the readability classifier.
         :param parsed_args: Parsed arguments.
-        :return: None
+        :param encoded_data: A single encoded data point.
+        :return: The prediction as binary and as float (1 = readable, 0 = not readable).
         """
-        raise NotImplementedError("Keras prediction is not implemented yet.")
+        model_path = parsed_args.model
+
+        # Load the model
+        model = keras.models.load_model(
+            model_path, custom_objects={"BertEmbedding": BertEmbedding}
+        )
+
+        # Predict the readability of the snippet
+        towards_input = convert_to_towards_input_without_score(encoded_data)
+        prediction = model.predict(towards_input)
+        prediction = decode_score(prediction)
+        logging.info(f"Readability of snippet: {prediction}")
+        return prediction
 
     def run_evaluate(self, parsed_args):
         """
@@ -101,4 +111,7 @@ class KerasModelRunner(ModelRunnerInterface):
         :param parsed_args: Parsed arguments.
         :return: None
         """
-        raise NotImplementedError("Keras evaluation is not implemented yet.")
+        raise NotImplementedError(
+            "Keras evaluation is not implemented, as the model is evaluated during"
+            "training."
+        )

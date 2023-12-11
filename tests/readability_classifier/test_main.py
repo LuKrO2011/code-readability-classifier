@@ -2,8 +2,14 @@ import os
 import unittest
 
 from src.readability_classifier.keas.model_runner import KerasModelRunner
-from src.readability_classifier.main import _run_encode, _run_train
-from tests.readability_classifier.utils.utils import ENCODED_BW_DIR, RAW_BW_DIR, DirTest
+from src.readability_classifier.main import _run_encode, _run_predict, _run_train
+from tests.readability_classifier.utils.utils import (
+    BW_SNIPPET_1,
+    ENCODED_BW_DIR,
+    RAW_BW_DIR,
+    TOWARDS_MODEL,
+    DirTest,
+)
 
 
 class TestRunMain(DirTest):
@@ -46,6 +52,16 @@ class TestRunMain(DirTest):
     def test_run_evaluate(self):
         pass
 
-    @unittest.skip("Not implemented yet.")
     def test_run_predict(self):
-        pass
+        class MockParsedArgs:
+            def __init__(self):
+                self.input = BW_SNIPPET_1
+                self.model = TOWARDS_MODEL
+
+        parsed_args = MockParsedArgs()
+        model_runner = KerasModelRunner()
+
+        clazz, score = _run_predict(parsed_args, model_runner)
+
+        assert clazz == "Readable"
+        assert score == 0.875487744808197
