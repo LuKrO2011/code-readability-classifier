@@ -30,6 +30,7 @@ BW_SNIPPET_1 = RAW_DATA_DIR / "bw/Snippets/1.jsnp"
 
 HISTORY_DIR = RES_DIR / "history"
 HISTORY_FILE = HISTORY_DIR / "history.pkl"
+STATS_FILE = HISTORY_DIR / "stats.json"
 
 
 class DirTest(unittest.TestCase):

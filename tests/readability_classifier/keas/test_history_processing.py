@@ -1,5 +1,7 @@
+import json
 import pickle
-import unittest
+from dataclasses import asdict
+from pathlib import Path
 
 import keras
 
@@ -7,10 +9,10 @@ from src.readability_classifier.keas.history_processing import (
     HistoryList,
     HistoryProcessor,
 )
-from tests.readability_classifier.utils.utils import HISTORY_FILE
+from tests.readability_classifier.utils.utils import HISTORY_FILE, STATS_FILE, DirTest
 
 
-class TestHistoryProcessor(unittest.TestCase):
+class TestHistoryProcessor(DirTest):
     def test_evaluate_epoch(self):
         train_loss = [0.1, 0.2, 0.3]
         train_acc = [0.9, 0.8, 0.7]
@@ -103,7 +105,17 @@ class TestHistoryProcessor(unittest.TestCase):
         with open(HISTORY_FILE, "rb") as file:
             history = pickle.load(file)
 
-        overall_stats = HistoryProcessor().evaluate(history)
-        assert len(overall_stats.fold_stats) == 10
+        actual_stats = HistoryProcessor().evaluate(history)
 
-        # TODO: Use correct pkl
+        # Convert to json
+        file_name = "stats.json"
+        path = Path(self.output_dir) / file_name
+        with open(path, "w") as file:
+            json.dump(asdict(actual_stats), file, indent=4)
+        with open(path) as file:
+            actual_stats = json.load(file)
+
+        with open(STATS_FILE) as file:
+            expected_stats = json.load(file)
+
+        assert actual_stats == expected_stats
