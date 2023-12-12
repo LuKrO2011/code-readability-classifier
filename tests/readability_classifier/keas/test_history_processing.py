@@ -115,6 +115,7 @@ class TestHistoryProcessor(DirTest):
         with open(path) as file:
             actual_stats = json.load(file)
 
+        # Load expected stats
         with open(STATS_FILE) as file:
             expected_stats = json.load(file)
 
