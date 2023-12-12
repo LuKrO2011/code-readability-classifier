@@ -4,12 +4,8 @@
       "filename": "data-00000-of-00001.arrow"
     }
   ],
-  "_fingerprint": "bc2bf813aba099e8",
-  "_format_columns": [
-    "name",
-    "code_snippet",
-    "score"
-  ],
+  "_fingerprint": "228e00682147e769",
+  "_format_columns": null,
   "_format_kwargs": {},
   "_format_type": null,
   "_output_all_columns": false,
