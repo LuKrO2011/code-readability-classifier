@@ -13,3 +13,9 @@ class TestDatasetUtils(unittest.TestCase):
 
         # Check if encoded data is not empty
         assert len(encoded_data) > 0
+
+    def test_split_dataset(self):
+        data_dir = ENCODED_SCALABRIO_DIR.absolute()
+        encoded_data = load_encoded_dataset(data_dir)
+        encoded_data = encoded_data.split(10)
+        assert len(encoded_data) == 10

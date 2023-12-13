@@ -47,16 +47,21 @@ class ReadabilityDataset(Dataset):
         """
         return self.data
 
-    def split(self, split_size: int) -> list["ReadabilityDataset"]:
+    def split(self, parts: int) -> list["ReadabilityDataset"]:
         """
-        Splits the dataset into a list of datasets with the given size.
-        :param split_size: The size of the splits.
+        Splits the dataset into #parts datasets.
+        :param parts: The number of parts to split the dataset into.
         :return: A list of datasets.
         """
-        return [
-            ReadabilityDataset(self.data[i : i + split_size])
-            for i in range(0, len(self.data), split_size)
-        ]
+        # Get the data as list
+        data = self.to_list()
+
+        # Split the data into #parts parts
+        split_data = []
+        for i in range(parts):
+            split_data.append(ReadabilityDataset(data[i::parts]))
+
+        return split_data
 
 
 class EncoderInterface:

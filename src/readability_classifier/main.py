@@ -393,14 +393,14 @@ def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
         encoded_data = load_encoded_dataset(data_dir)
 
     # Use only a part of the dataset
-    encoded_data = encoded_data.split(split_size=parts)
+    encoded_data = encoded_data.split(parts=parts)
 
     if single:
         logging.info(f"Running a single evaluation on {1 / parts}% of the dataset...")
         model_runner.run_evaluate(parsed_args, encoded_data[0])
     else:
         for i, part in enumerate(encoded_data):
-            logging.info(f"Running evaluation for part {i + 1}...")
+            logging.info(f"Running evaluation for part {i + 1}/{parts}...")
             model_runner.run_evaluate(parsed_args, part)
 
 
