@@ -68,6 +68,9 @@ class KerasModelRunner(ModelRunnerInterface):
             if layer.name in layer_names_to_freeze:
                 layer.trainable = False
 
+        # Log model summary
+        logging.info(towards_model.summary(show_trainable=True))
+
         # Create the classifier
         classifier = Classifier(
             model=towards_model,
