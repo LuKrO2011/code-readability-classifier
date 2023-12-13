@@ -269,8 +269,6 @@ def _set_up_arg_parser() -> ArgumentParser:
         help="The batch size for evaluation.",
     )
     evaluate_parser.add_argument(
-        "--k-fold",
-        "-k",
         "--parts",
         "-p",
         required=False,
