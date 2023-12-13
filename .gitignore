@@ -283,6 +283,7 @@ poetry.toml
 
 # Ignore models
 tests/res/models/*
+/res/models/*
 
 # Ignore towards model output
 src/readability_classifier/Experimental output/*
