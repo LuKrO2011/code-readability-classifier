@@ -280,7 +280,6 @@ def _set_up_arg_parser() -> ArgumentParser:
     )
     evaluate_parser.add_argument(
         "--single",
-        "-s",
         required=False,
         default=False,
         action="store_true",
