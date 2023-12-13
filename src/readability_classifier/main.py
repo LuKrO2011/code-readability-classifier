@@ -268,6 +268,24 @@ def _set_up_arg_parser() -> ArgumentParser:
         default=8,
         help="The batch size for evaluation.",
     )
+    evaluate_parser.add_argument(
+        "--k-fold",
+        "-k",
+        "--parts",
+        "-p",
+        required=False,
+        type=int,
+        default=10,
+        help="The number of parts to split the dataset into for evaluation.",
+    )
+    evaluate_parser.add_argument(
+        "--single",
+        "-s",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Whether the model should be evaluated on a single part only.",
+    )
 
     # Parser for the prediction task
     predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
@@ -367,6 +385,8 @@ def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
     """
     data_dir = parsed_args.input
     encoded = parsed_args.encoded
+    parts = parsed_args.parts
+    single = parsed_args.single
 
     # Load the dataset
     if not encoded:
@@ -375,14 +395,16 @@ def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
     else:
         encoded_data = load_encoded_dataset(data_dir)
 
-    # TODO: Make this a parameter
-    # Split the data into 10 parts
-    encoded_data = encoded_data.split(10)
+    # Use only a part of the dataset
+    encoded_data = encoded_data.split(split_size=parts)
 
-    # Run the evaluation for each part
-    for i, part in enumerate(encoded_data):
-        logging.info(f"Running evaluation for part {i + 1}...")
-        model_runner.run_evaluate(parsed_args, part)
+    if single:
+        logging.info(f"Running a single evaluation on {1 / parts}% of the dataset...")
+        model_runner.run_evaluate(parsed_args, encoded_data[0])
+    else:
+        for i, part in enumerate(encoded_data):
+            logging.info(f"Running evaluation for part {i + 1}...")
+            model_runner.run_evaluate(parsed_args, part)
 
 
 def main(args: list[str]) -> int:
