@@ -61,7 +61,7 @@ class TestHistoryProcessor(DirTest):
         history_list = HistoryList([fake_history])
 
         fold_stats = HistoryProcessor().evaluate_fold(
-            fold_index=0, fold_history=history_list.fold_histories[0]
+            fold_history=history_list.fold_histories[0], fold_index=0
         )
 
         assert len(fold_stats.epoch_stats) == 3

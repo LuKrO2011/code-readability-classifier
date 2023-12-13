@@ -63,10 +63,11 @@ class ModelRunnerInterface(ABC):
         pass
 
     @abstractmethod
-    def run_evaluate(self, parsed_args):
+    def run_evaluate(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the evaluation of the readability classifier.
         :param parsed_args: Parsed arguments.
+        :param encoded_data: The encoded dataset.
         :return: None
         """
         pass

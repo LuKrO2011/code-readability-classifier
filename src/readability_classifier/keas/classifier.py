@@ -165,6 +165,30 @@ class Classifier:
             ),
         )
 
+    def evaluate(self) -> dict[str, float]:
+        """
+        Evaluate the model.
+        :return: The history of the evaluation.
+        """
+        # Convert the encoded data to towards input
+        towards_input = ReadabilityDataset(convert_to_towards_inputs(self.encoded_data))
+
+        # Evaluate the model
+        metric_values = self.model.evaluate(
+            x=self._dataset_to_input(towards_input),
+            y=self._dataset_to_label(towards_input),
+            batch_size=self.batch_size,
+        )
+        metric_names = self.model.metrics_names
+        metrics = dict(zip(metric_names, metric_values, strict=True))
+
+        # Log the metrics
+        logging.info("Metrics:")
+        for metric_name, metric_value in metrics.items():
+            logging.info(f"{metric_name}: {metric_value}")
+
+        return metrics
+
     @staticmethod
     def _dataset_to_input(
         dataset: ReadabilityDataset,

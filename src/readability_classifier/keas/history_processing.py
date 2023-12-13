@@ -230,6 +230,31 @@ class HistoryProcessor:
     A class for processing the history of a model.
     """
 
+    def evaluate_metrics(self, metrics: dict[str, float | int]) -> Stats:
+        """
+        Evaluate the metrics of the model by converting them to stats.
+        :param metrics: The history of the model.
+        :return: The overall statistics.
+        """
+        stats = self.evaluate_epoch_2(
+            epoch_index=-1,
+            false_negatives=metrics["false_negatives"],
+            false_positives=metrics["false_positives"],
+            true_negatives=metrics["true_negatives"],
+            true_positives=metrics["true_positives"],
+        )
+
+        logging.info(
+            f"Validation acc score: {stats.acc}\n"
+            f"Validation precision score: {stats.precision}\n"
+            f"Validation recall score: {stats.recall}\n"
+            f"Validation f1 score: {stats.f1}\n"
+            f"Validation auc score: {stats.auc}\n"
+            f"Validation mcc score: {stats.mcc}\n"
+        )
+
+        return stats
+
     def evaluate(self, history: HistoryList) -> OverallStats:
         """
         Evaluate the model.
@@ -239,7 +264,7 @@ class HistoryProcessor:
         fold_stats = []
         for epoch_time, fold_history in enumerate(history.fold_histories):
             fold_statum = self.evaluate_fold(
-                fold_index=epoch_time, fold_history=fold_history
+                fold_history=fold_history, fold_index=epoch_time
             )
             fold_stats.append(fold_statum)
 
@@ -265,9 +290,7 @@ class HistoryProcessor:
         return overall_stats
 
     def evaluate_fold(
-        self,
-        fold_index: int,
-        fold_history: keras.callbacks.History,
+        self, fold_history: keras.callbacks.History, fold_index: int = -1
     ) -> FoldStats:
         """
         Evaluate the model for a fold.
@@ -377,6 +400,43 @@ class HistoryProcessor:
             tn=tn,
             fp=fp,
             fn=fn,
+            acc=acc,
+            precision=precision,
+            recall=recall,
+            auc=auc,
+            f1=f1,
+            mcc=mcc,
+        )
+
+    @staticmethod
+    def evaluate_epoch_2(
+        epoch_index: int,
+        false_negatives: int,
+        false_positives: int,
+        true_negatives: int,
+        true_positives: int,
+    ) -> Stats:
+        """
+        Evaluate an epoch of the model.
+        :param epoch_index: The index of the epoch.
+        :param false_negatives: The false negatives.
+        :param false_positives: The false positives.
+        :param true_negatives: The true negatives.
+        :param true_positives: The true positives.
+        :return: The statistics of the epoch.
+        """
+        tp = true_positives
+        tn = true_negatives
+        fp = false_positives
+        fn = false_negatives
+        acc = (tp + tn) / (tp + tn + fp + fn)
+        mcc = calculate_mcc(tp=tp, tn=tn, fp=fp, fn=fn)
+        precision = calculate_precision(tp=tp, fp=fp)
+        recall = calculate_recall(tp=tp, fn=fn)
+        f1 = calculate_f1_score(precision=precision, recall=recall)
+        auc = calculate_auc(precision=precision, recall=recall)
+        return Stats(
+            epoch=epoch_index,
             acc=acc,
             precision=precision,
             recall=recall,

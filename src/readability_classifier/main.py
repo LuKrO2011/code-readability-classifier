@@ -238,6 +238,21 @@ def _set_up_arg_parser() -> ArgumentParser:
         help="Path to the validation dataset.",
     )
     evaluate_parser.add_argument(
+        "--encoded",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Set this flag if the dataset is already encoded.",
+    )
+    evaluate_parser.add_argument(
+        "--save",
+        "-s",
+        required=False,
+        type=Path,
+        help="Path to the folder where the evaluation results should be stored. "
+        "If not specified, the results are not stored.",
+    )
+    evaluate_parser.add_argument(
         "--model",
         "-m",
         required=False,
@@ -350,7 +365,24 @@ def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    model_runner.run_evaluate(parsed_args)
+    data_dir = parsed_args.input
+    encoded = parsed_args.encoded
+
+    # Load the dataset
+    if not encoded:
+        raw_data = load_raw_dataset(data_dir)
+        encoded_data = DatasetEncoder().encode_dataset(raw_data)
+    else:
+        encoded_data = load_encoded_dataset(data_dir)
+
+    # TODO: Make this a parameter
+    # Split the data into 10 parts
+    encoded_data = encoded_data.split(10)
+
+    # Run the evaluation for each part
+    for i, part in enumerate(encoded_data):
+        logging.info(f"Running evaluation for part {i + 1}...")
+        model_runner.run_evaluate(parsed_args, part)
 
 
 def main(args: list[str]) -> int:

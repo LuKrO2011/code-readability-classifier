@@ -91,7 +91,7 @@ class KerasModelRunner(ModelRunnerInterface):
 
         processed_history = HistoryProcessor().evaluate(history)
 
-        # Load the compare stats
+        # Store the stats
         store_path = Path(store_dir) / STATS_FILE_NAME
         with open(store_path, "w") as file:
             json.dump(asdict(processed_history), file, indent=4)
@@ -119,13 +119,40 @@ class KerasModelRunner(ModelRunnerInterface):
         logging.info(f"Readability of snippet: {prediction}")
         return prediction
 
-    def run_evaluate(self, parsed_args):
+    def run_evaluate(self, parsed_args, encoded_data: ReadabilityDataset):
         """
         Runs the evaluation of the readability classifier.
         :param parsed_args: Parsed arguments.
+        :param encoded_data: The encoded dataset.
         :return: None
         """
-        raise NotImplementedError(
-            "Keras evaluation is not implemented, as the model is evaluated during"
-            "training."
+        model_path = parsed_args.load
+        batch_size = parsed_args.batch_size
+        store_dir = parsed_args.save
+
+        # Load the model
+        model = keras.models.load_model(
+            model_path, custom_objects={"BertEmbedding": BertEmbedding}
         )
+
+        # Create the classifier
+        classifier = Classifier(
+            model=model,
+            encoded_data=encoded_data,
+            batch_size=batch_size,
+        )
+
+        # Evaluate the model
+        metrics = classifier.evaluate()
+
+        # Store the history as pkl
+        store_path = Path(store_dir) / "metrics.pkl"
+        with open(store_path, "wb") as file:
+            pickle.dump(metrics, file)
+
+        processed_history = HistoryProcessor().evaluate_metrics(metrics)
+
+        # Store the stats
+        store_path = Path(store_dir) / STATS_FILE_NAME
+        with open(store_path, "w") as file:
+            json.dump(asdict(processed_history), file, indent=4)

@@ -32,6 +32,9 @@ HISTORY_DIR = RES_DIR / "history"
 HISTORY_FILE = HISTORY_DIR / "history.pkl"
 STATS_FILE = HISTORY_DIR / "stats.json"
 
+CODE_SNIPPETS_DIR = RES_DIR / "code_snippets"
+TOWARDS_CODE_SNIPPET = CODE_SNIPPETS_DIR / "towards.java"
+
 
 class DirTest(unittest.TestCase):
     output_dir_name = None  # Set to "output" to generate output
