@@ -67,7 +67,7 @@ def create_structural_extractor(
     )(pool2)
     pool3 = layers.MaxPooling2D(pool_size=3, strides=3, name="struc_pool3")(conv3)
 
-    flattened = layers.Flatten()(pool3)
+    flattened = layers.Flatten(name="struc_flatten")(pool3)
     return model_input, flattened
 
 
@@ -115,7 +115,9 @@ def create_semantic_extractor(
 
     conv2 = layers.Conv1D(32, 5, activation="relu", name="seman_conv2")(pool1)
 
-    gru = layers.Bidirectional(layers.LSTM(32, name="seman_gru"))(conv2)
+    gru = layers.Bidirectional(layers.LSTM(32, name="seman_lstm"), name="seman_gru")(
+        conv2
+    )
 
     return token_input, segment_input, gru
 
@@ -166,7 +168,7 @@ def create_visual_extractor(
     )(pool2)
     pool3 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool3")(conv3)
 
-    flattened = layers.Flatten()(pool3)
+    flattened = layers.Flatten(name="vis_flatten")(pool3)
     return model_input, flattened
 
 

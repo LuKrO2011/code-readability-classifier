@@ -79,7 +79,6 @@ class Classifier:
         k_fold: int = 10,
         epochs: int = 20,
         batch_size: int = 42,
-        layer_names_to_freeze: list[str] = None,
         store_dir: str = DEFAULT_STORE_DIR,
     ):
         """
@@ -89,7 +88,6 @@ class Classifier:
         :param k_fold: The number of folds.
         :param epochs: The number of epochs.
         :param batch_size: The batch size.
-        :param layer_names_to_freeze: The layer names to freeze.
         :param store_dir: The store directory.
         """
         self.model = model
@@ -98,7 +96,6 @@ class Classifier:
         self.k_fold = k_fold
         self.epochs = epochs
         self.batch_size = batch_size
-        self.layer_names_to_freeze = layer_names_to_freeze or []
         self.store_dir = store_dir
 
     def train(self) -> HistoryList:
@@ -148,11 +145,6 @@ class Classifier:
         # Reset the model
         model = self.model
         model.set_weights(self.initial_weights)
-
-        # Freeze layers
-        for layer in model.layers:
-            if layer.name in self.layer_names_to_freeze:
-                layer.trainable = False
 
         # Train the model
         store_path = str(Path(self.store_dir) / f"model_{fold_index}.h5")

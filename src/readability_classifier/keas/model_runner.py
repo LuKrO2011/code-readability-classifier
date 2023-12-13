@@ -63,6 +63,11 @@ class KerasModelRunner(ModelRunnerInterface):
             )
             towards_model.set_weights(pretrained_model.get_weights())
 
+        # Freeze the input layers
+        for layer in towards_model.layers:
+            if layer.name in layer_names_to_freeze:
+                layer.trainable = False
+
         # Create the classifier
         classifier = Classifier(
             model=towards_model,
@@ -71,7 +76,6 @@ class KerasModelRunner(ModelRunnerInterface):
             batch_size=batch_size,
             k_fold=num_folds,
             epochs=epochs,
-            layer_names_to_freeze=layer_names_to_freeze,
         )
 
         # Train the model
