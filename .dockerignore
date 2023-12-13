@@ -32,3 +32,6 @@
 **/values.dev.yaml
 LICENSE
 README.md
+
+# Do not push models
+**/res/models/*
