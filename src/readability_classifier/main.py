@@ -6,18 +6,8 @@ from argparse import ArgumentParser
 from enum import Enum
 from pathlib import Path
 from typing import Any
-
+from readability_classifier.model_runner_interface import ModelRunnerInterface
 from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.encoders.dataset_utils import (
-    load_encoded_dataset,
-    load_raw_dataset,
-    store_encoded_dataset,
-)
-from readability_classifier.toch.model_buider import Model
-from readability_classifier.toch.model_runner import (
-    ModelRunnerInterface,
-    TorchModelRunner,
-)
 from src.readability_classifier.keas.model_runner import KerasModelRunner
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
@@ -25,7 +15,6 @@ DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
 DEFAULT_MODEL_FILE = "model"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_SAVE_DIR = os.path.join(CURR_DIR, "../../models")
-KERAS = True
 SEED = 42
 
 
@@ -79,9 +68,6 @@ class Tasks(Enum):
     Enum for the different tasks of the readability classifier.
     """
 
-    ENCODE = "ENCODE"
-    TRAIN = "TRAIN"
-    EVALUATE = "EVALUATE"
     PREDICT = "PREDICT"
 
     @classmethod
@@ -100,190 +86,6 @@ def _set_up_arg_parser() -> ArgumentParser:
     arg_parser = ArgumentParser()
     sub_parser = arg_parser.add_subparsers(dest="command", required=True)
 
-    # Parser for the encoding task
-    encode_parser = sub_parser.add_parser(str(Tasks.ENCODE))
-    encode_parser.add_argument(
-        "--input",
-        "-i",
-        required=True,
-        type=Path,
-        help="Path to the dataset.",
-    )
-    encode_parser.add_argument(
-        "--intermediate",
-        required=False,
-        type=Path,
-        help="Path to where the encoded dataset should be stored. ",
-    )
-    encode_parser.add_argument(
-        "--save",
-        "-s",
-        required=False,
-        type=Path,
-        help="Path where the log file should be stored. If not specified, "
-        "the log file is stored in the current directory.",
-        default=DEFAULT_SAVE_DIR,
-    )
-
-    # Parser for the training task
-    train_parser = sub_parser.add_parser(str(Tasks.TRAIN))
-    train_parser.add_argument(
-        "--model",
-        "-m",
-        required=False,
-        type=Model,
-        help="The model to use.",
-        default=Model.TOWARDS,
-    )
-    train_parser.add_argument(
-        "--input",
-        "-i",
-        required=True,
-        type=Path,
-        help="Path to the dataset.",
-    )
-    train_parser.add_argument(
-        "--encoded",
-        required=False,
-        default=False,
-        action="store_true",
-        help="Set this flag if the dataset is already encoded.",
-    )
-    train_parser.add_argument(
-        "--save",
-        "-s",
-        required=False,
-        type=Path,
-        help="Path to the folder where the model should be stored. If not specified, "
-        "the model is not stored.",
-        default=DEFAULT_SAVE_DIR,
-    )
-    train_parser.add_argument(
-        "--intermediate",
-        required=False,
-        type=Path,
-        help="Path to the folder where intermediate results should be stored. "
-        "If not specified, the intermediate results are not stored.",
-    )
-    train_parser.add_argument(
-        "--evaluate",
-        required=False,
-        default=True,
-        action="store_false",
-        help="Whether the model should be evaluated after training.",
-    )
-    train_parser.add_argument(
-        "--k-fold",
-        "-k",
-        required=False,
-        type=int,
-        default=10,
-        help="The number of folds for k-fold cross-validation.",
-    )
-    train_parser.add_argument(
-        "--batch-size",
-        "-b",
-        required=False,
-        type=int,
-        default=8,
-        help="The batch size for training.",
-    )
-    train_parser.add_argument(
-        "--epochs",
-        "-e",
-        required=False,
-        type=int,
-        default=20,
-        help="The number of epochs for training.",
-    )
-    train_parser.add_argument(
-        "--learning-rate",
-        "-r",
-        required=False,
-        type=float,
-        default=0.0015,
-        help="The learning rate for training.",
-    )
-    train_parser.add_argument(
-        "--fine-tune",
-        required=False,
-        default=None,
-        type=Path,
-        help="Path to the model to fine-tune. If not specified, no fine-tuning is "
-        "performed and the model is trained from scratch.",
-    )
-    train_parser.add_argument(
-        "--freeze",
-        required=False,
-        default=[],
-        nargs="+",
-        type=str,
-        help="The layer names to freeze.",
-    )
-
-    # Parser for the evaluation task
-    evaluate_parser = sub_parser.add_parser(str(Tasks.EVALUATE))
-    evaluate_parser.add_argument(
-        "--load",
-        "-l",
-        required=True,
-        type=Path,
-        help="Path to the model to load for evaluation.",
-    )
-    evaluate_parser.add_argument(
-        "--input",
-        "-i",
-        required=True,
-        type=Path,
-        help="Path to the validation dataset.",
-    )
-    evaluate_parser.add_argument(
-        "--encoded",
-        required=False,
-        default=False,
-        action="store_true",
-        help="Set this flag if the dataset is already encoded.",
-    )
-    evaluate_parser.add_argument(
-        "--save",
-        "-s",
-        required=False,
-        type=Path,
-        help="Path to the folder where the evaluation results should be stored. "
-        "If not specified, the results are not stored.",
-    )
-    evaluate_parser.add_argument(
-        "--model",
-        "-m",
-        required=False,
-        type=Model,
-        help="The type of the model used.",
-        default=Model.TOWARDS,
-    )
-    evaluate_parser.add_argument(
-        "--batch-size",
-        "-b",
-        required=False,
-        type=int,
-        default=8,
-        help="The batch size for evaluation.",
-    )
-    evaluate_parser.add_argument(
-        "--parts",
-        "-p",
-        required=False,
-        type=int,
-        default=10,
-        help="The number of parts to split the dataset into for evaluation.",
-    )
-    evaluate_parser.add_argument(
-        "--single",
-        required=False,
-        default=False,
-        action="store_true",
-        help="Whether the model should be evaluated on a single part only.",
-    )
-
     # Parser for the prediction task
     predict_parser = sub_parser.add_parser(str(Tasks.PREDICT))
     predict_parser.add_argument(
@@ -294,58 +96,6 @@ def _set_up_arg_parser() -> ArgumentParser:
     )
 
     return arg_parser
-
-
-def _run_encode(parsed_args) -> None:
-    """
-    Runs the encoding of the dataset.
-    :param parsed_args: Parsed arguments.
-    :return: None
-    """
-    # Get the parsed arguments
-    data_dir = parsed_args.input
-    intermediate_dir = parsed_args.intermediate
-
-    # Load the dataset
-    raw_data = load_raw_dataset(data_dir)
-
-    # Encode the dataset
-    encoded_data = DatasetEncoder().encode_dataset(raw_data)
-
-    # Store the encoded dataset
-    if intermediate_dir:
-        store_encoded_dataset(encoded_data, intermediate_dir)
-
-
-def _run_train(parsed_args, model_runner: ModelRunnerInterface) -> None:
-    """
-    Runs the training of the readability classifier.
-    :param parsed_args: Parsed arguments.
-    :param model_runner: The model runner.
-    :return: None
-    """
-    # Get the parsed arguments
-    data_dir = parsed_args.input
-    encoded = parsed_args.encoded
-    store_dir = parsed_args.save
-    intermediate_dir = parsed_args.intermediate
-
-    # Create the store directory if it does not exist
-    if not os.path.isdir(store_dir):
-        os.makedirs(store_dir)
-
-    # Load the dataset
-    if not encoded:
-        raw_data = load_raw_dataset(data_dir)
-        encoded_data = DatasetEncoder().encode_dataset(raw_data)
-
-        if intermediate_dir:
-            store_encoded_dataset(encoded_data, intermediate_dir)
-    else:
-        encoded_data = load_encoded_dataset(data_dir)
-
-    # Run the training
-    model_runner.run_train(parsed_args, encoded_data)
 
 
 def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> tuple[str, float]:
@@ -374,36 +124,6 @@ def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> tuple[str, 
     return model_runner.run_predict(parsed_args, encoded_snippet)
 
 
-def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
-    """
-    Runs the evaluation of the readability classifier.
-    :param parsed_args: Parsed arguments.
-    :return: None
-    """
-    data_dir = parsed_args.input
-    encoded = parsed_args.encoded
-    parts = parsed_args.parts
-    single = parsed_args.single
-
-    # Load the dataset
-    if not encoded:
-        raw_data = load_raw_dataset(data_dir)
-        encoded_data = DatasetEncoder().encode_dataset(raw_data)
-    else:
-        encoded_data = load_encoded_dataset(data_dir)
-
-    # Use only a part of the dataset
-    encoded_data = encoded_data.split(parts=parts)
-
-    if single:
-        logging.info(f"Running a single evaluation on {1 / parts}% of the dataset...")
-        model_runner.run_evaluate(parsed_args, encoded_data[0])
-    else:
-        for i, part in enumerate(encoded_data):
-            logging.info(f"Running evaluation for part {i + 1}/{parts}...")
-            model_runner.run_evaluate(parsed_args, part)
-
-
 def main(args: list[str]) -> int:
     """
     Main function of the readability classifier.
@@ -426,18 +146,12 @@ def main(args: list[str]) -> int:
     random.seed(SEED)
 
     # Set up the model runner
-    model_runner = KerasModelRunner() if KERAS else TorchModelRunner()
+    model_runner = KerasModelRunner()
 
     # Execute the task
     match task:
-        case Tasks.ENCODE:
-            _run_encode(parsed_args)
-        case Tasks.TRAIN:
-            _run_train(parsed_args, model_runner)
         case Tasks.PREDICT:
             _run_predict(parsed_args, model_runner)
-        case Tasks.EVALUATE:
-            _run_evaluate(parsed_args, model_runner)
     return 0
 
 
