@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "readability-classifier"
+name = "readability-classifier-predict"
 version = "0.1.0"
 description = ""
 authors = ["LuKrO2011 <lukas.krodinger@gmail.com>"]

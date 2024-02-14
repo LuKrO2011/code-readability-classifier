@@ -8,7 +8,7 @@ import keras.models
 
 from readability_classifier.encoders.dataset_encoder import decode_score
 from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from readability_classifier.toch.model_runner import ModelRunnerInterface
+from readability_classifier.model_runner_interface import ModelRunnerInterface
 from src.readability_classifier.keas.classifier import (
     Classifier,
     convert_to_towards_input_without_score,
