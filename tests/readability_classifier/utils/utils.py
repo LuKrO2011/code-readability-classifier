@@ -28,10 +28,6 @@ TOWARDS_MODEL = MODELS_DIR / "towards.h5"
 RAW_DATA_DIR = RES_DIR / "raw_data"
 BW_SNIPPET_1 = RAW_DATA_DIR / "bw/Snippets/1.jsnp"
 
-HISTORY_DIR = RES_DIR / "history"
-HISTORY_FILE = HISTORY_DIR / "history.pkl"
-STATS_FILE = HISTORY_DIR / "stats.json"
-
 CODE_SNIPPETS_DIR = RES_DIR / "code_snippets"
 TOWARDS_CODE_SNIPPET = CODE_SNIPPETS_DIR / "towards.java"
 

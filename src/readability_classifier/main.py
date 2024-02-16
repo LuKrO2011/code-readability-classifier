@@ -23,8 +23,9 @@ def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) ->
     Set up logging.
     """
     # Create the save dir and file if they do not exist
-    if not os.path.isdir(os.path.dirname(log_file)):
-        os.makedirs(os.path.dirname(log_file))
+    dirname = os.path.dirname(log_file)
+    if dirname != "" and not os.path.isdir(dirname):
+        os.makedirs(dirname)
     if not os.path.isfile(log_file):
         with open(log_file, "w") as _:
             pass
