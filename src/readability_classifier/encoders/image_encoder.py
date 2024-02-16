@@ -25,36 +25,6 @@ class VisualEncoder(EncoderInterface):
     A class for encoding code snippets as images.
     """
 
-    def encode_dataset(self, unencoded_dataset: list[dict]) -> ReadabilityDataset:
-        """
-        Encodes the given dataset as images.
-        :param unencoded_dataset: The unencoded dataset.
-        :return: The encoded dataset.
-        """
-        encoded_dataset = []
-
-        # Convert the list of dictionaries to a list of code snippet strings
-        code_snippets = [sample["code_snippet"] for sample in unencoded_dataset]
-
-        # Log the number of code snippets to encode
-        logging.info(f"Image: Number of code snippets to encode: {len(code_snippets)}")
-
-        # Encode the code snippets
-        encoded_code_snippets = dataset_to_image_tensors(code_snippets)
-
-        # Convert the list of encoded code snippets to a ReadabilityDataset
-        for i in range(len(encoded_code_snippets)):
-            encoded_dataset.append(
-                {
-                    "image": encoded_code_snippets[i],
-                }
-            )
-
-        # Log the number of samples in the encoded dataset
-        logging.info(f"Image: Encoding done. Number of samples: {len(encoded_dataset)}")
-
-        return ReadabilityDataset(encoded_dataset)
-
     def encode_text(self, text: str) -> dict:
         """
         Encodes the given text as an image.
@@ -100,7 +70,7 @@ def _convert_hex_to_rgba(hex_colors: set[str]) -> set[tuple[int, int, int, int]]
     :return: set of rgba colors
     """
     return {
-        tuple(int(allowed_color.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4)) + (255,)
+        tuple(int(allowed_color.lstrip("#")[i: i + 2], 16) for i in (0, 2, 4)) + (255,)
         for allowed_color in hex_colors
     }
 
@@ -159,7 +129,7 @@ def _change_padding(img: Image, new_padding: int = 6) -> Image:
     bottom = min(img_array.shape[0] - 1, bottom + new_padding)
 
     # Crop the image based on the bounding box
-    img = Image.fromarray(img_array[top : bottom + 1, left : right + 1])
+    img = Image.fromarray(img_array[top: bottom + 1, left: right + 1])
 
     return img
 

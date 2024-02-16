@@ -1,7 +1,5 @@
 import os
-import unittest
 
-from readability_classifier.encoders.dataset_utils import load_raw_dataset
 from readability_classifier.encoders.image_encoder import VisualEncoder, _code_to_image
 from src.readability_classifier.utils.utils import load_code
 from tests.readability_classifier.utils.utils import DirTest
@@ -12,26 +10,6 @@ CODE_DIR = RES_DIR + "code_snippets/"
 
 class TestVisualEncoder(DirTest):
     visual_encoder = VisualEncoder()
-
-    @unittest.skip("Takes too long.")
-    def test_encode_visual_dataset(self):
-        data_dir = "res/raw_datasets/scalabrio"
-
-        # Load raw data
-        raw_data = load_raw_dataset(data_dir)
-
-        # Encode raw data
-        encoded_data = self.visual_encoder.encode_dataset(raw_data)
-
-        # Check if encoded data is not empty
-        assert len(encoded_data) > 0
-
-        # # Show the first image
-        # bytes_to_image(tensor_to_bytes(encoded_data[0]["image"]), "code.png")
-        # from PIL import Image
-        #
-        # img = Image.open("code.png")
-        # img.show()
 
     def test_encode_visual_text(self):
         # Sample Java code

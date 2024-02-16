@@ -33,4 +33,3 @@ class TestKerasModelRunner(DirTest):
 
         assert clazz == "Unreadable"
         assert score == 0.3686406910419464
-

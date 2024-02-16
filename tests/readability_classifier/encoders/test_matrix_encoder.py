@@ -1,9 +1,5 @@
 import numpy as np
 
-from readability_classifier.encoders.dataset_utils import (
-    load_raw_dataset,
-    store_encoded_dataset,
-)
 from readability_classifier.encoders.matrix_encoder import (
     MatrixEncoder,
     java_to_structural_representation,
@@ -16,26 +12,12 @@ from src.readability_classifier.utils.utils import (
 from tests.readability_classifier.utils.utils import (
     MI_RAW_DIR,
     MI_STRUCTURAL_DIR,
-    RAW_SCALABRIO_DIR,
     DirTest,
 )
 
 
 class TestMatrixEncoder(DirTest):
     matrix_encoder = MatrixEncoder()
-
-    def test_encode_matrix_dataset(self):
-        # Load raw data
-        raw_data = load_raw_dataset(RAW_SCALABRIO_DIR)
-
-        # Encode raw data
-        encoded_data = self.matrix_encoder.encode_dataset(raw_data)
-
-        # Store encoded data
-        store_encoded_dataset(encoded_data, self.output_dir)
-
-        # Check if encoded data is not empty
-        assert len(encoded_data) > 0
 
     def test_encode_matrix_text(self):
         code = """

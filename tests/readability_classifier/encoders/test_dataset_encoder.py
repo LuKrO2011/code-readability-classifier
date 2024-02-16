@@ -1,31 +1,9 @@
-import unittest
-
 from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.encoders.dataset_utils import (
-    load_raw_dataset,
-    store_encoded_dataset,
-)
-from tests.readability_classifier.utils.utils import RAW_COMBINED_DIR, DirTest
+from tests.readability_classifier.utils.utils import DirTest
 
 
 class TestDatasetEncoder(DirTest):
     encoder = DatasetEncoder()
-
-    @unittest.skip("Takes too long.")
-    def test_encode_dataset(self):
-        data_dir = RAW_COMBINED_DIR.absolute()
-
-        # Load raw data
-        raw_data = load_raw_dataset(data_dir)
-
-        # Encode raw data
-        encoded_data = self.encoder.encode_dataset(raw_data)
-
-        # Store encoded data
-        store_encoded_dataset(encoded_data, self.output_dir)
-
-        # Check if encoded data is not empty
-        assert len(encoded_data) > 0
 
     def test_encode_text(self):
         code = """
