@@ -147,3 +147,42 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 - rm : remove container after exit
 - v $(pwd):/app : mount current directory to /app in container
 - readability-classifier : name of the container
+
+[[Model]]
+== Model
+
+|===
+|Layer (type) |Output Shape              |Param # |Connected to
+
+|struc_input (InputLayer) |[(None, 50, 305)]         |0       |[]
+|struc_reshape (Reshape) |(None, 50, 305, 1)         |0       |['struc_input[0][0]']
+|vis_input (InputLayer) |[(None, 128, 128, 3)]      |0       |[]
+|struc_conv1 (Conv2D) |(None, 48, 303, 32)         |320     |['struc_reshape[0][0]']
+|vis_conv1 (Conv2D) |(None, 128, 128, 32)        |896     |['vis_input[0][0]']
+|struc_pool1 (MaxPooling2D) |(None, 24, 151, 32)    |0       |['struc_conv1[0][0]']
+|seman_input_token (InputLayer) |[(None, 100)]    |0       |[]
+|seman_input_segment (InputLayer) |[(None, 100)] |0       |[]
+|vis_pool1 (MaxPooling2D) |(None, 64, 64, 32)        |0       |['vis_conv1[0][0]']
+|struc_conv2 (Conv2D) |(None, 22, 149, 32)          |9248    |['struc_pool1[0][0]']
+|seman_bert (BertEmbedding) |(None, 100, 768)       |2342553 |['seman_input_token[0][0]', 'seman_input_segment[0][0]']
+|vis_conv2 (Conv2D) |(None, 64, 64, 32)           |9248    |['vis_pool1[0][0]']
+|struc_pool2 (MaxPooling2D) |(None, 11, 74, 32)      |0       |['struc_conv2[0][0]']
+|seman_conv1 (Conv1D) |(None, 96, 32)               |122912 |['seman_bert[0][0]']
+|vis_pool2 (MaxPooling2D) |(None, 32, 32, 32)        |0       |['vis_conv2[0][0]']
+|struc_conv3 (Conv2D) |(None, 9, 72, 64)            |18496  |['struc_pool2[0][0]']
+|seman_pool1 (MaxPooling1D) |(None, 32, 32)          |0       |['seman_conv1[0][0]']
+|vis_conv3 (Conv2D) |(None, 32, 32, 64)           |18496  |['vis_pool2[0][0]']
+|struc_pool3 (MaxPooling2D) |(None, 3, 24, 64)        |0       |['struc_conv3[0][0]']
+|seman_conv2 (Conv1D) |(None, 28, 32)               |5152   |['seman_pool1[0][0]']
+|vis_pool3 (MaxPooling2D) |(None, 16, 16, 64)        |0       |['vis_conv3[0][0]']
+|struc_flatten (Flatten) |(None, 4608)               |0       |['struc_pool3[0][0]']
+|seman_gru (Bidirectional) |(None, 64)               |16640  |['seman_conv2[0][0]']
+|vis_flatten (Flatten) |(None, 16384)                |0       |['vis_pool3[0][0]']
+|concatenate (Concatenate) |(None, 21056)             |0       |['struc_flatten[0][0]', 'seman_gru[0][0]', 'vis_flatten[0][0]']
+|class_dense1 (Dense) |(None, 64)                   |1347648 |['concatenate[0][0]']
+|class_dropout (Dropout) |(None, 64)                 |0       |['class_dense1[0][0]']
+|class_dense2 (Dense) |(None, 16)                   |1040   |['class_dropout[0][0]']
+|class_dense3 (Dense) |(None, 1)                    |17     |['class_dense2[0][0]']
+
+|===
+Total params: 24975649 (95.27 MB)
