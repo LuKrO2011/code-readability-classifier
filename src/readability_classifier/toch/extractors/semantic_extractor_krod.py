@@ -172,9 +172,7 @@ class KrodSemanticExtractor(BaseModel):
         x = self.pool3(x)
 
         # Flatten the output of the conv layers
-        x = self.flatten(x)
-
-        return x
+        return self.flatten(x)
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

@@ -22,8 +22,8 @@ MAX_LEN = 100
 TOKENIZER_NAME = "bert-base-cased"
 
 
-# TODO: Remove computation of those: data_position and data_image (unused)
 # WARNING: THIS CODE IS NOT USED ANYMORE
+# Remove computation of those: data_position and data_image (unused)
 
 
 def preprocess_data() -> list[dict]:
@@ -100,12 +100,10 @@ class StructurePreprocessor:
                 data_structure[f_name.split(".")[0]] = lines
 
         # Turn the data into a dictionary of StructureInput objects
-        data_structure = {
+        return {
             key: StructureInput(score=score[key], lines=np.asarray(lines))
             for key, lines in data_structure.items()
         }
-
-        return data_structure
 
 
 @dataclass

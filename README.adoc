@@ -51,6 +51,11 @@ Install tensorflow manually:
 pip install tensorflow
 ----
 
+For Developers: Activate the pre-commit hooks:
+----
+pre-commit install
+----
+
 Now you're ready to use the source code readability prediction tool.
 
 [[Usage]]
@@ -186,3 +191,7 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 
 |===
 Total params: 24975649 (95.27 MB)
+
+--freeze struc_input struc_reshape struc_conv1 struc_pool1 seman_input_token seman_input_segment seman_bert seman_conv1 seman_pool1 vis_input vis_conv1 vis_pool1
+
+--freeze struc_input struc_reshape seman_input_token seman_input_segment seman_bert vis_input

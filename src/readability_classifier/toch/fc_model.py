@@ -36,8 +36,7 @@ class FullyConnectedModel(nn.Module):
         x = self.dense2(x)
         x = self.relu2(x)
         x = self.dense3(x)
-        x = self.sigmoid(x)
-        return x
+        return self.sigmoid(x)
 
     # TODO: .to(device) makes tests fail but is necessary to enable input size change
     def update_input_length(self, input_length: int, device: torch.device) -> None:

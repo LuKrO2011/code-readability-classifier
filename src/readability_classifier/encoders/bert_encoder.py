@@ -187,9 +187,7 @@ def _split_identifiers(
     new_text = re.sub(camel_case_regex, r"\1 \2", text)
 
     # Split snake case identifiers
-    new_text = re.sub(snake_case_regex, r"\1 \2 \3", new_text)
-
-    return new_text
+    return re.sub(snake_case_regex, r"\1 \2 \3", new_text)
 
 
 def _calculate_segment_ids(input_ids: list[int], sep_token_id: int) -> list[int]:

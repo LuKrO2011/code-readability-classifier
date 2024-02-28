@@ -159,9 +159,7 @@ def _change_padding(img: Image, new_padding: int = 6) -> Image:
     bottom = min(img_array.shape[0] - 1, bottom + new_padding)
 
     # Crop the image based on the bounding box
-    img = Image.fromarray(img_array[top : bottom + 1, left : right + 1])
-
-    return img
+    return Image.fromarray(img_array[top : bottom + 1, left : right + 1])
 
 
 def _code_to_image(

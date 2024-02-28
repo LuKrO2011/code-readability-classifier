@@ -143,9 +143,7 @@ class OwnBertEmbedding(BaseModel):
         # )
 
         embeddings = self.layer_norm(embeddings)
-        embeddings = self.dropout(embeddings)
-
-        return embeddings
+        return self.dropout(embeddings)
 
     def _model_pass(self, x: SemanticInput) -> torch.Tensor:
         """
@@ -245,9 +243,7 @@ class OwnSemanticExtractor(BaseModel):
 
         # Flatten the tensor after LSTM
         batch_size, seq_length, channels = x.size()
-        x = x.contiguous().view(batch_size, -1)  # Flatten the tensor
-
-        return x
+        return x.contiguous().view(batch_size, -1)  # Flatten the tensor
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

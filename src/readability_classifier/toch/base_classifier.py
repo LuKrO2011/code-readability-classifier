@@ -435,7 +435,7 @@ class BaseClassifier(ABC):
         input_ids = bert["input_ids"]
         token_type_ids = bert["token_type_ids"]
         attention_mask = bert["attention_mask"]
-        segment_ids = bert["segment_ids"] if "segment_ids" in bert else None
+        segment_ids = bert.get("segment_ids")
         return input_ids, token_type_ids, attention_mask, segment_ids
 
     @abstractmethod

@@ -116,9 +116,7 @@ class BertEmbedding(nn.Module):
         # Sum all embeddings and apply layer norm and dropout
         embeddings = token_embeddings + token_type_embeddings + position_embeddings
         embeddings = self.layer_norm(embeddings)
-        embeddings = self.dropout(embeddings)
-
-        return embeddings
+        return self.dropout(embeddings)
 
 
 class SemanticExtractorConfig:
@@ -194,9 +192,7 @@ class SemanticExtractor(BaseModel):
 
         # Flatten the tensor after LSTM
         batch_size, seq_length, channels = x.size()
-        x = x.contiguous().view(batch_size, -1)  # Flatten the tensor
-
-        return x
+        return x.contiguous().view(batch_size, -1)  # Flatten the tensor
 
     @classmethod
     def _build_from_config(cls, params: dict[str, ...], save: Path) -> "BaseModel":

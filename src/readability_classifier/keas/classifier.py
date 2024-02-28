@@ -18,12 +18,6 @@ STATS_FILE_NAME = "stats.json"
 DEFAULT_STORE_DIR = "output"
 
 
-# TODO : UserWarning: You are saving your model as an HDF5 file via `model.save()`.
-#  This file format is considered legacy. We recommend using instead the native Keras
-#  format, e.g. `model.save('my_model.keras')`. But: For checkpoint ".keras" is not
-#  working
-
-
 def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     """
     Convert the encoded data to towards input.

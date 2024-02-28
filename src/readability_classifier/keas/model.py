@@ -19,9 +19,6 @@ DEFAULT_METRICS = [
 ]
 
 
-# TODO:  The name tf.nn.max_pool is deprecated. Please use tf.nn.max_pool2d instead.
-
-
 def create_classification_layers(input_layer: tf.Tensor) -> tf.Tensor:
     """
     Create the classification model.
@@ -299,8 +296,7 @@ class BertEmbedding(keras.layers.Layer):
         # sum embeddings
         embeddings = token_embeddings + token_type_embeddings + position_embeddings
         embeddings = self.layer_norm(embeddings)
-        embeddings = self.dropout(embeddings, training=training)
-        return embeddings
+        return self.dropout(embeddings, training=training)
 
     def get_config(self):
         """
