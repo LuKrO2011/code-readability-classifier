@@ -10,27 +10,27 @@ if __name__ == "__main__":
 
     # Example code snippet
     code_snippet = """
-    /**
-    * This method determines the sign of a given number and prints a corresponding.
-    *
-    * @param number The input number to be checked.
-    */
-    public static void printSignTest123ShouldBeSplit(int number) {
-        if (number > 0) {
-            System.out.println("Number is positive");
-        } else if (number < 0) {
-            System.out.println("Number is negative");
-        } else {
-            System.out.println("Number is zero");
-        }
+/**
+* This method determines the sign of a given number and prints a corresponding message.
+*
+* @param number The input number to be checked.
+*/
+public static void printSign(int number) {
+    if (number > 0) {
+        System.out.println("Number is positive");
+    } else if (number < 0) {
+        System.out.println("Number is negative");
+    } else {
+        System.out.println("Number is zero");
     }
+}
     """
 
     # Split the code snippet into lines
     code = code_snippet.split("\n")
 
     # Encode and decode each line of the code snippet
-    converted_lines = []
+    converted_lines: list[list[str]] = []
     for line in code:
         encoded_line = bert_encoder.encode_text(line)
         input_ids = encoded_line["input_ids"].tolist()[0]
@@ -44,19 +44,27 @@ if __name__ == "__main__":
 
         converted_lines.append(decoded_tokens)
 
-    # Join the decoded lines back into a code snippet
-    decoded_code = "\n".join(converted_lines)
-
     # Remove all [CLS], [SEP] and [PAD] tokens from the decoded code
-    decoded_code = (
-        decoded_code.replace("[CLS]", "").replace("[SEP]", "").replace("[PAD]", "")
-    )
+    converted_lines = [
+        [token for token in line if token not in ["[CLS]", "[SEP]", "[PAD]"]]
+        for line in converted_lines
+    ]
+    converted_lines = [["[CLS]"]] + converted_lines
 
-    # Add [CLS] and [SEP] tokens to the decoded code
-    decoded_code = f"[CLS]\n{decoded_code}\n[SEP]"
-
-    # Remove tokens tha
+    # Remove tokens after the limit
     if LIMIT is not None and LIMIT > 0:
-        converted_lines = [line[:LIMIT] for line in converted_lines]
+        limit = LIMIT - 1
+        count = 0
+        for i, line in enumerate(converted_lines):
+            if count + len(line) > limit:
+                converted_lines[i] = line[: limit - count]
+                converted_lines = converted_lines[: i + 1]
+                break
+            count += len(line)
+
+    converted_lines[-1].append("[SEP]")
+
+    # Combine outer lists with "\n" and inner lists with " "
+    decoded_code = "\n".join([" ".join(line) for line in converted_lines])
 
     print(decoded_code)
