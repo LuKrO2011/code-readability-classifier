@@ -51,12 +51,6 @@ class TestVisualEncoder(DirTest):
         # Check if encoded code is not empty
         assert len(encoded_code) > 0
 
-        # Show the image
-        # bytes_to_image(encoded_code, "code.png")
-        # from PIL import Image
-        # img = Image.open("code.png")
-        # img.show()
-
     def test_code_to_image(self):
         # Create temporary directory
         output_file = os.path.join(self.output_dir, "out.png")
@@ -93,9 +87,21 @@ class TestVisualEncoder(DirTest):
             }
             System.exit(0);
         """
+        # buse_5 = """
+        # // A method for counting
+        # public void getNumber(){
+        #     int count = 0;
+        #     while(count < 10){
+        #         count++;
+        #     }
+        # }
+        # """
 
         # Convert the code to an image
         _code_to_image(buse_5, output=output_file)
+        # _code_to_image(buse_5, output=output_file, width=500, height=500, css=
+        # os.path.join(RES_DIR, "../..", "src", "res", "css",
+        #              "towards_high_quality.css"), change_padding=True)
 
         # Check if the image was created successfully
         assert os.path.exists(output_file)
