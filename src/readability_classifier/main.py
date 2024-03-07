@@ -35,11 +35,14 @@ def _setup_logging(log_file: str = DEFAULT_LOG_FILE, overwrite: bool = False) ->
     """
     # Create the save dir and file if they do not exist
     dirname = os.path.dirname(log_file)
-    if dirname != "" and not os.path.isdir(dirname):
-        os.makedirs(dirname)
-    if not os.path.isfile(log_file):
-        with open(log_file, "w") as _:
-            pass
+    try:
+        if dirname != "" and not os.path.isdir(dirname):
+            os.makedirs(dirname, exist_ok=True)
+        if not os.path.isfile(log_file):
+            with open(log_file, "w") as _:
+                pass
+    except Exception as e:
+        print(f"Could not create the log file directory: {e}")
 
     # Get the overwrite flag
     mode = "w" if overwrite else "a"
@@ -333,7 +336,11 @@ def _run_train(parsed_args, model_runner: ModelRunnerInterface) -> None:
 
     # Create the store directory if it does not exist
     if not os.path.isdir(store_dir):
-        os.makedirs(store_dir)
+        try:
+            os.makedirs(store_dir, exist_ok=True)
+        except Exception as e:
+            logging.error(f"Could not create the store directory: {e}")
+            parsed_args.save = DEFAULT_SAVE_DIR
 
     # Load the dataset
     if not encoded:
@@ -421,7 +428,15 @@ def main(args: list[str]) -> int:
         folder_path = Path(parsed_args.save)
         folder_name = Path(parsed_args.save).name
         logfile = folder_path / Path(f"{DEFAULT_LOG_FILE_NAME}-{folder_name}.log")
-    _setup_logging(logfile, overwrite=True)
+
+    try:
+        _setup_logging(logfile, overwrite=True)
+    except Exception as e:
+        print(f"Could not set up logging: {e}")
+        try:
+            _setup_logging(DEFAULT_LOG_FILE, overwrite=True)
+        except Exception as e:
+            print(f"Could not set up logging with default log file: {e}")
 
     # Set the seed
     random.seed(SEED)
