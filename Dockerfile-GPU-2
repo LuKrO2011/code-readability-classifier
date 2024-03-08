@@ -1,4 +1,4 @@
-# rcg: 4
+# rcg: 5
 # Use tenorflow as base image
 FROM nvidia/cuda:12.3.2-cudnn9-devel-ubuntu22.04 as runtime
 
@@ -14,6 +14,17 @@ RUN apt-get -y update && \
          apt-get install -y python3-pip python3-dev
 
 RUN apt-get install -y git
+
+# Install Python 3.11
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.11
+
+# Update alternatives to use Python 3.11
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --set python3 /usr/bin/python3.11
 
 # Install any python packages you need
 COPY requirements.txt /app/
