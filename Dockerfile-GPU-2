@@ -1,0 +1,34 @@
+# rcg: 4
+# Use tenorflow as base image
+FROM nvidia/cuda:12.3.2-cudnn9-devel-ubuntu22.04 as runtime
+
+# Give the user admin privileges
+USER root
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install additional packages
+RUN apt-get -y update && \
+         apt-get -y upgrade && \
+         apt-get install -y python3-pip python3-dev
+
+RUN apt-get install -y git
+
+# Install any python packages you need
+COPY requirements.txt /app/
+
+RUN python3 -m pip install --upgrade pip && \
+   python3 -m pip install -r /app/requirements.txt
+
+# Install wkhtmltopdf
+RUN echo "8" | DEBIAN_FRONTEND=noninteractive apt-get install -y wkhtmltopdf
+
+# Copy the source code
+COPY src /app/src
+
+# Give write permission to the user
+RUN chmod -R 777 /app
+
+# Add the project root directory to the Python path
+ENV PYTHONPATH /app:/app/src:/app/src/readability_classifier:$PYTHONPATH
