@@ -16,6 +16,7 @@ RUN apt-get update && \
         python3.11 \
         python3.11-dev \
         python3.11-distutils \
+        python3-pip \
         && \
     rm -rf /var/lib/apt/lists/*
 
