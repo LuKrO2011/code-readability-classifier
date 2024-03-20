@@ -9,7 +9,9 @@ It is designed to work with Python 3.11.5 and uses Poetry for package management
 * <<Usage>>
 ** <<Predict>>
 ** <<Train>>
-** <<Dataset>>
+* <<Dataset>>
+* <<Podman>>
+* <<Model_Overview>>
 
 [[Installation]]
 == Installation
@@ -121,12 +123,13 @@ The datasets used for training and evaluation are from the following sources:
 ‘A general software readability model’.
 * Scalabrio: Simone Scalabrino et al.
 ‘Improving code readability models with textual features’.
-* Krod: TODO
 
-In order to use the datasets with the model, they need to be converted into link:https://huggingface.co/docs/datasets/index[Hugging Face's Dataset format].
-This can be done using the dataset_converter.py script.
-Datasets can be combined arbitrarily using the dataset_combiner.py script.
-A command line interface for those will come soon.
+You can find the three datasets merged into one on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
+
+* Krodinger: Lukas Krodinger
+‘Advancing Code Readability: Mined & Modified Code for Dataset Generation‘.
+
+You can also find this dataset on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
 
 [[Podman]]
 == Podman
@@ -153,8 +156,8 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 - v $(pwd):/app : mount current directory to /app in container
 - readability-classifier : name of the container
 
-[[Model]]
-== Model
+[[Model_Overview]]
+== Model Overview
 
 |===
 |Layer (type) |Output Shape              |Param # |Connected to
@@ -191,7 +194,3 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 
 |===
 Total params: 24975649 (95.27 MB)
-
---freeze struc_input struc_reshape struc_conv1 struc_pool1 seman_input_token seman_input_segment seman_bert seman_conv1 seman_pool1 vis_input vis_conv1 vis_pool1
-
---freeze struc_input struc_reshape seman_input_token seman_input_segment seman_bert vis_input
