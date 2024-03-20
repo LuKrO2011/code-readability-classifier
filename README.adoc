@@ -124,12 +124,12 @@ The datasets used for training and evaluation are from the following sources:
 * Scalabrio: Simone Scalabrino et al.
 ‘Improving code readability models with textual features’.
 
-You can find the three datasets merged into one on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
+You can find the three datasets *merged* into one on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
 
 * Krodinger: Lukas Krodinger
 ‘Advancing Code Readability: Mined & Modified Code for Dataset Generation‘.
 
-You can also find this dataset on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
+You can also find this *mined-and-modified* dataset on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
 
 [[Podman]]
 == Podman
