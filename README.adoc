@@ -147,6 +147,7 @@ You can find the three datasets *merged* into one on https://huggingface.co/data
 * Krodinger: Lukas Krodinger ‘Advancing Code Readability: Mined & Modified Code for Dataset Generation‘.
 
 You can also find this *mined-and-modified* dataset on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
+The code for the  https://github.com/LuKrO2011/readability-decreasing-heuristics[dataset generation] of the mined-and-modified dataset is also available on GitHub.
 
 [[Podman]]
 == Podman
