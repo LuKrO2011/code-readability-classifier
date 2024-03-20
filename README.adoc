@@ -3,6 +3,23 @@
 This Python program utilizes machine learning to predict the readability of source code snippets.
 It is designed to work with Python 3.11.5 and uses Poetry for package management.
 
+The most recent implementation of the model is made with https://keras.io/[keras] (see `keas` folder).
+Previously, we tried to achieve the same with https://pytorch.org/[pytorch] (see `toch` folder), but we did not achieve the same classification accuracy for unknown reasons.
+
+The model is based on the https://github.com/swy0601/Readability-Features/tree/master[implementation] of the following paper:
+
+----
+@article{mi2022towards,
+  title={Towards using visual, semantic and structural features to improve code readability classification},
+  author={Mi, Qing and Hao, Yiqun and Ou, Liwei and Ma, Wei},
+  journal={Journal of Systems and Software},
+  volume={193},
+  pages={111454},
+  year={2022},
+  publisher={Elsevier}
+}
+----
+
 == Table of Contents
 
 * <<Installation>>
@@ -54,6 +71,7 @@ pip install tensorflow
 ----
 
 For Developers: Activate the pre-commit hooks:
+
 ----
 pre-commit install
 ----
@@ -126,8 +144,7 @@ The datasets used for training and evaluation are from the following sources:
 
 You can find the three datasets *merged* into one on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
 
-* Krodinger: Lukas Krodinger
-‘Advancing Code Readability: Mined & Modified Code for Dataset Generation‘.
+* Krodinger: Lukas Krodinger ‘Advancing Code Readability: Mined & Modified Code for Dataset Generation‘.
 
 You can also find this *mined-and-modified* dataset on https://huggingface.co/datasets/se2p/code-readability-merged[Huggingface].
 
@@ -193,4 +210,5 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 |class_dense3 (Dense) |(None, 1)                    |17     |['class_dense2[0][0]']
 
 |===
+
 Total params: 24975649 (95.27 MB)
