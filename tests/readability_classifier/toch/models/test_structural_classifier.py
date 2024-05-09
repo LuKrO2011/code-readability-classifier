@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from readability_classifier.toch.models.structural_model import StructuralModel
+from src.readability_classifier.toch.models.structural_model import StructuralModel
 from tests.readability_classifier.toch.models.test_structural_model import (
     create_test_data,
 )

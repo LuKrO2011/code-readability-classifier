@@ -1,8 +1,8 @@
 import unittest
 
-from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.encoders.dataset_utils import load_encoded_dataset
-from readability_classifier.utils.utils import read_content_of_file
+from src.readability_classifier.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.encoders.dataset_utils import load_encoded_dataset
+from src.readability_classifier.utils.utils import read_content_of_file
 from src.readability_classifier.keas.model_runner import KerasModelRunner
 from tests.readability_classifier.utils.utils import (
     ENCODED_BW_DIR,

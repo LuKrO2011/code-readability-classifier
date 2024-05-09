@@ -1,7 +1,7 @@
 import unittest
 
-from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.encoders.dataset_utils import (
+from src.readability_classifier.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )

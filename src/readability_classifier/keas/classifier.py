@@ -4,9 +4,9 @@ from pathlib import Path
 
 import keras
 import numpy as np
-from tensorflow.python.keras.callbacks import ModelCheckpoint
+from keras.src.callbacks import ModelCheckpoint
 
-from readability_classifier.encoders.dataset_utils import (
+from src.readability_classifier.encoders.dataset_utils import (
     Fold,
     ReadabilityDataset,
     split_k_fold,
@@ -141,11 +141,13 @@ class Classifier:
         model.set_weights(self.initial_weights)
 
         # Train the model
-        store_path = str(Path(self.store_dir) / f"model_{fold_index}.h5")
+        store_path = str(Path(self.store_dir) / f"model_{fold_index}.keras")
         checkpoint = ModelCheckpoint(
-            store_path, monitor="val_acc", verbose=1, save_best_only=True, model="max"
+            store_path, monitor="val_acc", verbose=1, save_best_only=True, mode="max"
         )
         callbacks = [checkpoint]
+
+        # Train the model
         return model.fit(
             x=self._dataset_to_input(fold.train_set),
             y=self._dataset_to_label(fold.train_set),

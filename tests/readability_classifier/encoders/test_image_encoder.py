@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from readability_classifier.encoders.dataset_utils import load_raw_dataset
-from readability_classifier.encoders.image_encoder import VisualEncoder, _code_to_image
+from src.readability_classifier.encoders.dataset_utils import load_raw_dataset
+from src.readability_classifier.encoders.image_encoder import VisualEncoder, _code_to_image
 from src.readability_classifier.utils.utils import load_code
 from tests.readability_classifier.utils.utils import DirTest
 

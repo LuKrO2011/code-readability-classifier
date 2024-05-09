@@ -252,7 +252,6 @@ class BertEmbedding(keras.layers.Layer):
         self.config = config
 
         self.token_embedding = self.add_weight(
-            "weight",
             shape=[self.config.vocab_size, self.config.hidden_size],
             initializer=keras.initializers.TruncatedNormal(stddev=0.02),
         )

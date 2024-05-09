@@ -1,6 +1,6 @@
 from transformers import BertTokenizer
 
-from readability_classifier.encoders.bert_encoder import BertEncoder
+from src.readability_classifier.encoders.bert_encoder import BertEncoder
 
 LIMIT = 100  # Maximum number of tokens to decode
 
