@@ -1,5 +1,5 @@
-# Use the specified PyTorch base image
-FROM python:3.11-bookworm as runtime
+# Use the TensorFlow GPU base image
+FROM tensorflow/tensorflow:latest-gpu
 
 # Set the working directory in the container
 WORKDIR /app
