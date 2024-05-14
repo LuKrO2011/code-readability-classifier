@@ -99,7 +99,7 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.h5 --input <snippet_path>
+python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.h5 --input tests/res/code_snippets/towards.java
 ----
 
 [[Train]]
