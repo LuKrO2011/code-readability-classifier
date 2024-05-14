@@ -115,7 +115,7 @@ class KerasModelRunner(ModelRunnerInterface):
         # Predict the readability of the snippet
         towards_input = convert_to_towards_input_without_score(encoded_data)
         prediction = model.predict(towards_input)
-        prediction = decode_score(prediction)
+        prediction = decode_score(prediction.item())
         logging.info(f"Readability of snippet: {prediction}")
         return prediction
 
