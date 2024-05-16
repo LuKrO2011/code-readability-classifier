@@ -108,10 +108,13 @@ class KerasModelRunner(ModelRunnerInterface):
         """
         model_path = parsed_args.model
 
+        # TODO: Now requires which model to use -> Add parameter for "PREDICT" and resolve it here
         # Load the model
-        custom_objects = {"BertEmbedding": BertEmbedding}
-        with keras.saving.custom_object_scope(custom_objects):
-            model = keras.models.load_model(model_path)
+        model = create_towards_model()
+
+        # Load the weights
+        with custom_object_scope({"BertEmbedding": BertEmbedding}):
+            model.load_weights(model_path)
 
         # Predict the readability of the snippet
         towards_input = convert_to_towards_input_without_score(encoded_data)
