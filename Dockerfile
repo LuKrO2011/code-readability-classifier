@@ -1,5 +1,5 @@
 # Use the TensorFlow GPU base image
-FROM tensorflow/tensorflow:latest-gpu
+FROM docker.io/tensorflow/tensorflow:latest-gpu
 
 # Set the working directory in the container
 WORKDIR /app
