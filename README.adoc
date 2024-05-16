@@ -35,40 +35,37 @@ The model is based on the https://github.com/swy0601/Readability-Features/tree/m
 
 To set up the project and its dependencies, follow these steps:
 
-Clone this repository to your local machine:
-
+1. Clone this repository to your local machine:
 [source,bash]
-----
 git clone https://github.com/LuKrO2011/readability-classifier
 cd readability-classifier
-----
 
-Install Poetry if you haven't already:
 
+2. Install Poetry if you haven't already:
 [source,bash]
-----
 pip install poetry
-----
 
-Create a virtual environment and install the project's dependencies using Poetry:
-
+3. Create a virtual environment and install the project's dependencies using Poetry:
 [source,bash]
-----
 poetry install
-----
 
-Activate the virtual environment:
-
+4. Activate the virtual environment:
 [source,bash]
-----
 poetry shell
-----
 
-For Developers: Activate the pre-commit hooks:
+5. Install https://wkhtmltopdf.org/[wkhtmltopdf]:
 
-----
+ - https://wkhtmltopdf.org/downloads.html[Windows]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
+- Ubuntu: Install the package using the following commands:
+[source,bash]
+sudo apt-get update
+sudo apt-get install -y wkhtmltopdf
+
+- After the installation, restart your IDE/terminal.
+
+6. For Developers only: Activate the pre-commit hooks:
+[source,bash]
 pre-commit install
-----
 
 Now you're ready to use the source code readability prediction tool.
 
