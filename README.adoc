@@ -92,6 +92,18 @@ foreach ($k in Get-Content requirements.txt) {
 [source,bash]
 cat requirements.txt | xargs -n 1 pip install
 
+Make sure that your `PYTHONPATH` is set to the root directory of the project:
+
+- Windows:
+[source,bash]
+$env:PYTHONPATH = "readability-classifier"
+
+- Ubuntu:
+[source,bash]
+export PYTHONPATH="readability-classifier":$PYTHONPATH
+
+If you are using an IDE, make sure to set your working directory to the root directory of the project (e.g., `readability-classifier`).
+
 Now you're ready to use the source code readability prediction tool.
 
 [[Usage]]
