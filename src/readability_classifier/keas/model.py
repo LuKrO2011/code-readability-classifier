@@ -272,6 +272,12 @@ class BertEmbedding(keras.layers.Layer):
         )
         self.dropout = keras.layers.Dropout(config.hidden_dropout_rate)
 
+    def build(self, input_shape):
+        """
+        Build the layer.
+        """
+        super().build(input_shape)
+
     def call(self, inputs: tf.Tensor, training: bool = False, mode: str = "embedding"):
         """
         Forward pass of the layer.
