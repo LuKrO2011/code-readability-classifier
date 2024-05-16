@@ -1,7 +1,7 @@
 = Code Readability Classifier
 
 This Python program utilizes machine learning to predict the readability of source code snippets.
-It is designed to work with Python 3.11.5 and uses Poetry for package management.
+It is designed to work with Python 3.11 and uses Poetry for package management.
 
 The most recent implementation of the model is made with https://keras.io/[keras] (see `keas` folder).
 Previously, we tried to achieve the same with https://pytorch.org/[pytorch] (see `toch` folder), but we did not achieve the same classification accuracy for unknown reasons.
@@ -64,12 +64,6 @@ Activate the virtual environment:
 poetry shell
 ----
 
-Install tensorflow manually:
-
-----
-pip install tensorflow
-----
-
 For Developers: Activate the pre-commit hooks:
 
 ----
@@ -80,6 +74,7 @@ Now you're ready to use the source code readability prediction tool.
 
 [[Usage]]
 == Usage
+To get an overview over all available parameters you can also use `-h` or `--help`. You can find an overview of the default parameters in the `main.py` file. We trained the model using the default parameters, but you can adjust them to your needs.
 
 [[Predict]]
 === Predict
@@ -91,7 +86,7 @@ To predict the readability of a source code snippet, use the following command:
 python src/readability_classifier/main.py PREDICT --model MODEL --input INPUT [--token-length TOKEN_LENGTH]
 ----
 
-* `--model` or `-m`: Path to the pre-trained machine learning model.
+* `--model` or `-m`: Path to the pre-trained machine learning model (.h5 or .keras).
 * `--input` or `-i`: Path to the source code snippet you want to evaluate.
 * `--token-length` or `-l` (optional): The token length of the snippet (cutting/padding applied).
 
@@ -99,8 +94,10 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py PREDICT --model tests/res/models/model.pt --input <snippet_path>
+python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.h5 --input tests/res/code_snippets/towards.java
 ----
+
+While for training the data is processed batch-wise, for prediction currently only one snippet at a time is supported. If you require to predict multiple snippets, we recommend to use batch processing which is not implemented yet.
 
 [[Train]]
 === Train
@@ -112,11 +109,10 @@ To train a new machine learning model for source code readability prediction, us
 python src/readability_classifier/main.py TRAIN --input INPUT [--save SAVE] [--intermediate INTERMEDIATE] [--evaluate] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
 ----
 
-* `--input` or `-i`: Path to the dataset containing a folder 'Snippets' and 'scores.csv'.
+* `--input` or `-i`: Path to the folder with the https://huggingface.co/datasets/se2p/code-readability-merged[raw dataset] or the encoded dataset generated using the `intermediate` command.
 * `--save` or `-s` (optional): Path to the folder where the trained model should be stored.
 If not specified, the model is not stored.
-* `--intermediate` (optional): Path to the folder where intermediate results should be stored.
-If not specified, the intermediate results are not stored.
+* `--intermediate` (optional): Path to the folder where the encoded dataset as intermediate results should be stored. If not specified, the dataset is not stored after encoding.
 * `--evaluate` (optional): Whether to evaluate the model after training.
 * `--token-length` or `-l` (optional): The token length of the snippets (cutting/padding applied).
 * `--batch-size` or `-b` (optional): The batch size for training.
@@ -127,7 +123,7 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/bw --save <output-path>
+python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/combined --save output
 ----
 
 [[Dataset]]
@@ -152,6 +148,10 @@ The code for the  https://github.com/LuKrO2011/readability-decreasing-heuristics
 [[Podman]]
 == Podman
 
+To set up a podman container for using the GPU follow https://github.com/LuKrO2011/gpu-keras-tensorflow-pytorch[these steps].
+
+TODO: Rework this section for further instructions:
+
 To build the podman container, run the following command:
 
 [source,bash]
@@ -173,6 +173,8 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 - rm : remove container after exit
 - v $(pwd):/app : mount current directory to /app in container
 - readability-classifier : name of the container
+
+END TODO
 
 [[Model_Overview]]
 == Model Overview
@@ -240,3 +242,6 @@ https://wkhtmltopdf.org/downloads.html
 Add /bin to path
 restart IDE
 
+Run in Podman:
+podman run --rm -it --device nvidia.com/gpu=all --security-opt=label=disable -v $(pwd):/app -w /app readability-classifier python src/readability_classifier/main.py TRAIN -i res -s output
+rc-gpu python src/readability_classifier/main.py TRAIN -i res -s output
