@@ -302,16 +302,16 @@ class HistoryProcessor:
         val_loss = [float(x) for x in get_from_dict(history_dict, "val_loss")]
         val_acc = [float(x) for x in get_from_dict(history_dict, "val_acc")]
         val_false_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_negatives")
+            int(x) for x in get_from_dict(history_dict, "val_false_negatives", "val_FalseNegatives")
         ]
         val_false_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_positives")
+            int(x) for x in get_from_dict(history_dict, "val_false_positives", "val_FalsePositives")
         ]
         val_true_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_positives")
+            int(x) for x in get_from_dict(history_dict, "val_true_positives", "val_TruePositives")
         ]
         val_true_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_negatives")
+            int(x) for x in get_from_dict(history_dict, "val_true_negatives", "val_TrueNegatives")
         ]
 
         epoch_stats = []

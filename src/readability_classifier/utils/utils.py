@@ -179,16 +179,20 @@ def save_content_to_file(content: str, file: Path) -> None:
         file_stream.write(content)
 
 
-def get_from_dict(dictionary, key_start: str):
+def get_from_dict(dictionary, key_start: str, key_start_2: str = None):
     """
     Get a value from a dict by key_start. The first value of the dict where the key
     starts with key_start is returned.
     :param dictionary: The dict to search in.
     :param key_start: The start of the key.
+    :param key_start_2: Another start of the same key. Used if the key is not found.
     :return:
     """
     for key, value in dictionary.items():
         if key.startswith(key_start):
+            return value
+    for key, value in dictionary.items():
+        if key.startswith(key_start_2):
             return value
     raise KeyError(f"Key {key_start} not found in dictionary")
 
