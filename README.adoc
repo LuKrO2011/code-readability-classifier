@@ -213,3 +213,30 @@ podman run -it --rm -v $(pwd):/app readability-classifier
 |===
 
 Total params: 24975649 (95.27 MB)
+
+== Notes
+
+Linux:
+[source, bash]
+cat requirements.txt | xargs -n 1 pip install
+
+Windwos:
+[source, bash]
+FOR /F %k in (requirements.txt) DO ( if NOT # == %k ( pip install %k ) )
+
+OR
+[source, bash]
+foreach ($k in Get-Content requirements.txt) {
+    if ($k -ne "#") {
+        pip install $k
+    }
+}
+
+OR use git bash.
+
+
+Install wkhtmltopdf:
+https://wkhtmltopdf.org/downloads.html
+Add /bin to path
+restart IDE
+
