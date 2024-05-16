@@ -33,6 +33,8 @@ The model is based on the https://github.com/swy0601/Readability-Features/tree/m
 [[Installation]]
 == Installation
 
+You can either use poetry or pip to install the required dependencies. We recommend using poetry for a clean and isolated environment on your local machine. Inside the container, we use pip to install the dependencies.
+
 To set up the project and its dependencies, follow these steps:
 
 1. Clone this repository to your local machine:
@@ -40,22 +42,16 @@ To set up the project and its dependencies, follow these steps:
 git clone https://github.com/LuKrO2011/readability-classifier
 cd readability-classifier
 
-
-2. Install Poetry if you haven't already:
+2. Install python 3.11 and pip, if you haven't already.
+- Windows: https://www.python.org/downloads/release/python-3110/[Python], https://pip.pypa.io/en/stable/installation/[Pip]
+- Ubuntu:
 [source,bash]
-pip install poetry
+sudo apt-get update
+sudo apt-get install -y python3.11 python3-pip
 
-3. Create a virtual environment and install the project's dependencies using Poetry:
-[source,bash]
-poetry install
+3. Install https://wkhtmltopdf.org/[wkhtmltopdf]:
 
-4. Activate the virtual environment:
-[source,bash]
-poetry shell
-
-5. Install https://wkhtmltopdf.org/[wkhtmltopdf]:
-
- - https://wkhtmltopdf.org/downloads.html[Windows]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
+- https://wkhtmltopdf.org/downloads.html[Windows]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
 - Ubuntu: Install the package using the following commands:
 [source,bash]
 sudo apt-get update
@@ -63,9 +59,38 @@ sudo apt-get install -y wkhtmltopdf
 
 - After the installation, restart your IDE/terminal.
 
-6. For Developers only: Activate the pre-commit hooks:
+=== Using Poetry
+1. Install Poetry if you haven't already:
+[source,bash]
+pip install poetry
+
+2. Create a virtual environment and install the project's dependencies using Poetry:
+[source,bash]
+poetry install
+
+3. Activate the virtual environment:
+[source,bash]
+poetry shell
+
+4. For Developers only: Activate the pre-commit hooks:
 [source,bash]
 pre-commit install
+
+=== Using Pip
+When using pip on your local machine, we recommend using a virtual environment, such as venv, to avoid conflicts with other projects.
+
+Install the required dependencies using pip:
+
+- Windows:
+[source,bash]
+foreach ($k in Get-Content requirements.txt) {
+    if ($k -ne "#") {
+        pip install $k
+    }
+}
+- Ubuntu:
+[source,bash]
+cat requirements.txt | xargs -n 1 pip install
 
 Now you're ready to use the source code readability prediction tool.
 
