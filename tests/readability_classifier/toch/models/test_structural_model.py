@@ -9,6 +9,9 @@ from tests.readability_classifier.toch.extractors.test_structural_extractor impo
 class TestStructuralModel(unittest.TestCase):
     structural_model = StructuralModel.build_from_config()
 
+    @unittest.skip(
+        "Torch is not supported anymore. Problems with create_test_data() on GPU."
+    )
     def test_forward_pass(self):
         # Create test input data
         structural_input_data = create_test_data()

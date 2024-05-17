@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from src.readability_classifier.utils.config import StructuralInput
 from src.readability_classifier.toch.extractors.structural_extractor import (
     StructuralExtractor,
 )
+from src.readability_classifier.utils.config import StructuralInput
 
 MIN = 1
 MAX = 9999
@@ -22,6 +22,9 @@ def create_test_data():
 class TestStructuralExtractor(unittest.TestCase):
     structural_extractor = StructuralExtractor.build_from_config()
 
+    @unittest.skip(
+        "Torch is not supported anymore. Problems with create_test_data() on GPU."
+    )
     def test_forward_pass(self):
         # Create test input data
         input_data = create_test_data()

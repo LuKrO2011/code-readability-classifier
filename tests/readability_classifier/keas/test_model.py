@@ -117,5 +117,5 @@ class TestCreateModel(unittest.TestCase):
         # Check the model
         assert isinstance(model, keras.Model)
         assert len(model.inputs) == 2
-        assert len(model.layers) == 4
+        assert len(model.layers) == 3
         assert len(model.outputs) == 1

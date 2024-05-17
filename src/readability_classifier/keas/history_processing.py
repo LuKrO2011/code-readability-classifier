@@ -236,10 +236,10 @@ class HistoryProcessor:
         """
         stats = self.evaluate_epoch_2(
             epoch_index=-1,
-            false_negatives=metrics["false_negatives"],
-            false_positives=metrics["false_positives"],
-            true_negatives=metrics["true_negatives"],
-            true_positives=metrics["true_positives"],
+            false_negatives=get_from_dict(metrics, "false_negatives", "FalseNegatives"),
+            false_positives=get_from_dict(metrics, "false_positives", "FalsePositives"),
+            true_negatives=get_from_dict(metrics, "true_negatives", "TrueNegatives"),
+            true_positives=get_from_dict(metrics, "true_positives", "TruePositives"),
         )
 
         logging.info(
@@ -302,16 +302,28 @@ class HistoryProcessor:
         val_loss = [float(x) for x in get_from_dict(history_dict, "val_loss")]
         val_acc = [float(x) for x in get_from_dict(history_dict, "val_acc")]
         val_false_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_negatives", "val_FalseNegatives")
+            int(x)
+            for x in get_from_dict(
+                history_dict, "val_false_negatives", "val_FalseNegatives"
+            )
         ]
         val_false_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_false_positives", "val_FalsePositives")
+            int(x)
+            for x in get_from_dict(
+                history_dict, "val_false_positives", "val_FalsePositives"
+            )
         ]
         val_true_positives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_positives", "val_TruePositives")
+            int(x)
+            for x in get_from_dict(
+                history_dict, "val_true_positives", "val_TruePositives"
+            )
         ]
         val_true_negatives = [
-            int(x) for x in get_from_dict(history_dict, "val_true_negatives", "val_TrueNegatives")
+            int(x)
+            for x in get_from_dict(
+                history_dict, "val_true_negatives", "val_TrueNegatives"
+            )
         ]
 
         epoch_stats = []

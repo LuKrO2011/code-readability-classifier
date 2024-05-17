@@ -170,13 +170,12 @@ class Classifier:
         towards_input = ReadabilityDataset(convert_to_towards_inputs(self.encoded_data))
 
         # Evaluate the model
-        metric_values = self.model.evaluate(
+        metrics = self.model.evaluate(
             x=self._dataset_to_input(towards_input),
             y=self._dataset_to_label(towards_input),
             batch_size=self.batch_size,
+            return_dict=True,
         )
-        metric_names = self.model.metrics_names
-        metrics = dict(zip(metric_names, metric_values, strict=True))
 
         # Log the metrics
         logging.info("Metrics:")
