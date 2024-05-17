@@ -128,7 +128,7 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.h5 --input tests/res/code_snippets/towards.java
+python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.keras --input tests/res/code_snippets/towards.java
 ----
 
 While for training the data is processed batch-wise, for prediction currently only one snippet at a time is supported. If you require to predict multiple snippets, we recommend to use batch processing which is not implemented yet.
@@ -180,35 +180,48 @@ You can also find this *mined-and-modified* dataset on https://huggingface.co/da
 The code for the  https://github.com/LuKrO2011/readability-decreasing-heuristics[dataset generation] of the mined-and-modified dataset is also available on GitHub.
 
 [[Podman]]
-== Podman
+== GPU + Podman
 
-To set up a podman container for using the GPU follow https://github.com/LuKrO2011/gpu-keras-tensorflow-pytorch[these steps].
+To prepare your machine for usage of GPU with podman, follow https://github.com/LuKrO2011/gpu-keras-tensorflow-pytorch[these steps].
 
-TODO: Rework this section for further instructions:
+=== Using the Container
 
-To build the podman container, run the following command:
+You can download the pre-build podman container from https://hub.docker.com/repository/docker/lukro2011/rc-gpu/general[Docker Hub] using this command:
+[source,bash]
+docker pull lukro2011/rc-gpu
+
+Then use the ``train.sh`` script to train the model or the `predict.sh` script to predict the readability of a code snippet using the pre-trained model.
+
+Feel free to modify the scripts to your needs. We recommend using the pre-build container and changing the scripts and code, which gets mounted, instead of building the container from scratch.
+
+=== Build Container
+
+In case you need to modify dependencies, you need to build the container from scratch.
+The provided Dockerfile is used to build a podman container with the dependencies from the `requirements.txt` file.
+
+In case you want to change some versions, change them using poetry and generate the requirements.txt file using this command:
+[source,bash]
+poetry export --without-hashes -f requirements.txt | awk '{print $1}' > requirements.txt
+
+Then build the podman container using the following command:
+[source,bash]
+----
+podman build -t <your-container-name> .
+----
+
+You can debug the container using by starting it in interactive mode:
 
 [source,bash]
 ----
-podman build -t readability-classifier .
+podman run -it --rm <your-container-name>
 ----
 
-- t : name of the container
-- . : path to the Dockerfile
-
-To run the podman container, run the following command:
+or by using the provided `src/readability_classifier/utils/cuda-check.py` script:
 
 [source,bash]
 ----
-podman run -it --rm -v $(pwd):/app readability-classifier
+podman run -it --rm <your-container-name> python src/readability_classifier/utils/cuda-check.py
 ----
-
-- it : interactive mode
-- rm : remove container after exit
-- v $(pwd):/app : mount current directory to /app in container
-- readability-classifier : name of the container
-
-END TODO
 
 [[Model_Overview]]
 == Model Overview
@@ -249,33 +262,3 @@ END TODO
 |===
 
 Total params: 24975649 (95.27 MB)
-
-== Notes
-
-Linux:
-[source, bash]
-cat requirements.txt | xargs -n 1 pip install
-
-Windwos:
-[source, bash]
-FOR /F %k in (requirements.txt) DO ( if NOT # == %k ( pip install %k ) )
-
-OR
-[source, bash]
-foreach ($k in Get-Content requirements.txt) {
-    if ($k -ne "#") {
-        pip install $k
-    }
-}
-
-OR use git bash.
-
-
-Install wkhtmltopdf:
-https://wkhtmltopdf.org/downloads.html
-Add /bin to path
-restart IDE
-
-Run in Podman:
-podman run --rm -it --device nvidia.com/gpu=all --security-opt=label=disable -v $(pwd):/app -w /app readability-classifier python src/readability_classifier/main.py TRAIN -i res -s output
-rc-gpu python src/readability_classifier/main.py TRAIN -i res -s output

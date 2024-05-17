@@ -8,8 +8,5 @@ podman run --rm \
     -v ./tests/res/code_snippets:/app/snippets \
     rc-gpu \
     python src/readability_classifier/main.py PREDICT \
-    --model models/towards.h5 \
+    --model models/towards.keras \
     --input snippets/towards.java
-
-
-src/readability_classifier/main.py
