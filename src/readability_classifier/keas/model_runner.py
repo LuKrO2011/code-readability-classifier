@@ -5,10 +5,11 @@ from dataclasses import asdict
 from pathlib import Path
 
 import keras.models
+from keras.src.saving import custom_object_scope
 
-from readability_classifier.encoders.dataset_encoder import decode_score
-from readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from readability_classifier.toch.model_runner import ModelRunnerInterface
+from src.readability_classifier.encoders.dataset_encoder import decode_score
+from src.readability_classifier.encoders.dataset_utils import ReadabilityDataset
+from src.readability_classifier.toch.model_runner import ModelRunnerInterface
 from src.readability_classifier.keas.classifier import (
     Classifier,
     convert_to_towards_input_without_score,
@@ -107,10 +108,13 @@ class KerasModelRunner(ModelRunnerInterface):
         """
         model_path = parsed_args.model
 
+        # TODO: Now requires which model to use -> Add parameter for "PREDICT" and resolve it here
         # Load the model
-        model = keras.models.load_model(
-            model_path, custom_objects={"BertEmbedding": BertEmbedding}
-        )
+        model = create_towards_model()
+
+        # Load the weights
+        with custom_object_scope({"BertEmbedding": BertEmbedding}):
+            model.load_weights(model_path)
 
         # Predict the readability of the snippet
         towards_input = convert_to_towards_input_without_score(encoded_data)

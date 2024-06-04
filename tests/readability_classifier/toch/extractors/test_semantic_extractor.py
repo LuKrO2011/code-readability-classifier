@@ -32,6 +32,9 @@ def create_test_data():
 class TestSemanticExtractor(unittest.TestCase):
     semantic_extractor = SemanticExtractor.build_from_config()
 
+    @unittest.skip(
+        "Torch is not supported anymore. Problems with create_test_data() on GPU."
+    )
     def test_forward_pass(self):
         # Create test input data
         semantic_input = create_test_data()

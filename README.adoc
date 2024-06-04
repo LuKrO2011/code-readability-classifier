@@ -1,7 +1,7 @@
 = Code Readability Classifier
 
 This Python program utilizes machine learning to predict the readability of source code snippets.
-It is designed to work with Python 3.11.5 and uses Poetry for package management.
+It is designed to work with Python 3.11 and uses Poetry for package management.
 
 The most recent implementation of the model is made with https://keras.io/[keras] (see `keas` folder).
 Previously, we tried to achieve the same with https://pytorch.org/[pytorch] (see `toch` folder), but we did not achieve the same classification accuracy for unknown reasons.
@@ -33,53 +33,86 @@ The model is based on the https://github.com/swy0601/Readability-Features/tree/m
 [[Installation]]
 == Installation
 
+You can either use poetry or pip to install the required dependencies. We recommend using poetry for a clean and isolated environment on your local machine. Inside the container, we use pip to install the dependencies.
+In any case, make sure to add the project path to your python <<Path>> before running the program.
+
 To set up the project and its dependencies, follow these steps:
 
-Clone this repository to your local machine:
-
+1. Clone this repository to your local machine:
 [source,bash]
-----
 git clone https://github.com/LuKrO2011/readability-classifier
 cd readability-classifier
-----
 
-Install Poetry if you haven't already:
-
+2. Install python 3.11 and pip, if you haven't already.
+- Windows: https://www.python.org/downloads/release/python-3110/[Python], https://pip.pypa.io/en/stable/installation/[Pip]
+- Ubuntu:
 [source,bash]
-----
+sudo apt-get update
+sudo apt-get install -y python3.11 python3-pip
+
+3. Install https://wkhtmltopdf.org/[wkhtmltopdf]:
+
+- https://wkhtmltopdf.org/downloads.html[Windows]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
+- Ubuntu: Install the package using the following commands:
+[source,bash]
+sudo apt-get update
+sudo apt-get install -y wkhtmltopdf
+
+- After the installation, restart your IDE/terminal.
+
+=== Using Poetry
+1. Install Poetry if you haven't already:
+[source,bash]
 pip install poetry
-----
 
-Create a virtual environment and install the project's dependencies using Poetry:
-
+2. Create a virtual environment and install the project's dependencies using Poetry:
 [source,bash]
-----
 poetry install
-----
 
-Activate the virtual environment:
-
+3. Activate the virtual environment:
 [source,bash]
-----
 poetry shell
-----
 
-Install tensorflow manually:
-
-----
-pip install tensorflow
-----
-
-For Developers: Activate the pre-commit hooks:
-
-----
+4. For Developers only: Activate the pre-commit hooks:
+[source,bash]
 pre-commit install
-----
+
+=== Using Pip
+When using pip on your local machine, we recommend using a virtual environment, such as venv, to avoid conflicts with other projects.
+
+Install the required dependencies using pip:
+
+- Windows:
+[source,bash]
+foreach ($k in Get-Content requirements.txt) {
+    if ($k -ne "#") {
+        pip install $k
+    }
+}
+- Ubuntu:
+[source,bash]
+cat requirements.txt | xargs -n 1 pip install
+
+[[Path]]
+== Project & Python Path
+
+After the installation, make sure that your `PYTHONPATH` is set to the root directory of the project:
+
+- Windows:
+[source,bash]
+$env:PYTHONPATH = "readability-classifier"
+
+- Ubuntu:
+[source,bash]
+export PYTHONPATH="readability-classifier":$PYTHONPATH
+
+If you are using an IDE, make sure to set your working directory to the root directory of the project (e.g., `readability-classifier`).
 
 Now you're ready to use the source code readability prediction tool.
 
 [[Usage]]
 == Usage
+To get an overview over all available parameters you can also use `-h` or `--help`. You can find an overview of the default parameters in the `main.py` file. We trained the model using the default parameters, but you can adjust them to your needs.
 
 [[Predict]]
 === Predict
@@ -91,7 +124,7 @@ To predict the readability of a source code snippet, use the following command:
 python src/readability_classifier/main.py PREDICT --model MODEL --input INPUT [--token-length TOKEN_LENGTH]
 ----
 
-* `--model` or `-m`: Path to the pre-trained machine learning model.
+* `--model` or `-m`: Path to the pre-trained machine learning model (.h5 or .keras).
 * `--input` or `-i`: Path to the source code snippet you want to evaluate.
 * `--token-length` or `-l` (optional): The token length of the snippet (cutting/padding applied).
 
@@ -99,8 +132,10 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py PREDICT --model tests/res/models/model.pt --input <snippet_path>
+python src/readability_classifier/main.py PREDICT --model tests/res/models/towards.keras --input tests/res/code_snippets/towards.java
 ----
+
+While for training the data is processed batch-wise, for prediction currently only one snippet at a time is supported. If you require to predict multiple snippets, we recommend to use batch processing which is not implemented yet.
 
 [[Train]]
 === Train
@@ -112,11 +147,10 @@ To train a new machine learning model for source code readability prediction, us
 python src/readability_classifier/main.py TRAIN --input INPUT [--save SAVE] [--intermediate INTERMEDIATE] [--evaluate] [--token-length TOKEN_LENGTH] [--batch-size BATCH_SIZE] [--epochs EPOCHS] [--learning-rate LEARNING_RATE]
 ----
 
-* `--input` or `-i`: Path to the dataset containing a folder 'Snippets' and 'scores.csv'.
+* `--input` or `-i`: Path to the folder with the https://huggingface.co/datasets/se2p/code-readability-merged[raw dataset] or the encoded dataset generated using the `intermediate` command.
 * `--save` or `-s` (optional): Path to the folder where the trained model should be stored.
 If not specified, the model is not stored.
-* `--intermediate` (optional): Path to the folder where intermediate results should be stored.
-If not specified, the intermediate results are not stored.
+* `--intermediate` (optional): Path to the folder where the encoded dataset as intermediate results should be stored. If not specified, the dataset is not stored after encoding.
 * `--evaluate` (optional): Whether to evaluate the model after training.
 * `--token-length` or `-l` (optional): The token length of the snippets (cutting/padding applied).
 * `--batch-size` or `-b` (optional): The batch size for training.
@@ -127,7 +161,7 @@ Example:
 
 [source,bash]
 ----
-python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/bw --save <output-path>
+python src/readability_classifier/main.py TRAIN --input tests/res/raw_datasets/combined --save output
 ----
 
 [[Dataset]]
@@ -150,29 +184,52 @@ You can also find this *mined-and-modified* dataset on https://huggingface.co/da
 The code for the  https://github.com/LuKrO2011/readability-decreasing-heuristics[dataset generation] of the mined-and-modified dataset is also available on GitHub.
 
 [[Podman]]
-== Podman
+== GPU + Podman
 
-To build the podman container, run the following command:
+To prepare your machine for usage of GPU with podman, follow https://github.com/LuKrO2011/gpu-keras-tensorflow-pytorch[these steps].
+
+=== Using the Container
+
+You can download the pre-build podman container from https://hub.docker.com/repository/docker/lukro2011/rc-gpu/general[Docker Hub] using this command:
+[source,bash]
+podman pull lukro2011/rc-gpu:latest
+
+Test the container using the following command:
+[source,bash]
+podman run -it --rm --device nvidia.com/gpu=all lukro2011/rc-gpu:latest python src/readability_classifier/utils/cuda-checker.py
+
+Then use the ``scripts/train.sh`` script to train the model or the `scripts/predict.sh` script to predict the readability of a code snippet using the pre-trained model.
+
+Feel free to modify the scripts to your needs. We recommend using the pre-build container and changing the scripts and code, which gets mounted, instead of building the container from scratch.
+
+=== Build Container
+
+In case you need to modify dependencies, you need to build the container from scratch.
+The provided Dockerfile is used to build a podman container with the dependencies from the `requirements.txt` file.
+
+In case you want to change some versions, change them using poetry and generate the requirements.txt file using this command:
+[source,bash]
+poetry export --without-hashes -f requirements.txt | awk '{print $1}' > requirements.txt
+
+Then build the podman container using the following command:
+[source,bash]
+----
+podman build -t <your-container-name> .
+----
+
+You can debug the container using by starting it in interactive mode:
 
 [source,bash]
 ----
-podman build -t readability-classifier .
+podman run -it --rm --device nvidia.com/gpu=all <your-container-name>
 ----
 
-- t : name of the container
-- . : path to the Dockerfile
-
-To run the podman container, run the following command:
+or by using the provided `src/readability_classifier/utils/cuda-checker.py` script:
 
 [source,bash]
 ----
-podman run -it --rm -v $(pwd):/app readability-classifier
+podman run -it --rm --device nvidia.com/gpu=all <your-container-name> python src/readability_classifier/utils/cuda-checker.py
 ----
-
-- it : interactive mode
-- rm : remove container after exit
-- v $(pwd):/app : mount current directory to /app in container
-- readability-classifier : name of the container
 
 [[Model_Overview]]
 == Model Overview

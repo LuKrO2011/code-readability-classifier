@@ -57,8 +57,8 @@ class TestRunMain(DirTest):
     def test_run_evaluate(self):
         class MockParsedArgs:
             def __init__(self, save: str = self.output_dir):
-                self.input = ENCODED_COMBINED_DIR
-                self.load = TOWARDS_MODEL
+                self.input = str(ENCODED_COMBINED_DIR)
+                self.load = str(TOWARDS_MODEL)
                 self.batch_size = 2
                 self.save = save
                 self.encoded = True
@@ -84,4 +84,4 @@ class TestRunMain(DirTest):
         clazz, score = _run_predict(parsed_args, model_runner)
 
         assert clazz == "Readable"
-        assert score == 0.7045395374298096
+        assert score == 0.9999087452888489

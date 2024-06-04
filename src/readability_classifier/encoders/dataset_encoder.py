@@ -3,13 +3,13 @@ import logging
 import torch
 from torch import Tensor
 
-from readability_classifier.encoders.bert_encoder import BertEncoder
-from readability_classifier.encoders.dataset_utils import (
+from src.readability_classifier.encoders.bert_encoder import BertEncoder
+from src.readability_classifier.encoders.dataset_utils import (
     EncoderInterface,
     ReadabilityDataset,
 )
-from readability_classifier.encoders.image_encoder import VisualEncoder
-from readability_classifier.encoders.matrix_encoder import MatrixEncoder
+from src.readability_classifier.encoders.image_encoder import VisualEncoder
+from src.readability_classifier.encoders.matrix_encoder import MatrixEncoder
 
 TOWARDS_SCORE_MEDIAN = 3.6809815950920246  # Median of the scores of the Towards dataset
 

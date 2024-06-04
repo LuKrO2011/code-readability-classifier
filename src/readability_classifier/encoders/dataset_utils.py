@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 from datasets import Dataset as HFDataset
@@ -93,7 +94,7 @@ def load_raw_dataset(data_dir: str) -> list[dict]:
     :param data_dir: The path to the directory containing the data.
     :return: A list of dictionaries.
     """
-    dataset = load_from_disk(data_dir)
+    dataset = load_from_disk(str(data_dir))
     if "train" in dataset:
         dataset = dataset["train"]
     return dataset.to_list()

@@ -4,7 +4,7 @@ import unittest
 import keras
 import numpy as np
 
-from readability_classifier.encoders.dataset_utils import load_encoded_dataset
+from src.readability_classifier.encoders.dataset_utils import load_encoded_dataset
 from src.readability_classifier.keas.classifier import (
     Classifier,
     convert_to_towards_inputs,
