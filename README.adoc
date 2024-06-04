@@ -198,10 +198,7 @@ Test the container using the following command:
 [source,bash]
 podman run -it --rm --device nvidia.com/gpu=all lukro2011/rc-gpu:latest python src/readability_classifier/utils/cuda-checker.py
 
-Then use the ``train.sh`` script to train the model or the `predict.sh` script to predict the readability of a code snippet using the pre-trained model:
-
-[source, bash]
-podman run --rm --device nvidia.com/gpu=all -v "$(pwd)"/tests/res/raw_datasets/combined:/app/res docker.io/lukro2011/rc-gpu:latest python src/readability_classifier/main.py TRAIN -i res
+Then use the ``scripts/train.sh`` script to train the model or the `scripts/predict.sh` script to predict the readability of a code snippet using the pre-trained model.
 
 Feel free to modify the scripts to your needs. We recommend using the pre-build container and changing the scripts and code, which gets mounted, instead of building the container from scratch.
 
