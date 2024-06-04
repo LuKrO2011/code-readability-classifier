@@ -125,7 +125,7 @@ python src/readability_classifier/main.py PREDICT --model MODEL --input INPUT [-
 ----
 
 * `--model` or `-m`: Path to the pre-trained machine learning model (.h5 or .keras).
-* `--input` or `-i`: Path to the source code snippet you want to evaluate.
+* `--input` or `-i`: Path to the source code snippet you want to evaluate. Alternatively, you can provide a folder with multiple snippets.
 * `--token-length` or `-l` (optional): The token length of the snippet (cutting/padding applied).
 
 Example:

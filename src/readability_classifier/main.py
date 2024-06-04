@@ -16,12 +16,12 @@ from src.readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )
+from src.readability_classifier.keas.model_runner import KerasModelRunner
 from src.readability_classifier.toch.model_buider import Model
 from src.readability_classifier.toch.model_runner import (
     ModelRunnerInterface,
     TorchModelRunner,
 )
-from src.readability_classifier.keas.model_runner import KerasModelRunner
 
 DEFAULT_LOG_FILE_NAME = "readability-classifier"
 DEFAULT_LOG_FILE = f"{DEFAULT_LOG_FILE_NAME}.log"
@@ -297,7 +297,11 @@ def _set_up_arg_parser() -> ArgumentParser:
         "--model", "-m", required=True, type=Path, help="Path to the model."
     )
     predict_parser.add_argument(
-        "--input", "-i", required=True, type=Path, help="Path to the snippet."
+        "--input",
+        "-i",
+        required=True,
+        type=Path,
+        help="Path to the snippet or a folder with multiplesnippets.",
     )
 
     return arg_parser
