@@ -163,11 +163,10 @@ class DatasetEncoder(EncoderInterface):
         return torch.tensor(scores)
 
 
-def decode_score(score: Tensor) -> tuple[str, float]:
+def decode_score(score: float) -> tuple[str, float]:
     """
     Decodes the given score to a tuple with class and score.
     :param score: The score to decode.
     :return: The decoded score.
     """
-    score = score.item()
     return "Readable" if score > 0.5 else "Unreadable", score
