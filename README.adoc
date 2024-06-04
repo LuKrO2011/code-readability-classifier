@@ -34,6 +34,7 @@ The model is based on the https://github.com/swy0601/Readability-Features/tree/m
 == Installation
 
 You can either use poetry or pip to install the required dependencies. We recommend using poetry for a clean and isolated environment on your local machine. Inside the container, we use pip to install the dependencies.
+In any case, make sure to add the project path to your python <<Path>> before running the program.
 
 To set up the project and its dependencies, follow these steps:
 
@@ -92,7 +93,10 @@ foreach ($k in Get-Content requirements.txt) {
 [source,bash]
 cat requirements.txt | xargs -n 1 pip install
 
-Make sure that your `PYTHONPATH` is set to the root directory of the project:
+[[Path]]
+== Project & Python Path
+
+After the installation, make sure that your `PYTHONPATH` is set to the root directory of the project:
 
 - Windows:
 [source,bash]
