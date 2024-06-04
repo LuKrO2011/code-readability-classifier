@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from readability_classifier.utils.config import VisualInput
+from src.readability_classifier.utils.config import VisualInput
 from src.readability_classifier.toch.extractors.visual_extractor import VisualExtractor
 
 RGB_MIN = 0

@@ -1,8 +1,7 @@
 import unittest
 
 import keras
-from keras import layers, models
-from keras.src.engine.keras_tensor import KerasTensor
+from keras import KerasTensor, layers, models
 
 from src.readability_classifier.keas.legacy_encoders import MAX_LEN
 from src.readability_classifier.keas.model import (
@@ -118,5 +117,5 @@ class TestCreateModel(unittest.TestCase):
         # Check the model
         assert isinstance(model, keras.Model)
         assert len(model.inputs) == 2
-        assert len(model.layers) == 4
+        assert len(model.layers) == 3
         assert len(model.outputs) == 1

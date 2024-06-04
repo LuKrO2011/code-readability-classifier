@@ -1,9 +1,9 @@
 import unittest
 
-from readability_classifier.encoders.dataset_encoder import DatasetEncoder
-from readability_classifier.encoders.dataset_utils import load_encoded_dataset
-from readability_classifier.utils.utils import read_content_of_file
+from src.readability_classifier.encoders.dataset_encoder import DatasetEncoder
+from src.readability_classifier.encoders.dataset_utils import load_encoded_dataset
 from src.readability_classifier.keas.model_runner import KerasModelRunner
+from src.readability_classifier.utils.utils import read_content_of_file
 from tests.readability_classifier.utils.utils import (
     ENCODED_BW_DIR,
     ENCODED_COMBINED_DIR,
@@ -16,7 +16,7 @@ from tests.readability_classifier.utils.utils import (
 class TestKerasModelRunner(DirTest):
     def setUp(self):
         super().setUp()
-        self.encoded_data = load_encoded_dataset(ENCODED_BW_DIR)
+        self.encoded_data = load_encoded_dataset(str(ENCODED_BW_DIR))
 
     @unittest.skip("Takes to long.")
     def test_run_with_cross_validation(self):
@@ -52,7 +52,7 @@ class TestKerasModelRunner(DirTest):
         # Mock the parsed arguments
         class MockParsedArgs:
             def __init__(self):
-                self.model = TOWARDS_MODEL
+                self.model = str(TOWARDS_MODEL)
 
         # Get the encoded data
         code = read_content_of_file(TOWARDS_CODE_SNIPPET)
@@ -64,19 +64,19 @@ class TestKerasModelRunner(DirTest):
             parsed_args=MockParsedArgs(), encoded_data=encoded_data
         )
 
-        assert clazz == "Unreadable"
-        assert score == 0.3686406910419464
+        assert clazz == "Readable"
+        assert score == 0.9931080341339111
 
     def test_run_evaluate(self):
         # Mock the parsed arguments
         class MockParsedArgs:
             def __init__(self, save: str = self.output_dir):
-                self.load = TOWARDS_MODEL
+                self.load = str(TOWARDS_MODEL)
                 self.batch_size = 8
                 self.save = save
 
         # Load the right data
-        self.encoded_data = load_encoded_dataset(ENCODED_COMBINED_DIR)
+        self.encoded_data = load_encoded_dataset(str(ENCODED_COMBINED_DIR))
 
         # Run the model runner
         model_runner = KerasModelRunner()

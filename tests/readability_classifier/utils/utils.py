@@ -23,7 +23,7 @@ MI_RAW_DIR = MI_DIR / "raw"
 MI_STRUCTURAL_DIR = MI_DIR / "structural"
 
 MODELS_DIR = RES_DIR / "models"
-TOWARDS_MODEL = MODELS_DIR / "towards.h5"
+TOWARDS_MODEL = MODELS_DIR / "towards.keras"
 
 RAW_DATA_DIR = RES_DIR / "raw_data"
 BW_SNIPPET_1 = RAW_DATA_DIR / "bw/Snippets/1.jsnp"

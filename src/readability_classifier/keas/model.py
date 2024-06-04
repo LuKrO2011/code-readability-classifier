@@ -252,7 +252,6 @@ class BertEmbedding(keras.layers.Layer):
         self.config = config
 
         self.token_embedding = self.add_weight(
-            "weight",
             shape=[self.config.vocab_size, self.config.hidden_size],
             initializer=keras.initializers.TruncatedNormal(stddev=0.02),
         )
@@ -272,6 +271,12 @@ class BertEmbedding(keras.layers.Layer):
             epsilon=1e-12, name="LayerNorm"
         )
         self.dropout = keras.layers.Dropout(config.hidden_dropout_rate)
+
+    def build(self, input_shape):
+        """
+        Build the layer.
+        """
+        super().build(input_shape)
 
     def call(self, inputs: tf.Tensor, training: bool = False, mode: str = "embedding"):
         """

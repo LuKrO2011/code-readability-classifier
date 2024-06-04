@@ -1,5 +1,5 @@
-from readability_classifier.encoders.bert_encoder import BertEncoder
-from readability_classifier.encoders.dataset_utils import (
+from src.readability_classifier.encoders.bert_encoder import BertEncoder
+from src.readability_classifier.encoders.dataset_utils import (
     load_raw_dataset,
     store_encoded_dataset,
 )

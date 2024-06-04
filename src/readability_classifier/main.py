@@ -7,17 +7,17 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, AnyStr
 
-from readability_classifier.encoders.dataset_encoder import (
+from src.readability_classifier.encoders.dataset_encoder import (
     DatasetEncoder,
     decode_score,
 )
-from readability_classifier.encoders.dataset_utils import (
+from src.readability_classifier.encoders.dataset_utils import (
     load_encoded_dataset,
     load_raw_dataset,
     store_encoded_dataset,
 )
-from readability_classifier.toch.model_buider import Model
-from readability_classifier.toch.model_runner import (
+from src.readability_classifier.toch.model_buider import Model
+from src.readability_classifier.toch.model_runner import (
     ModelRunnerInterface,
     TorchModelRunner,
 )
