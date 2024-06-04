@@ -188,7 +188,11 @@ To prepare your machine for usage of GPU with podman, follow https://github.com/
 
 You can download the pre-build podman container from https://hub.docker.com/repository/docker/lukro2011/rc-gpu/general[Docker Hub] using this command:
 [source,bash]
-docker pull lukro2011/rc-gpu
+podman pull lukro2011/rc-gpu
+
+Test the container using the following command:
+[source,bash]
+podman run -it --rm --device nvidia.com/gpu=all lukro2011/rc-gpu python src/readability_classifier/utils/cuda-checker.py
 
 Then use the ``train.sh`` script to train the model or the `predict.sh` script to predict the readability of a code snippet using the pre-trained model.
 
@@ -213,14 +217,14 @@ You can debug the container using by starting it in interactive mode:
 
 [source,bash]
 ----
-podman run -it --rm <your-container-name>
+podman run -it --rm --device nvidia.com/gpu=all <your-container-name>
 ----
 
-or by using the provided `src/readability_classifier/utils/cuda-check.py` script:
+or by using the provided `src/readability_classifier/utils/cuda-checker.py` script:
 
 [source,bash]
 ----
-podman run -it --rm <your-container-name> python src/readability_classifier/utils/cuda-check.py
+podman run -it --rm --device nvidia.com/gpu=all <your-container-name> python src/readability_classifier/utils/cuda-checker.py
 ----
 
 [[Model_Overview]]
