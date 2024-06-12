@@ -75,7 +75,7 @@ class TestRunMain(DirTest):
     def test_run_predict(self):
         class MockParsedArgs:
             def __init__(self):
-                self.input = BW_SNIPPET_1
+                self.input = [BW_SNIPPET_1]
                 self.model = TOWARDS_MODEL
 
         parsed_args = MockParsedArgs()
