@@ -56,9 +56,11 @@ class DatasetEncoder(EncoderInterface):
         bert_dataset = self.bert_encoder.encode_dataset(unencoded_dataset)
         image_dataset = self.visual_encoder.encode_dataset(unencoded_dataset)
 
-        # Normalize the scores
-        scores = [sample["score"] for sample in unencoded_dataset]
-        encoded_scores = self._encode_scores_class(scores)
+        # Normalize the scores if they exist
+        encoded_scores = ["" for _ in range(len(matrix_dataset))]
+        if "scores" in unencoded_dataset[0]:
+            scores = [sample["score"] for sample in unencoded_dataset]
+            encoded_scores = self._encode_scores_class(scores)
 
         # Get the names, if they exist
         names = ["" for _ in range(len(matrix_dataset))]

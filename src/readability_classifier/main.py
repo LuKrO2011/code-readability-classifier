@@ -5,11 +5,10 @@ import sys
 from argparse import ArgumentParser
 from enum import Enum
 from pathlib import Path
-from typing import Any, AnyStr
+from typing import Any
 
 from src.readability_classifier.encoders.dataset_encoder import (
     DatasetEncoder,
-    decode_score,
 )
 from src.readability_classifier.encoders.dataset_utils import (
     load_encoded_dataset,
@@ -370,39 +369,35 @@ def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> tuple[str, 
     :return: None
     """
     data_arg = parsed_args.input
-    data_inputs: list[AnyStr] = []
 
     # Load the snippet
     if os.path.isfile(data_arg):
-        with open(data_arg) as file:
-            data_inputs.append(file.read())
+        files = [data_arg]
     else:
         if os.path.isdir(data_arg):
+            files = []
             for name in os.listdir(data_arg):
                 f = os.path.join(data_arg, name)
                 if os.path.isfile(f) and f.endswith(".java"):
-                    with open(f) as file:
-                        data_inputs.append(file.read())
+                    files.append(f)
+            if len(files) == 0:
+                raise FileNotFoundError(f"No java files in {data_arg} found.")
         else:
             raise FileNotFoundError(f"{data_arg} does not exist.")
+    data_inputs: list[dict] = []
+    for f in files:
+        with open(f) as file:
+            file_contents = file.read()
+            logging.info("Loaded Snippet: \n %s", file_contents)
+            data_inputs.append({"code_snippet": file_contents})
 
-    score_sum: float = 0.0
-    for data_input in data_inputs:
-        logging.info("Loaded Snippet: \n %s", data_input)
+    # Encode the snippet
+    logging.info("Encoding Snippets...")
+    encoded_snippets = DatasetEncoder().encode_dataset(data_inputs)
 
-        # Encode the snippet
-        logging.info("Encoding Snippet...")
-        encoded_snippet = DatasetEncoder().encode_text(data_input)
-
-        # Run the prediction
-        logging.info("Predicting Readability...")
-
-        result = model_runner.run_predict(parsed_args, encoded_snippet)
-        score_sum += result[1]
-    avg = score_sum / len(data_inputs)
-    prediction = decode_score(avg)
-    logging.info(f"Readability of directory: {prediction}")
-    return prediction
+    # Run the prediction
+    logging.info("Predicting Readability...")
+    return model_runner.run_predict(parsed_args, encoded_snippets)
 
 
 def _run_evaluate(parsed_args, model_runner: ModelRunnerInterface) -> None:
