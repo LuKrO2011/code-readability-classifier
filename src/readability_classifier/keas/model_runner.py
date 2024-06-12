@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import pickle
 from dataclasses import asdict
 from pathlib import Path
@@ -116,17 +117,32 @@ class KerasModelRunner(ModelRunnerInterface):
         with custom_object_scope({"BertEmbedding": BertEmbedding}):
             model.load_weights(model_path)
 
-        score_sum = 0
+        score_sums: dict[str, float] = {}
+        score_counts: dict[str, int] = {}
         for encoded_data in encoded_dataset.split(len(encoded_dataset)):
-            # Predict the readability of the snippet
+            # Predict the readability of the snippets
             towards_input = convert_to_towards_input_without_score(encoded_data)
-            prediction = model.predict(towards_input)
-            score_sum += prediction.item()
-            prediction = decode_score(prediction.item())
-            logging.info(f"Readability of snippet: {prediction}")
-        avg = score_sum / len(encoded_dataset)
+            prediction = model.predict(towards_input).item()
+            filename = encoded_data[0]['name']
+            directory = os.path.dirname(filename)
+            # Sum and count scores for each directory
+            if score_sums.get(directory) is None:
+                score_sums[directory] = 0.0
+                score_counts[directory] = 0
+            score_sums[directory] += prediction
+            score_counts[directory] += 1
+            prediction = decode_score(prediction)
+            logging.info(f"Readability of file {encoded_data[0]['name']}: {prediction}")
+        overall_score_sum = 0
+        for directory, score_sum in score_sums.items():
+            overall_score_sum += score_sum
+            avg = score_sum / score_counts[directory]
+            prediction = decode_score(avg)
+            logging.info(f"Readability of directory {directory}: {prediction}")
+        # Overall average for return value
+        avg = overall_score_sum / len(encoded_dataset)
         prediction = decode_score(avg)
-        logging.info(f"Readability of directory: {prediction}")
+        logging.info(f"Readability of whole input: {prediction}")
         return prediction
 
     def run_evaluate(self, parsed_args, encoded_data: ReadabilityDataset):

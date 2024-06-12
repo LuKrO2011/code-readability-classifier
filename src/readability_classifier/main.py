@@ -299,8 +299,9 @@ def _set_up_arg_parser() -> ArgumentParser:
         "--input",
         "-i",
         required=True,
+        nargs='+',
         type=Path,
-        help="Path to the snippet or a folder with multiplesnippets.",
+        help="One or more paths to snippets or folders with multiple snippets.",
     )
 
     return arg_parser
@@ -368,28 +369,29 @@ def _run_predict(parsed_args, model_runner: ModelRunnerInterface) -> tuple[str, 
     :param parsed_args: Parsed arguments.
     :return: None
     """
-    data_arg = parsed_args.input
+    data_args: list[Path] = parsed_args.input
 
-    # Load the snippet
-    if os.path.isfile(data_arg):
-        files = [data_arg]
-    else:
-        if os.path.isdir(data_arg):
-            files = []
-            for name in os.listdir(data_arg):
-                f = os.path.join(data_arg, name)
-                if os.path.isfile(f) and f.endswith(".java"):
-                    files.append(f)
-            if len(files) == 0:
-                raise FileNotFoundError(f"No java files in {data_arg} found.")
+    files = []
+    for data_arg in data_args:
+        # Load the snippet
+        if os.path.isfile(data_arg):
+            files.append(data_arg)
         else:
-            raise FileNotFoundError(f"{data_arg} does not exist.")
+            if os.path.isdir(data_arg):
+                for name in os.listdir(data_arg):
+                    f = os.path.join(data_arg, name)
+                    if os.path.isfile(f) and f.endswith(".java"):
+                        files.append(f)
+                if len(files) == 0:
+                    raise FileNotFoundError(f"No java files in {data_arg} found.")
+            else:
+                raise FileNotFoundError(f"{data_arg} does not exist.")
     data_inputs: list[dict] = []
     for f in files:
         with open(f) as file:
             file_contents = file.read()
             logging.info("Loaded Snippet: \n %s", file_contents)
-            data_inputs.append({"code_snippet": file_contents})
+            data_inputs.append({"name": f, "code_snippet": file_contents})
 
     # Encode the snippet
     logging.info("Encoding Snippets...")
