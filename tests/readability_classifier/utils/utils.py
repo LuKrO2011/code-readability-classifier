@@ -34,6 +34,8 @@ STATS_FILE = HISTORY_DIR / "stats.json"
 
 CODE_SNIPPETS_DIR = RES_DIR / "code_snippets"
 TOWARDS_CODE_SNIPPET = CODE_SNIPPETS_DIR / "towards.java"
+DIR_WITH_ONE_SNIPPET = CODE_SNIPPETS_DIR / "AreaShop/AreaShopInterface.java"
+DIR_WITH_FOUR_SNIPPETS = CODE_SNIPPETS_DIR / "AreaShop/AddCommand.java"
 
 
 class DirTest(unittest.TestCase):

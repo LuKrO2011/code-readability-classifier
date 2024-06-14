@@ -15,6 +15,9 @@ from tests.readability_classifier.utils.utils import (
     RAW_BW_DIR,
     TOWARDS_MODEL,
     DirTest,
+    TOWARDS_CODE_SNIPPET,
+    DIR_WITH_ONE_SNIPPET,
+    DIR_WITH_FOUR_SNIPPETS,
 )
 
 
@@ -85,3 +88,17 @@ class TestRunMain(DirTest):
 
         assert clazz == "Readable"
         assert 0.99 < score < 1
+
+    def test_run_predict_batch(self):
+        class MockParsedArgs:
+            def __init__(self):
+                self.input = [TOWARDS_CODE_SNIPPET, DIR_WITH_ONE_SNIPPET, DIR_WITH_FOUR_SNIPPETS]
+                self.model = TOWARDS_MODEL
+
+        parsed_args = MockParsedArgs()
+        model_runner = KerasModelRunner()
+
+        clazz, score = _run_predict(parsed_args, model_runner)
+
+        assert clazz == "Readable"
+        assert 0.56 < score < 0.57
