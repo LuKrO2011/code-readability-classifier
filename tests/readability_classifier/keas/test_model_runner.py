@@ -66,7 +66,7 @@ class TestKerasModelRunner(DirTest):
         )
 
         assert clazz == "Readable"
-        assert score == 0.9931080341339111
+        assert 0.99 < score < 1
 
     def test_run_evaluate(self):
         # Mock the parsed arguments

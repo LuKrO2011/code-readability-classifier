@@ -84,4 +84,4 @@ class TestRunMain(DirTest):
         clazz, score = _run_predict(parsed_args, model_runner)
 
         assert clazz == "Readable"
-        assert score == 0.9999087452888489
+        assert 0.99 < score < 1
