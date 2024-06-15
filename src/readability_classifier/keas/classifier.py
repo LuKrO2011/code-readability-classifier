@@ -5,6 +5,7 @@ from pathlib import Path
 import keras
 import numpy as np
 from keras.src.callbacks import ModelCheckpoint
+from keras.src.saving import custom_object_scope
 
 from src.readability_classifier.encoders.dataset_utils import (
     Fold,
@@ -12,6 +13,7 @@ from src.readability_classifier.encoders.dataset_utils import (
     split_k_fold,
 )
 from src.readability_classifier.keas.history_processing import HistoryList
+from src.readability_classifier.keas.model import BertEmbedding
 
 # Define parameters
 STATS_FILE_NAME = "stats.json"
@@ -38,27 +40,25 @@ def convert_to_towards_inputs(encoded_data: ReadabilityDataset) -> list[dict]:
     ]
 
 
-def convert_to_towards_input_without_score(
-    encoded_data: ReadabilityDataset,
-) -> dict[str, np.ndarray]:
+def convert_to_towards_inputs_without_score(
+    encoded_dataset: ReadabilityDataset,
+) -> [dict[str]]:
     """
-    Convert the encoded data to towards input without score.
-    :param encoded_data: The encoded data.
-    :return: The towards input.
+    Convert the encoded dataset to towards inputs without score.
+    :param encoded_dataset: The encoded dataset
+    :return: The towards inputs.
     """
-    x = encoded_data[0]
-
-    encoded = {
-        "struc_input": x["matrix"].numpy(),
-        "vis_input": np.transpose(x["image"], (1, 2, 0)).numpy(),
-        "seman_input_token": x["bert"]["input_ids"].numpy().squeeze(),
-        "seman_input_segment": x["bert"]["segment_ids"].numpy().squeeze()
-        if "segment_ids" in x["bert"]
-        else x["bert"]["position_ids"].numpy().squeeze(),
-    }
-
-    # Convert to single numpy array
-    return {k: np.array([v]) for k, v in encoded.items()}
+    return [
+        {
+            "structure": x["matrix"].numpy(),
+            "image": np.transpose(x["image"], (1, 2, 0)).numpy(),
+            "token": x["bert"]["input_ids"].numpy(),
+            "segment": x["bert"]["segment_ids"].numpy()
+            if "segment_ids" in x["bert"]
+            else x["bert"]["position_ids"].numpy(),
+        }
+        for x in encoded_dataset
+    ]
 
 
 class Classifier:
@@ -72,6 +72,7 @@ class Classifier:
         encoded_data: ReadabilityDataset = None,
         k_fold: int = 10,
         epochs: int = 20,
+        model_path: Path = None,
         batch_size: int = 42,
         store_dir: str = DEFAULT_STORE_DIR,
     ):
@@ -89,6 +90,7 @@ class Classifier:
         self.encoded_data = encoded_data
         self.k_fold = k_fold
         self.epochs = epochs
+        self.model_path = model_path
         self.batch_size = batch_size
         self.store_dir = store_dir
 
@@ -159,6 +161,21 @@ class Classifier:
                 self._dataset_to_input(fold.val_set),
                 self._dataset_to_label(fold.val_set),
             ),
+        )
+
+    def predict(self):
+        """
+        Predict readability of snippets
+        """
+        towards_inputs = ReadabilityDataset(convert_to_towards_inputs_without_score(self.encoded_data))
+
+        # Load the weights
+        with custom_object_scope({"BertEmbedding": BertEmbedding}):
+            self.model.load_weights(self.model_path)
+
+        return self.model.predict(
+            x=Classifier._dataset_to_input(towards_inputs),
+            batch_size=self.batch_size,
         )
 
     def evaluate(self) -> dict[str, float]:

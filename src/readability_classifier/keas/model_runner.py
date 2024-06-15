@@ -6,14 +6,10 @@ from dataclasses import asdict
 from pathlib import Path
 
 import keras.models
-from keras.src.saving import custom_object_scope
 
 from src.readability_classifier.encoders.dataset_encoder import decode_score
 from src.readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.keas.classifier import (
-    Classifier,
-    convert_to_towards_input_without_score,
-)
+from src.readability_classifier.keas.classifier import Classifier
 from src.readability_classifier.keas.history_processing import HistoryProcessor
 from src.readability_classifier.keas.model import BertEmbedding, create_towards_model
 from src.readability_classifier.toch.model_runner import ModelRunnerInterface
@@ -113,17 +109,23 @@ class KerasModelRunner(ModelRunnerInterface):
         # Load the model
         model = create_towards_model()
 
-        # Load the weights
-        with custom_object_scope({"BertEmbedding": BertEmbedding}):
-            model.load_weights(model_path)
+        # Create the classifier
+        classifier = Classifier(
+            model=model,
+            model_path=model_path,
+            encoded_data=encoded_dataset,
+            # TODO: Add an optional batch_size parameter for "PREDICT" and resolve it here
+            #batch_size=batch_size,
+        )
+
+        # Predict the snippets
+        predictions = classifier.predict()
 
         score_sums: dict[str, float] = {}
         score_counts: dict[str, int] = {}
-        for encoded_data in encoded_dataset.split(len(encoded_dataset)):
-            # Predict the readability of the snippets
-            towards_input = convert_to_towards_input_without_score(encoded_data)
-            prediction = model.predict(towards_input).item()
-            filename = encoded_data[0]['name']
+        for i in range(len(predictions)):
+            filename = encoded_dataset[i]['name']
+            prediction = predictions[i].item()
             directory = os.path.dirname(filename)
             # Sum and count scores for each directory
             if score_sums.get(directory) is None:
@@ -132,7 +134,8 @@ class KerasModelRunner(ModelRunnerInterface):
             score_sums[directory] += prediction
             score_counts[directory] += 1
             prediction = decode_score(prediction)
-            logging.info(f"Readability of file {encoded_data[0]['name']}: {prediction}")
+            logging.info(f"Readability of file {filename}: {prediction}")
+
         overall_score_sum = 0
         for directory, score_sum in score_sums.items():
             overall_score_sum += score_sum
