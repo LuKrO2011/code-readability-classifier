@@ -1,21 +1,18 @@
 import json
 import logging
+import os
 import pickle
 from dataclasses import asdict
 from pathlib import Path
 
 import keras.models
-from keras.src.saving import custom_object_scope
 
 from src.readability_classifier.encoders.dataset_encoder import decode_score
 from src.readability_classifier.encoders.dataset_utils import ReadabilityDataset
-from src.readability_classifier.toch.model_runner import ModelRunnerInterface
-from src.readability_classifier.keas.classifier import (
-    Classifier,
-    convert_to_towards_input_without_score,
-)
+from src.readability_classifier.keas.classifier import Classifier
 from src.readability_classifier.keas.history_processing import HistoryProcessor
 from src.readability_classifier.keas.model import BertEmbedding, create_towards_model
+from src.readability_classifier.toch.model_runner import ModelRunnerInterface
 
 STATS_FILE_NAME = "stats.json"
 
@@ -98,12 +95,12 @@ class KerasModelRunner(ModelRunnerInterface):
             json.dump(asdict(processed_history), file, indent=4)
 
     def run_predict(
-        self, parsed_args, encoded_data: ReadabilityDataset
+        self, parsed_args, encoded_dataset: ReadabilityDataset
     ) -> tuple[str, float]:
         """
         Runs the prediction of the readability classifier.
         :param parsed_args: Parsed arguments.
-        :param encoded_data: A single encoded data point.
+        :param encoded_dataset: A dataset of encoded data points.
         :return: The prediction as binary and as float (1 = readable, 0 = not readable).
         """
         model_path = parsed_args.model
@@ -112,15 +109,43 @@ class KerasModelRunner(ModelRunnerInterface):
         # Load the model
         model = create_towards_model()
 
-        # Load the weights
-        with custom_object_scope({"BertEmbedding": BertEmbedding}):
-            model.load_weights(model_path)
+        # Create the classifier
+        classifier = Classifier(
+            model=model,
+            model_path=model_path,
+            encoded_data=encoded_dataset,
+            # TODO: Add an optional batch_size parameter for "PREDICT" and resolve it here
+            #batch_size=batch_size,
+        )
 
-        # Predict the readability of the snippet
-        towards_input = convert_to_towards_input_without_score(encoded_data)
-        prediction = model.predict(towards_input)
-        prediction = decode_score(prediction.item())
-        logging.info(f"Readability of snippet: {prediction}")
+        # Predict the snippets
+        predictions = classifier.predict()
+
+        score_sums: dict[str, float] = {}
+        score_counts: dict[str, int] = {}
+        for i in range(len(predictions)):
+            filename = encoded_dataset[i]['name']
+            prediction = predictions[i].item()
+            directory = os.path.dirname(filename)
+            # Sum and count scores for each directory
+            if score_sums.get(directory) is None:
+                score_sums[directory] = 0.0
+                score_counts[directory] = 0
+            score_sums[directory] += prediction
+            score_counts[directory] += 1
+            prediction = decode_score(prediction)
+            logging.info(f"Readability of file {filename}: {prediction}")
+
+        overall_score_sum = 0
+        for directory, score_sum in score_sums.items():
+            overall_score_sum += score_sum
+            avg = score_sum / score_counts[directory]
+            prediction = decode_score(avg)
+            logging.info(f"Readability of directory {directory}: {prediction}")
+        # Overall average for return value
+        avg = overall_score_sum / len(encoded_dataset)
+        prediction = decode_score(avg)
+        logging.info(f"Readability of whole input: {prediction}")
         return prediction
 
     def run_evaluate(self, parsed_args, encoded_data: ReadabilityDataset):

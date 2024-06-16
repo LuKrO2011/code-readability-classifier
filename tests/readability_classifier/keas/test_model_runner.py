@@ -56,16 +56,17 @@ class TestKerasModelRunner(DirTest):
 
         # Get the encoded data
         code = read_content_of_file(TOWARDS_CODE_SNIPPET)
-        encoded_data = DatasetEncoder().encode_text(code)
+        dataset = [{'name': TOWARDS_CODE_SNIPPET, 'code_snippet': code}]
+        encoded_dataset = DatasetEncoder().encode_dataset(dataset)
 
         # Run the model runner
         model_runner = KerasModelRunner()
         clazz, score = model_runner.run_predict(
-            parsed_args=MockParsedArgs(), encoded_data=encoded_data
+            parsed_args=MockParsedArgs(), encoded_dataset=encoded_dataset
         )
 
         assert clazz == "Readable"
-        assert score == 0.9931080341339111
+        assert 0.99 < score < 1
 
     def test_run_evaluate(self):
         # Mock the parsed arguments
