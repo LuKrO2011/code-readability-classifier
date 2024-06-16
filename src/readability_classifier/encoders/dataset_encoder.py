@@ -58,7 +58,7 @@ class DatasetEncoder(EncoderInterface):
 
         # Normalize the scores if they exist
         encoded_scores = ["" for _ in range(len(matrix_dataset))]
-        if "scores" in unencoded_dataset[0]:
+        if "score" in unencoded_dataset[0]:
             scores = [sample["score"] for sample in unencoded_dataset]
             encoded_scores = self._encode_scores_class(scores)
 
