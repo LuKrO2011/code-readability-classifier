@@ -31,13 +31,9 @@ def create_classification_layers(input_layer: tf.Tensor) -> tf.Tensor:
         kernel_regularizer=regularizers.l2(0.001),
         name="class_dense1",
     )(input_layer)
-    drop1 = layers.Dropout(0.5, name="class_dropout1")(dense1)
-    dense2 = layers.Dense(units=32, activation="relu", name="class_dense2")(drop1)
-    drop2 = layers.Dropout(0.5, name="class_dropout2")(dense2)
-    dense3 = layers.Dense(units=16, activation="relu", name="class_dense3")(drop2)
-    drop3 = layers.Dropout(0.5, name="class_dropout3")(dense3)
-    dense4 = layers.Dense(units=8, activation="relu", name="class_dense4")(drop3)
-    return layers.Dense(1, activation="sigmoid", name="class_output")(dense4)
+    drop = layers.Dropout(0.5, name="class_dropout")(dense1)
+    dense2 = layers.Dense(units=16, activation="relu", name="class_dense2")(drop)
+    return layers.Dense(1, activation="sigmoid", name="class_dense3")(dense2)
 
 
 def create_structural_extractor(
@@ -53,52 +49,22 @@ def create_structural_extractor(
         model_input
     )
 
-    # First convolutional block
     conv1 = layers.Conv2D(
-        filters=64, kernel_size=3, activation="relu", padding="same", name="struc_conv1"
+        filters=32, kernel_size=3, activation="relu", name="struc_conv1"
     )(reshaped_input)
+    pool1 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool1")(conv1)
+
     conv2 = layers.Conv2D(
-        filters=64, kernel_size=3, activation="relu", padding="same", name="struc_conv2"
-    )(conv1)
-    pool1 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool1")(conv2)
-
-    # Second convolutional block
-    conv3 = layers.Conv2D(
-        filters=128,
-        kernel_size=3,
-        activation="relu",
-        padding="same",
-        name="struc_conv3",
+        filters=32, kernel_size=3, activation="relu", name="struc_conv2"
     )(pool1)
-    conv4 = layers.Conv2D(
-        filters=128,
-        kernel_size=3,
-        activation="relu",
-        padding="same",
-        name="struc_conv4",
-    )(conv3)
-    pool2 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool2")(conv4)
+    pool2 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool2")(conv2)
 
-    # Third convolutional block
-    conv5 = layers.Conv2D(
-        filters=256,
-        kernel_size=5,
-        activation="relu",
-        padding="same",
-        name="struc_conv5",
+    conv3 = layers.Conv2D(
+        filters=64, kernel_size=3, activation="relu", name="struc_conv3"
     )(pool2)
-    conv6 = layers.Conv2D(
-        filters=256,
-        kernel_size=5,
-        activation="relu",
-        padding="same",
-        name="struc_conv6",
-    )(conv5)
-    pool3 = layers.MaxPooling2D(pool_size=2, strides=2, name="struc_pool3")(conv6)
+    pool3 = layers.MaxPooling2D(pool_size=3, strides=3, name="struc_pool3")(conv3)
 
-    # Flatten the output
     flattened = layers.Flatten(name="struc_flatten")(pool3)
-
     return model_input, flattened
 
 
@@ -141,21 +107,14 @@ def create_semantic_extractor(
         config=BertConfig(max_sequence_length=MAX_LEN, name="seman_bert")
     )([token_input, segment_input])
 
-    # First convolutional block
-    conv1 = layers.Conv1D(64, 5, activation="relu", name="seman_conv1")(embedding)
+    conv1 = layers.Conv1D(32, 5, activation="relu", name="seman_conv1")(embedding)
     pool1 = layers.MaxPooling1D(3, name="seman_pool1")(conv1)
 
-    # Second convolutional block
-    conv2 = layers.Conv1D(128, 5, activation="relu", name="seman_conv2")(pool1)
-    pool2 = layers.MaxPooling1D(3, name="seman_pool2")(conv2)
+    conv2 = layers.Conv1D(32, 5, activation="relu", name="seman_conv2")(pool1)
 
-    # Third convolutional block
-    conv3 = layers.Conv1D(256, 5, activation="relu", name="seman_conv3")(pool2)
-
-    # Bidirectional LSTM
-    gru = layers.Bidirectional(
-        layers.LSTM(64, name="seman_lstm", return_sequences=False), name="seman_gru"
-    )(conv3)
+    gru = layers.Bidirectional(layers.LSTM(32, name="seman_lstm"), name="seman_gru")(
+        conv2
+    )
 
     return token_input, segment_input, gru
 
@@ -191,33 +150,22 @@ def create_visual_extractor(
     """
     model_input = layers.Input(shape=input_shape, name="vis_input")
 
-    # First convolutional block
     conv1 = layers.Conv2D(
-        filters=64, kernel_size=3, padding="same", activation="relu", name="vis_conv1"
+        filters=32, kernel_size=3, padding="same", activation="relu", name="vis_conv1"
     )(model_input)
     pool1 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool1")(conv1)
 
-    # Second convolutional block
     conv2 = layers.Conv2D(
-        filters=128, kernel_size=3, padding="same", activation="relu", name="vis_conv2"
+        filters=32, kernel_size=3, padding="same", activation="relu", name="vis_conv2"
     )(pool1)
     pool2 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool2")(conv2)
 
-    # Third convolutional block
     conv3 = layers.Conv2D(
-        filters=256, kernel_size=3, padding="same", activation="relu", name="vis_conv3"
+        filters=64, kernel_size=3, padding="same", activation="relu", name="vis_conv3"
     )(pool2)
     pool3 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool3")(conv3)
 
-    # Fourth convolutional block
-    conv4 = layers.Conv2D(
-        filters=512, kernel_size=3, padding="same", activation="relu", name="vis_conv4"
-    )(pool3)
-    pool4 = layers.MaxPooling2D(pool_size=2, strides=2, name="vis_pool4")(conv4)
-
-    # Flatten layer
-    flattened = layers.Flatten(name="vis_flatten")(pool4)
-
+    flattened = layers.Flatten(name="vis_flatten")(pool3)
     return model_input, flattened
 
 
