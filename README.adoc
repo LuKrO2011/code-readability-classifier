@@ -52,13 +52,18 @@ sudo apt-get install -y python3.11 python3-pip
 
 3. Install https://wkhtmltopdf.org/[wkhtmltopdf]:
 
-- https://wkhtmltopdf.org/downloads.html[Windows]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
+- https://wkhtmltopdf.org/downloads.html[Windows/MacOS]: After downloading and installing, make sure to add the `/bin` folder to your PATH.
 - Ubuntu: Install the package using the following commands:
 [source,bash]
 sudo apt-get update
 sudo apt-get install -y wkhtmltopdf
 
 - After the installation, restart your IDE/terminal.
+
+4. (Optional) If you plan on training the model, use https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage[git lfs] to download the datasets:
+[source,bash]
+git lfs install
+git lfs pull
 
 === Using Poetry
 1. Install Poetry if you haven't already:
@@ -89,7 +94,7 @@ foreach ($k in Get-Content requirements.txt) {
         pip install $k
     }
 }
-- Ubuntu:
+- Ubuntu/MacOS:
 [source,bash]
 cat requirements.txt | xargs -n 1 pip install
 
