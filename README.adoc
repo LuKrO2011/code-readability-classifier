@@ -60,7 +60,7 @@ sudo apt-get install -y wkhtmltopdf
 
 - After the installation, restart your IDE/terminal.
 
-4. (Optional) If you plan on training the model, use https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage[git lfs] to download the datasets:
+4. Use https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage[git lfs] to download the models & datasets:
 [source,bash]
 git lfs install
 git lfs pull
