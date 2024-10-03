@@ -61,10 +61,13 @@ if __name__ == "__main__":
     # Create the model
     model = create_towards_model()
 
+    filename = "model-more-layers"
+
     # Visualize and save the model architecture
-    visualize_model_architecture(model, file_name="towards_model_original.png")
+    visualize_model_architecture(model, file_name=f"{filename}.png")
 
     # Visualize the model architecture using VisualKeras
-    visualize_model_with_visualkeras(
-        model, file_name="towards_model_original_layered.png"
-    )
+    visualize_model_with_visualkeras(model, file_name=f"{filename}_visualkeras.png")
+
+    # Log the number of parameters in the model
+    model.summary()
